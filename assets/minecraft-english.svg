@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" role="img" aria-label="Minecraft English">
+  <defs>
+    <linearGradient id="g" x1="132" y1="104" x2="900" y2="930" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#71D98B"/>
+      <stop offset="0.5" stop-color="#36B96D"/>
+      <stop offset="1" stop-color="#188B59"/>
+    </linearGradient>
+  </defs>
+  <rect width="1024" height="1024" fill="url(#g)"/>
+  <rect x="108" y="130" width="808" height="764" rx="172" fill="#0D5F44" opacity=".16"/>
+  <path d="M257 286h510a88 88 0 0 1 88 88v276a88 88 0 0 1-88 88H537L386 831v-93H257a88 88 0 0 1-88-88V374a88 88 0 0 1 88-88Z" fill="#FFFFFF" opacity=".96"/>
+  <path d="m390 637 115-303h83l116 303h-86l-22-67H494l-22 67h-82Zm129-140h53l-26-87-27 87Z" fill="#218C5A"/>
+</svg>
