@@ -1,0 +1,16 @@
+[
+  {
+    "id": "kids-3d-playgrand",
+    "name": "3Dこうさく",
+    "url": "https://plzsayyes3.github.io/kids-3d-playgrand/",
+    "icon": "./assets/kids-3d.svg",
+    "description": "かたちをつくって、くっつけて、3Dにしよう"
+  },
+  {
+    "id": "minecraft-english",
+    "name": "Minecraft English",
+    "url": "https://plzsayyes3.github.io/English-for-Minecraft/",
+    "icon": "./assets/minecraft-english.svg",
+    "description": "Minecraftにつながる英語をたのしく学ぼう"
+  }
+]
