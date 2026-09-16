@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" role="img" aria-label="For My Sons">
+  <defs>
+    <linearGradient id="bg" x1="96" y1="80" x2="916" y2="940" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#BFE4EA"/>
+      <stop offset="0.52" stop-color="#D8E4D7"/>
+      <stop offset="1" stop-color="#EAD4BC"/>
+    </linearGradient>
+    <linearGradient id="mark" x1="336" y1="300" x2="700" y2="736" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#3D8DA6"/>
+      <stop offset="1" stop-color="#2D667A"/>
+    </linearGradient>
+  </defs>
+  <rect width="1024" height="1024" fill="url(#bg)"/>
+  <circle cx="512" cy="512" r="318" fill="#FFFFFF" opacity=".78"/>
+  <path d="M327 654V398c0-42 34-76 76-76h218c42 0 76 34 76 76v256c0 42-34 76-76 76H403c-42 0-76-34-76-76Z" fill="url(#mark)"/>
+  <circle cx="427" cy="480" r="38" fill="#FFFFFF"/>
+  <circle cx="597" cy="480" r="38" fill="#FFFFFF"/>
+  <path d="M409 589c28 42 62 63 103 63s75-21 103-63" fill="none" stroke="#FFFFFF" stroke-width="34" stroke-linecap="round"/>
+</svg>
