@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" role="img" aria-label="3Dこうさく">
+  <defs>
+    <linearGradient id="g" x1="120" y1="96" x2="920" y2="928" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#69D6FF"/>
+      <stop offset="0.52" stop-color="#3A9CF0"/>
+      <stop offset="1" stop-color="#5577E8"/>
+    </linearGradient>
+    <linearGradient id="top" x1="512" y1="230" x2="512" y2="520" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF"/>
+      <stop offset="1" stop-color="#DFF6FF"/>
+    </linearGradient>
+  </defs>
+  <rect width="1024" height="1024" fill="url(#g)"/>
+  <circle cx="822" cy="188" r="118" fill="#FFFFFF" opacity=".16"/>
+  <circle cx="168" cy="836" r="168" fill="#FFFFFF" opacity=".10"/>
+  <g stroke="#FFFFFF" stroke-width="34" stroke-linejoin="round" stroke-linecap="round">
+    <path d="M512 215 758 350 512 490 266 350 512 215Z" fill="url(#top)"/>
+    <path d="M266 350v282l246 177V490L266 350Z" fill="#EAF8FF" fill-opacity=".9"/>
+    <path d="M758 350v282L512 809V490l246-140Z" fill="#CFE9FF" fill-opacity=".76"/>
+    <path d="M512 490v319" fill="none" opacity=".92"/>
+  </g>
+</svg>
