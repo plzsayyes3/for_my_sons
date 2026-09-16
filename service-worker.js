@@ -1,4 +1,4 @@
-const CACHE_NAME = 'for-my-sons-v2';
+const CACHE_NAME = 'for-my-sons-v3';
 const SHELL = [
   './',
   './index.html',
@@ -9,7 +9,12 @@ const SHELL = [
   './assets/for-my-sons-icon.svg',
   './assets/kids-3d.svg',
   './assets/minecraft-english.svg',
-  './assets/learning.svg'
+  './assets/typing.svg',
+  './assets/pressure.svg',
+  './assets/roulette.svg',
+  './assets/step-up.svg',
+  './assets/match3.svg',
+  './assets/space-survival.svg'
 ];
 
 self.addEventListener('install', (event) => {
