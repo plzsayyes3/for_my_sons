@@ -1,0 +1,19 @@
+{
+  "name": "For My Sons",
+  "short_name": "For My Sons",
+  "description": "子どもたちのWebアプリへ迷わず入るためのホーム画面",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#B8DCE2",
+  "theme_color": "#9ECBD8",
+  "icons": [
+    {
+      "src": "./assets/for-my-sons-icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    }
+  ]
+}
