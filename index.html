@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#9ecbd8">
+  <meta name="color-scheme" content="light">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="For My Sons">
+  <meta name="description" content="子どもたちのWebアプリへ迷わず入るためのホーム画面">
+  <title>For My Sons</title>
+  <link rel="manifest" href="./manifest.webmanifest">
+  <link rel="icon" href="./assets/for-my-sons-icon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="./styles.css">
+</head>
+<body>
+  <main class="home-screen" aria-labelledby="home-title">
+    <section class="hero-widget" aria-label="For My Sons">
+      <p class="eyebrow">FOR MY SONS</p>
+      <h1 id="home-title">あそぶ。つくる。まなぶ。</h1>
+      <p class="hero-copy">ここから、すきなものをひらこう。</p>
+    </section>
+
+    <section class="apps-section" aria-label="アプリ">
+      <div id="app-grid" class="app-grid" aria-live="polite"></div>
+    </section>
+
+    <div class="page-indicator" aria-hidden="true">
+      <span class="page-dot is-active"></span>
+    </div>
+  </main>
+
+  <template id="app-template">
+    <a class="app-tile" rel="noopener noreferrer">
+      <span class="app-icon-wrap">
+        <img class="app-icon" alt="" width="72" height="72">
+      </span>
+      <span class="app-name"></span>
+    </a>
+  </template>
+
+  <script src="./app.js" defer></script>
+</body>
+</html>
