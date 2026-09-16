@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" role="img" aria-label="Learning">
+  <defs>
+    <linearGradient id="g" x1="120" y1="96" x2="910" y2="928" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFD66B"/>
+      <stop offset="0.5" stop-color="#FFA75E"/>
+      <stop offset="1" stop-color="#FF7C70"/>
+    </linearGradient>
+  </defs>
+  <rect width="1024" height="1024" fill="url(#g)"/>
+  <circle cx="820" cy="190" r="120" fill="#FFFFFF" opacity=".16"/>
+  <circle cx="170" cy="830" r="170" fill="#FFFFFF" opacity=".10"/>
+  <path d="M254 318c0-31 25-56 56-56h404c31 0 56 25 56 56v388c0 31-25 56-56 56H310c-31 0-56-25-56-56V318Z" fill="#FFFFFF" fill-opacity=".94"/>
+  <path d="M512 288v448" stroke="#FF9A5B" stroke-width="28" stroke-linecap="round" opacity=".5"/>
+  <path d="M328 384h120M328 462h120M328 540h120" stroke="#FF9A5B" stroke-width="26" stroke-linecap="round"/>
+  <path d="M576 384h120M576 462h120M576 540h120" stroke="#FF9A5B" stroke-width="26" stroke-linecap="round"/>
+  <path d="M360 642c64 38 119 53 152 53s88-15 152-53" fill="none" stroke="#FF8C57" stroke-width="30" stroke-linecap="round"/>
+</svg>
