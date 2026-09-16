@@ -14,10 +14,45 @@
     "description": "Minecraftにつながる英語をたのしく学ぼう"
   },
   {
-    "id": "learning",
-    "name": "Learning",
-    "url": "https://arafo-aragai.com/learning/",
-    "icon": "./assets/learning.svg",
-    "description": "これまで作った学習コンテンツをひらく"
+    "id": "typing",
+    "name": "たいぴんぐ",
+    "url": "https://arafo-aragai.com/learning/typegame/typegame.html",
+    "icon": "./assets/typing.svg",
+    "description": "Typing"
+  },
+  {
+    "id": "pressure",
+    "name": "気圧",
+    "url": "https://arafo-aragai.com/learning/kiatsuline.html",
+    "icon": "./assets/pressure.svg",
+    "description": "Pressure"
+  },
+  {
+    "id": "roulette",
+    "name": "ルーレット",
+    "url": "https://arafo-aragai.com/learning/%E3%83%AB%E3%83%BC%E3%83%AC%E3%83%83%E3%83%88.html",
+    "icon": "./assets/roulette.svg",
+    "description": "Roulette"
+  },
+  {
+    "id": "step-up",
+    "name": "step up",
+    "url": "https://arafo-aragai.com/learning/stepup/stepup.html",
+    "icon": "./assets/step-up.svg",
+    "description": "Steps"
+  },
+  {
+    "id": "escape-match3",
+    "name": "脱出マッチ3",
+    "url": "https://arafo-aragai.com/learning/games/escape-match3/index.html",
+    "icon": "./assets/match3.svg",
+    "description": "Match-3"
+  },
+  {
+    "id": "space-survival",
+    "name": "宇宙サバイバル",
+    "url": "https://arafo-aragai.com/learning/games/space-survival/index.html",
+    "icon": "./assets/space-survival.svg",
+    "description": "Space"
   }
 ]
