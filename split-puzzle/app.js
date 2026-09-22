@@ -114,7 +114,11 @@ function saveBestTime(ms) {
 
   if (isBest) {
     times[key] = Math.round(ms);
-    localStorage.setItem(BEST_TIME_KEY, JSON.stringify(times));
+    try {
+      localStorage.setItem(BEST_TIME_KEY, JSON.stringify(times));
+    } catch (error) {
+      console.warn("Best time save failed", error);
+    }
   }
 
   return isBest;
@@ -844,7 +848,7 @@ timeAttackToggle.addEventListener("click", () => {
 });
 
 celebration.addEventListener("click", (event) => {
-  if (event.target === celebration) hideCelebration();
+  if (event.target === celebration) startNewPuzzle();
 });
 
 importButton.addEventListener("click", openImportModal);
