@@ -76,7 +76,7 @@
     }
     .keyboard {
       position: relative;
-      width: min(100%, 940px);
+      width: min(100%, 1180px);
       min-height: 280px;
       display: flex;
       border: 10px solid #2a2928;
@@ -112,7 +112,7 @@
       left: 50%;
       bottom: 14px;
       transform: translateX(-50%);
-      font-size: clamp(14px, 3.2vw, 22px);
+      font-size: clamp(10px, 1.8vw, 18px);
       font-weight: 800;
       pointer-events: none;
     }
@@ -120,7 +120,7 @@
       position: absolute;
       top: 0;
       z-index: 3;
-      width: 8.4%;
+      width: 4.8%;
       height: 61%;
       transform: translateX(-50%);
       border: 0;
@@ -134,11 +134,16 @@
       box-shadow: 0 2px 3px rgba(0,0,0,.35), inset 0 3px 8px rgba(255,255,255,.04);
       transform: translateX(-50%) translateY(3px);
     }
-    .k-cs { left: 12.5%; }
-    .k-ds { left: 25%; }
-    .k-fs { left: 50%; }
-    .k-gs { left: 62.5%; }
-    .k-as { left: 75%; }
+    .k-cs4 { left: 6.6667%; }
+    .k-ds4 { left: 13.3333%; }
+    .k-fs4 { left: 26.6667%; }
+    .k-gs4 { left: 33.3333%; }
+    .k-as4 { left: 40%; }
+    .k-cs5 { left: 53.3333%; }
+    .k-ds5 { left: 60%; }
+    .k-fs5 { left: 73.3333%; }
+    .k-gs5 { left: 80%; }
+    .k-as5 { left: 86.6667%; }
     .status {
       min-height: 26px;
       padding: 8px 2px 0;
@@ -181,12 +186,24 @@
         <button class="white-key" data-note="A4" data-key="h" aria-label="ラ"><span class="note-label">ラ</span></button>
         <button class="white-key" data-note="B4" data-key="j" aria-label="シ"><span class="note-label">シ</span></button>
         <button class="white-key" data-note="C5" data-key="k" aria-label="高いド"><span class="note-label">ド</span></button>
+        <button class="white-key" data-note="D5" aria-label="高いレ"><span class="note-label">レ</span></button>
+        <button class="white-key" data-note="E5" aria-label="高いミ"><span class="note-label">ミ</span></button>
+        <button class="white-key" data-note="F5" aria-label="高いファ"><span class="note-label">ファ</span></button>
+        <button class="white-key" data-note="G5" aria-label="高いソ"><span class="note-label">ソ</span></button>
+        <button class="white-key" data-note="A5" aria-label="高いラ"><span class="note-label">ラ</span></button>
+        <button class="white-key" data-note="B5" aria-label="高いシ"><span class="note-label">シ</span></button>
+        <button class="white-key" data-note="C6" aria-label="さらに高いド"><span class="note-label">ド</span></button>
 
-        <button class="black-key k-cs" data-note="C#4" data-key="w" aria-label="ドのシャープ"></button>
-        <button class="black-key k-ds" data-note="D#4" data-key="e" aria-label="レのシャープ"></button>
-        <button class="black-key k-fs" data-note="F#4" data-key="t" aria-label="ファのシャープ"></button>
-        <button class="black-key k-gs" data-note="G#4" data-key="y" aria-label="ソのシャープ"></button>
-        <button class="black-key k-as" data-note="A#4" data-key="u" aria-label="ラのシャープ"></button>
+        <button class="black-key k-cs4" data-note="C#4" data-key="w" aria-label="ドのシャープ"></button>
+        <button class="black-key k-ds4" data-note="D#4" data-key="e" aria-label="レのシャープ"></button>
+        <button class="black-key k-fs4" data-note="F#4" data-key="t" aria-label="ファのシャープ"></button>
+        <button class="black-key k-gs4" data-note="G#4" data-key="y" aria-label="ソのシャープ"></button>
+        <button class="black-key k-as4" data-note="A#4" data-key="u" aria-label="ラのシャープ"></button>
+        <button class="black-key k-cs5" data-note="C#5" aria-label="高いドのシャープ"></button>
+        <button class="black-key k-ds5" data-note="D#5" aria-label="高いレのシャープ"></button>
+        <button class="black-key k-fs5" data-note="F#5" aria-label="高いファのシャープ"></button>
+        <button class="black-key k-gs5" data-note="G#5" aria-label="高いソのシャープ"></button>
+        <button class="black-key k-as5" data-note="A#5" aria-label="高いラのシャープ"></button>
       </div>
     </section>
 
@@ -198,7 +215,7 @@
       const root = document.getElementById('keyboard');
       const status = document.getElementById('status');
       const keys = [...root.querySelectorAll('[data-note]')];
-      const byKeyboardKey = new Map(keys.map((el) => [el.dataset.key, el]));
+      const byKeyboardKey = new Map(keys.filter((el) => el.dataset.key).map((el) => [el.dataset.key, el]));
       const noteIndex = { C: 0, 'C#': 1, D: 2, 'D#': 3, E: 4, F: 5, 'F#': 6, G: 7, 'G#': 8, A: 9, 'A#': 10, B: 11 };
 
       let audioContext = null;
