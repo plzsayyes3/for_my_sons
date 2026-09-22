@@ -146,50 +146,22 @@
       color: #262524;
       border-color: #f0e8d8;
     }
-    .knob-grid {
+    .fader-grid {
       display: grid;
       grid-template-columns: repeat(6, minmax(0, 1fr));
-      gap: 8px;
+      gap: 10px;
+      align-items: end;
     }
-    .knob-control {
+    .fader-control {
       min-width: 0;
       display: grid;
+      grid-template-rows: auto 1fr auto;
       justify-items: center;
-      gap: 4px;
-      padding: 4px 0 0;
-      outline: none;
-      touch-action: none;
-      user-select: none;
-      -webkit-user-select: none;
+      gap: 6px;
+      min-height: 150px;
+      padding: 2px 0;
     }
-    .knob-control:focus-visible .knob {
-      outline: 2px solid #fff;
-      outline-offset: 3px;
-    }
-    .knob {
-      --angle: -135deg;
-      position: relative;
-      width: clamp(50px, 8vw, 66px);
-      aspect-ratio: 1;
-      border-radius: 50%;
-      background:
-        radial-gradient(circle at 50% 44%, #555 0 18%, #343433 19% 62%, #181817 63% 100%);
-      border: 2px solid #111;
-      box-shadow: inset 0 2px 5px rgba(255,255,255,.10), 0 4px 8px rgba(0,0,0,.32);
-      transform: rotate(var(--angle));
-    }
-    .knob::after {
-      content: "";
-      position: absolute;
-      left: 50%;
-      top: 7px;
-      width: 3px;
-      height: 17px;
-      border-radius: 3px;
-      background: #f3ead9;
-      transform: translateX(-50%);
-    }
-    .knob-name {
+    .fader-name {
       max-width: 100%;
       overflow: hidden;
       text-overflow: ellipsis;
@@ -200,7 +172,52 @@
       color: rgba(255,255,255,.68);
       white-space: nowrap;
     }
-    .knob-value {
+    .fader-range {
+      width: 44px;
+      height: 105px;
+      margin: 0;
+      appearance: none;
+      -webkit-appearance: none;
+      writing-mode: vertical-lr;
+      direction: rtl;
+      background: transparent;
+      touch-action: none;
+    }
+    .fader-range::-webkit-slider-runnable-track {
+      width: 8px;
+      border-radius: 999px;
+      background: linear-gradient(180deg, #f0e8d8 0%, #7a746b 100%);
+      box-shadow: inset 0 0 0 1px rgba(0,0,0,.38);
+    }
+    .fader-range::-webkit-slider-thumb {
+      appearance: none;
+      -webkit-appearance: none;
+      width: 36px;
+      height: 22px;
+      margin-left: -14px;
+      border: 2px solid #151515;
+      border-radius: 7px;
+      background: #e9e3d8;
+      box-shadow: 0 3px 7px rgba(0,0,0,.35), inset 0 1px 0 rgba(255,255,255,.65);
+    }
+    .fader-range::-moz-range-track {
+      width: 8px;
+      border-radius: 999px;
+      background: linear-gradient(180deg, #f0e8d8 0%, #7a746b 100%);
+    }
+    .fader-range::-moz-range-thumb {
+      width: 36px;
+      height: 22px;
+      border: 2px solid #151515;
+      border-radius: 7px;
+      background: #e9e3d8;
+    }
+    .fader-range:focus-visible {
+      outline: 2px solid #fff;
+      outline-offset: 4px;
+      border-radius: 8px;
+    }
+    .fader-value {
       font-size: 10px;
       line-height: 1.1;
       font-variant-numeric: tabular-nums;
@@ -310,9 +327,9 @@
       flex: 0 0 auto;
     }
     @media (max-width: 700px) {
-      .knob-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 7px 5px; }
+      .fader-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px 6px; }
       .synth-panel { padding: 10px 10px 12px; }
-      .knob { width: 50px; }
+      .fader-control { min-height: 128px; } .fader-range { height: 82px; }
       .wave-button { min-width: 36px; padding: 0 7px; }
     }
     @media (orientation: landscape) {
@@ -332,9 +349,9 @@
       .app.is-custom .piano-shell { height: 120px; }
       .synth-panel { margin-bottom: 4px; padding: 8px 10px; }
       .synth-head { margin-bottom: 6px; }
-      .knob-grid { grid-template-columns: repeat(6, minmax(0, 1fr)); }
-      .knob { width: 42px; }
-      .knob-name, .knob-value { font-size: 9px; }
+      .fader-grid { grid-template-columns: repeat(6, minmax(0, 1fr)); }
+      .fader-control { min-height: 102px; gap: 3px; } .fader-range { height: 64px; width: 38px; }
+      .fader-name, .fader-value { font-size: 9px; }
     }
   </style>
 </head>
@@ -370,25 +387,37 @@
           <button class="wave-button" type="button" data-wave="square" aria-pressed="false">SQR</button>
         </div>
       </div>
-      <div class="knob-grid">
-        <div class="knob-control" tabindex="0" role="slider" aria-label="カットオフ" aria-valuemin="200" aria-valuemax="9000" aria-valuenow="3200" data-param="cutoff" data-min="200" data-max="9000" data-step="50" data-value="3200">
-          <div class="knob"></div><div class="knob-name">CUTOFF</div><div class="knob-value"></div>
-        </div>
-        <div class="knob-control" tabindex="0" role="slider" aria-label="レゾナンス" aria-valuemin="0.2" aria-valuemax="18" aria-valuenow="3.5" data-param="resonance" data-min="0.2" data-max="18" data-step="0.1" data-value="3.5">
-          <div class="knob"></div><div class="knob-name">RESONANCE</div><div class="knob-value"></div>
-        </div>
-        <div class="knob-control" tabindex="0" role="slider" aria-label="アタック" aria-valuemin="0.005" aria-valuemax="1.2" aria-valuenow="0.03" data-param="attack" data-min="0.005" data-max="1.2" data-step="0.005" data-value="0.03">
-          <div class="knob"></div><div class="knob-name">ATTACK</div><div class="knob-value"></div>
-        </div>
-        <div class="knob-control" tabindex="0" role="slider" aria-label="リリース" aria-valuemin="0.03" aria-valuemax="2.5" aria-valuenow="0.45" data-param="release" data-min="0.03" data-max="2.5" data-step="0.01" data-value="0.45">
-          <div class="knob"></div><div class="knob-name">RELEASE</div><div class="knob-value"></div>
-        </div>
-        <div class="knob-control" tabindex="0" role="slider" aria-label="デチューン" aria-valuemin="0" aria-valuemax="40" aria-valuenow="8" data-param="detune" data-min="0" data-max="40" data-step="1" data-value="8">
-          <div class="knob"></div><div class="knob-name">DETUNE</div><div class="knob-value"></div>
-        </div>
-        <div class="knob-control" tabindex="0" role="slider" aria-label="厚み" aria-valuemin="0" aria-valuemax="100" aria-valuenow="55" data-param="thickness" data-min="0" data-max="100" data-step="1" data-value="55">
-          <div class="knob"></div><div class="knob-name">THICKNESS</div><div class="knob-value"></div>
-        </div>
+      <div class="fader-grid">
+        <label class="fader-control">
+          <span class="fader-name">CUTOFF</span>
+          <input class="fader-range" type="range" aria-label="カットオフ" min="200" max="9000" step="50" value="3200" data-param="cutoff">
+          <span class="fader-value"></span>
+        </label>
+        <label class="fader-control">
+          <span class="fader-name">RESONANCE</span>
+          <input class="fader-range" type="range" aria-label="レゾナンス" min="0.2" max="18" step="0.1" value="3.5" data-param="resonance">
+          <span class="fader-value"></span>
+        </label>
+        <label class="fader-control">
+          <span class="fader-name">ATTACK</span>
+          <input class="fader-range" type="range" aria-label="アタック" min="0.005" max="1.2" step="0.005" value="0.03" data-param="attack">
+          <span class="fader-value"></span>
+        </label>
+        <label class="fader-control">
+          <span class="fader-name">RELEASE</span>
+          <input class="fader-range" type="range" aria-label="リリース" min="0.03" max="2.5" step="0.01" value="0.45" data-param="release">
+          <span class="fader-value"></span>
+        </label>
+        <label class="fader-control">
+          <span class="fader-name">DETUNE</span>
+          <input class="fader-range" type="range" aria-label="デチューン" min="0" max="40" step="1" value="8" data-param="detune">
+          <span class="fader-value"></span>
+        </label>
+        <label class="fader-control">
+          <span class="fader-name">THICKNESS</span>
+          <input class="fader-range" type="range" aria-label="厚み" min="0" max="100" step="1" value="55" data-param="thickness">
+          <span class="fader-value"></span>
+        </label>
       </div>
     </section>
 
@@ -434,7 +463,7 @@
       const soundPicker = document.getElementById('sound-picker');
       const synthBack = document.getElementById('synth-back');
       const waveButtons = [...document.querySelectorAll('[data-wave]')];
-      const knobControls = [...document.querySelectorAll('.knob-control')];
+      const faderControls = [...document.querySelectorAll('.fader-range')];
       const soundButtons = [...soundPicker.querySelectorAll('[data-sound]')];
       const keys = [...root.querySelectorAll('[data-note]')];
       const byKeyboardKey = new Map(keys.filter((el) => el.dataset.key).map((el) => [el.dataset.key, el]));
@@ -672,18 +701,11 @@
         return String(value);
       }
 
-      function updateKnob(control, rawValue, updateSound = true) {
-        const min = Number(control.dataset.min);
-        const max = Number(control.dataset.max);
-        const step = Number(control.dataset.step);
-        const name = control.dataset.param;
-        const value = Math.min(max, Math.max(min, Math.round(rawValue / step) * step));
-        const ratio = (value - min) / (max - min);
-        const angle = -135 + ratio * 270;
-        control.dataset.value = String(value);
-        control.setAttribute('aria-valuenow', String(value));
-        control.querySelector('.knob').style.setProperty('--angle', angle + 'deg');
-        control.querySelector('.knob-value').textContent = formatParam(name, value);
+      function updateFader(input, updateSound = true) {
+        const name = input.dataset.param;
+        const value = Number(input.value);
+        const valueLabel = input.closest('.fader-control').querySelector('.fader-value');
+        valueLabel.textContent = formatParam(name, value);
         if (updateSound) {
           custom[name] = value;
           updateActiveCustomVoices();
@@ -705,32 +727,9 @@
         });
       }
 
-      knobControls.forEach((control) => {
-        updateKnob(control, Number(control.dataset.value), false);
-        let startY = 0;
-        let startValue = 0;
-
-        control.addEventListener('pointerdown', (event) => {
-          event.preventDefault();
-          startY = event.clientY;
-          startValue = Number(control.dataset.value);
-          control.setPointerCapture?.(event.pointerId);
-        });
-
-        control.addEventListener('pointermove', (event) => {
-          if (!control.hasPointerCapture?.(event.pointerId)) return;
-          const min = Number(control.dataset.min);
-          const max = Number(control.dataset.max);
-          const delta = (startY - event.clientY) / 130;
-          updateKnob(control, startValue + delta * (max - min));
-        });
-
-        control.addEventListener('keydown', (event) => {
-          if (!['ArrowUp', 'ArrowRight', 'ArrowDown', 'ArrowLeft'].includes(event.key)) return;
-          event.preventDefault();
-          const direction = (event.key === 'ArrowUp' || event.key === 'ArrowRight') ? 1 : -1;
-          updateKnob(control, Number(control.dataset.value) + direction * Number(control.dataset.step));
-        });
+      faderControls.forEach((input) => {
+        updateFader(input, false);
+        input.addEventListener('input', () => updateFader(input, true));
       });
 
       waveButtons.forEach((button) => {
