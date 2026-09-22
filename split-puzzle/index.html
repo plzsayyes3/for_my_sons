@@ -18,7 +18,10 @@
         <p class="eyebrow">FOR MY SONS</p>
         <h1>Split Puzzle</h1>
       </div>
-      <button class="new-button" id="new-puzzle" type="button" aria-label="あたらしいパズル">↻</button>
+      <div class="top-actions">
+        <button class="import-button" id="import-button" type="button" aria-label="絵をインポート">＋絵</button>
+        <button class="new-button" id="new-puzzle" type="button" aria-label="あたらしいパズル">↻</button>
+      </div>
     </header>
 
     <main>
@@ -31,12 +34,69 @@
         <div class="moves" aria-live="polite"><span id="move-count">0</span> かい</div>
       </section>
 
+      <section class="custom-source" id="custom-source" hidden>
+        <img id="custom-preview" alt="">
+        <span>この絵をつかってる</span>
+        <button id="remove-custom" type="button">絵文字だけ</button>
+      </section>
+
       <section class="puzzle-area">
         <div id="board" class="board" role="grid" aria-label="絵あわせパズル"></div>
       </section>
 
       <p class="hint">ピースをドラッグするか、2つをじゅんばんにタップしていれかえよう。</p>
     </main>
+  </div>
+
+  <div class="modal import-modal" id="import-modal" aria-hidden="true">
+    <section class="modal-card import-card" role="dialog" aria-modal="true" aria-labelledby="import-title">
+      <div class="modal-head">
+        <div>
+          <p class="modal-kicker">IMPORT</p>
+          <h2 id="import-title">絵をえらぶ</h2>
+        </div>
+        <button class="modal-close" id="import-close" type="button" aria-label="とじる">✕</button>
+      </div>
+
+      <button class="device-import" id="device-import" type="button">
+        <span class="device-import-icon" aria-hidden="true">▧</span>
+        <span><strong>写真からえらぶ</strong><small>この端末の写真・画像</small></span>
+      </button>
+      <input id="file-input" type="file" accept="image/*" hidden>
+
+      <div class="library-head">
+        <strong>ペイントから</strong>
+        <span>「パズルに保存」した絵</span>
+      </div>
+      <div class="paint-gallery" id="paint-gallery"></div>
+      <p class="gallery-empty" id="gallery-empty" hidden>まだ保存した絵がないよ。ペイントで「パズルに保存」するとここに出るよ。</p>
+    </section>
+  </div>
+
+  <div class="modal crop-modal" id="crop-modal" aria-hidden="true">
+    <section class="modal-card crop-card" role="dialog" aria-modal="true" aria-labelledby="crop-title">
+      <div class="modal-head">
+        <div>
+          <p class="modal-kicker">CROP</p>
+          <h2 id="crop-title">正方形にしよう</h2>
+        </div>
+        <button class="modal-close" id="crop-close" type="button" aria-label="とじる">✕</button>
+      </div>
+      <p class="crop-help">使いたいところが正方形に入るように、うごかして大きさをかえよう。</p>
+      <div class="crop-preview-wrap">
+        <canvas id="crop-preview" width="720" height="720" aria-label="正方形の切り抜きプレビュー"></canvas>
+        <div class="crop-guide" aria-hidden="true"></div>
+      </div>
+      <div class="zoom-row">
+        <span aria-hidden="true">−</span>
+        <input id="crop-zoom" type="range" min="1" max="6" step="0.01" value="1" aria-label="拡大">
+        <span aria-hidden="true">＋</span>
+      </div>
+      <div class="crop-actions">
+        <button class="secondary-action" id="crop-reset" type="button">まんなか</button>
+        <button class="primary-action" id="crop-confirm" type="button">これで決定</button>
+      </div>
+    </section>
   </div>
 
   <div class="celebration" id="celebration" aria-hidden="true">
@@ -47,6 +107,8 @@
       <button id="play-again" type="button">もういちど</button>
     </div>
   </div>
+
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
   <script src="./app.js" defer></script>
 </body>
