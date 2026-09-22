@@ -755,7 +755,6 @@
         lfoGain.gain.linearRampToValueAtTime(depth, now + delay + 0.18);
         lfo.connect(lfoGain);
         targetOscillators.forEach((osc) => lfoGain.connect(osc.detune));
-        lfo.start(now);
         return lfo;
       }
 
