@@ -1,0 +1,334 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#f4efe7">
+  <meta name="color-scheme" content="light">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <title>ピアノ | For My Sons</title>
+  <style>
+    * { box-sizing: border-box; }
+    html, body { margin: 0; min-height: 100%; }
+    body {
+      min-height: 100svh;
+      overflow: hidden;
+      font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", Arial, sans-serif;
+      color: #1f2937;
+      background: linear-gradient(180deg, #f7f3ec 0%, #e9e4da 100%);
+      -webkit-font-smoothing: antialiased;
+    }
+    button, a { -webkit-tap-highlight-color: transparent; }
+    .app {
+      min-height: 100svh;
+      display: flex;
+      flex-direction: column;
+      padding:
+        calc(env(safe-area-inset-top) + 12px)
+        12px
+        calc(env(safe-area-inset-bottom) + 12px);
+    }
+    .topbar {
+      min-height: 52px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 0 4px 10px;
+      flex: 0 0 auto;
+    }
+    .back {
+      width: 44px;
+      height: 44px;
+      display: grid;
+      place-items: center;
+      border-radius: 14px;
+      color: #263238;
+      background: rgba(255,255,255,.62);
+      border: 1px solid rgba(255,255,255,.9);
+      text-decoration: none;
+      font-size: 24px;
+      font-weight: 650;
+      box-shadow: 0 4px 12px rgba(55,50,43,.08);
+    }
+    .title {
+      min-width: 0;
+    }
+    .title h1 {
+      margin: 0;
+      font-size: clamp(22px, 5vw, 30px);
+      line-height: 1;
+      letter-spacing: -.03em;
+    }
+    .title p {
+      margin: 5px 0 0;
+      color: #73706a;
+      font-size: 12px;
+      font-weight: 650;
+    }
+    .piano-shell {
+      flex: 1 1 auto;
+      min-height: 0;
+      display: flex;
+      align-items: stretch;
+      justify-content: center;
+      padding: 8px 0 0;
+    }
+    .keyboard {
+      position: relative;
+      width: min(100%, 940px);
+      min-height: 280px;
+      display: flex;
+      border: 10px solid #2a2928;
+      border-bottom-width: 14px;
+      border-radius: 20px;
+      overflow: hidden;
+      background: #2a2928;
+      box-shadow: 0 18px 42px rgba(55,50,43,.18);
+      touch-action: none;
+      user-select: none;
+      -webkit-user-select: none;
+    }
+    .white-key {
+      position: relative;
+      flex: 1 1 0;
+      min-width: 0;
+      height: 100%;
+      border: 0;
+      border-right: 1px solid #bdb8ae;
+      border-radius: 0 0 9px 9px;
+      background: linear-gradient(180deg, #fff 0%, #fbfaf7 70%, #e8e4dc 100%);
+      box-shadow: inset 0 -8px 0 rgba(0,0,0,.035);
+      color: #67625a;
+      touch-action: none;
+    }
+    .white-key:last-child { border-right: 0; }
+    .white-key.is-active {
+      background: linear-gradient(180deg, #f1eee8 0%, #e3ded5 100%);
+      box-shadow: inset 0 5px 14px rgba(0,0,0,.10);
+    }
+    .note-label {
+      position: absolute;
+      left: 50%;
+      bottom: 14px;
+      transform: translateX(-50%);
+      font-size: clamp(14px, 3.2vw, 22px);
+      font-weight: 800;
+      pointer-events: none;
+    }
+    .black-key {
+      position: absolute;
+      top: 0;
+      z-index: 3;
+      width: 8.4%;
+      height: 61%;
+      transform: translateX(-50%);
+      border: 0;
+      border-radius: 0 0 8px 8px;
+      background: linear-gradient(180deg, #3c3a38 0%, #171716 78%, #090909 100%);
+      box-shadow: 0 6px 8px rgba(0,0,0,.35), inset 0 -5px 0 rgba(255,255,255,.025);
+      touch-action: none;
+    }
+    .black-key.is-active {
+      background: linear-gradient(180deg, #242322 0%, #070707 100%);
+      box-shadow: 0 2px 3px rgba(0,0,0,.35), inset 0 3px 8px rgba(255,255,255,.04);
+      transform: translateX(-50%) translateY(3px);
+    }
+    .k-cs { left: 12.5%; }
+    .k-ds { left: 25%; }
+    .k-fs { left: 50%; }
+    .k-gs { left: 62.5%; }
+    .k-as { left: 75%; }
+    .status {
+      min-height: 26px;
+      padding: 8px 2px 0;
+      text-align: center;
+      color: #77716a;
+      font-size: 12px;
+      font-weight: 650;
+      flex: 0 0 auto;
+    }
+    @media (orientation: landscape) {
+      .app { padding-top: calc(env(safe-area-inset-top) + 8px); }
+      .topbar { min-height: 46px; padding-bottom: 6px; }
+      .back { width: 40px; height: 40px; }
+      .keyboard { min-height: 210px; }
+      .status { padding-top: 5px; }
+    }
+    @media (max-height: 520px) {
+      .title p, .status { display: none; }
+      .keyboard { min-height: 180px; }
+    }
+  </style>
+</head>
+<body>
+  <main class="app">
+    <header class="topbar">
+      <a class="back" href="../" aria-label="ホームにもどる">‹</a>
+      <div class="title">
+        <h1>ピアノ</h1>
+        <p>けんばんを おしてみよう</p>
+      </div>
+    </header>
+
+    <section class="piano-shell" aria-label="ピアノ">
+      <div class="keyboard" id="keyboard">
+        <button class="white-key" data-note="C4" data-key="a" aria-label="ド"><span class="note-label">ド</span></button>
+        <button class="white-key" data-note="D4" data-key="s" aria-label="レ"><span class="note-label">レ</span></button>
+        <button class="white-key" data-note="E4" data-key="d" aria-label="ミ"><span class="note-label">ミ</span></button>
+        <button class="white-key" data-note="F4" data-key="f" aria-label="ファ"><span class="note-label">ファ</span></button>
+        <button class="white-key" data-note="G4" data-key="g" aria-label="ソ"><span class="note-label">ソ</span></button>
+        <button class="white-key" data-note="A4" data-key="h" aria-label="ラ"><span class="note-label">ラ</span></button>
+        <button class="white-key" data-note="B4" data-key="j" aria-label="シ"><span class="note-label">シ</span></button>
+        <button class="white-key" data-note="C5" data-key="k" aria-label="高いド"><span class="note-label">ド</span></button>
+
+        <button class="black-key k-cs" data-note="C#4" data-key="w" aria-label="ドのシャープ"></button>
+        <button class="black-key k-ds" data-note="D#4" data-key="e" aria-label="レのシャープ"></button>
+        <button class="black-key k-fs" data-note="F#4" data-key="t" aria-label="ファのシャープ"></button>
+        <button class="black-key k-gs" data-note="G#4" data-key="y" aria-label="ソのシャープ"></button>
+        <button class="black-key k-as" data-note="A#4" data-key="u" aria-label="ラのシャープ"></button>
+      </div>
+    </section>
+
+    <div class="status" id="status" aria-live="polite">タップすると おとがでるよ</div>
+  </main>
+
+  <script>
+    (() => {
+      const root = document.getElementById('keyboard');
+      const status = document.getElementById('status');
+      const keys = [...root.querySelectorAll('[data-note]')];
+      const byKeyboardKey = new Map(keys.map((el) => [el.dataset.key, el]));
+      const noteIndex = { C: 0, 'C#': 1, D: 2, 'D#': 3, E: 4, F: 5, 'F#': 6, G: 7, 'G#': 8, A: 9, 'A#': 10, B: 11 };
+
+      let audioContext = null;
+      let master = null;
+      const activeVoices = new Map();
+      const pointerNotes = new Map();
+      const computerNotes = new Map();
+
+      function frequencyFor(note) {
+        const match = note.match(/^([A-G]#?)(\d)$/);
+        if (!match) return 440;
+        const midi = (Number(match[2]) + 1) * 12 + noteIndex[match[1]];
+        return 440 * Math.pow(2, (midi - 69) / 12);
+      }
+
+      function ensureAudio() {
+        if (!audioContext) {
+          const AudioCtx = window.AudioContext || window.webkitAudioContext;
+          if (!AudioCtx) {
+            status.textContent = 'このブラウザでは おとをだせません';
+            return false;
+          }
+          audioContext = new AudioCtx();
+          master = audioContext.createGain();
+          master.gain.value = 0.65;
+          master.connect(audioContext.destination);
+        }
+        if (audioContext.state === 'suspended') audioContext.resume();
+        status.textContent = '';
+        return true;
+      }
+
+      function startNote(note, token) {
+        if (!ensureAudio() || activeVoices.has(token)) return;
+        const now = audioContext.currentTime;
+        const frequency = frequencyFor(note);
+        const gain = audioContext.createGain();
+        const osc1 = audioContext.createOscillator();
+        const osc2 = audioContext.createOscillator();
+
+        osc1.type = 'triangle';
+        osc2.type = 'sine';
+        osc1.frequency.value = frequency;
+        osc2.frequency.value = frequency * 2;
+
+        const partial = audioContext.createGain();
+        partial.gain.value = 0.13;
+
+        osc1.connect(gain);
+        osc2.connect(partial);
+        partial.connect(gain);
+        gain.connect(master);
+
+        gain.gain.setValueAtTime(0.0001, now);
+        gain.gain.exponentialRampToValueAtTime(0.42, now + 0.015);
+        gain.gain.exponentialRampToValueAtTime(0.22, now + 0.22);
+
+        osc1.start(now);
+        osc2.start(now);
+
+        activeVoices.set(token, { note, gain, osc1, osc2 });
+        setKeyActive(note, true);
+      }
+
+      function stopNote(token) {
+        const voice = activeVoices.get(token);
+        if (!voice || !audioContext) return;
+        const now = audioContext.currentTime;
+        voice.gain.gain.cancelScheduledValues(now);
+        voice.gain.gain.setValueAtTime(Math.max(voice.gain.gain.value, 0.0001), now);
+        voice.gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.22);
+        voice.osc1.stop(now + 0.24);
+        voice.osc2.stop(now + 0.24);
+        activeVoices.delete(token);
+
+        const stillPlaying = [...activeVoices.values()].some((v) => v.note === voice.note);
+        if (!stillPlaying) setKeyActive(voice.note, false);
+      }
+
+      function setKeyActive(note, active) {
+        const key = keys.find((el) => el.dataset.note === note);
+        if (key) key.classList.toggle('is-active', active);
+      }
+
+      keys.forEach((key) => {
+        key.addEventListener('pointerdown', (event) => {
+          event.preventDefault();
+          const token = 'p:' + event.pointerId;
+          pointerNotes.set(event.pointerId, token);
+          key.setPointerCapture?.(event.pointerId);
+          startNote(key.dataset.note, token);
+        });
+
+        const finish = (event) => {
+          const token = pointerNotes.get(event.pointerId);
+          if (!token) return;
+          stopNote(token);
+          pointerNotes.delete(event.pointerId);
+        };
+
+        key.addEventListener('pointerup', finish);
+        key.addEventListener('pointercancel', finish);
+        key.addEventListener('lostpointercapture', finish);
+      });
+
+      window.addEventListener('keydown', (event) => {
+        if (event.repeat || event.metaKey || event.ctrlKey || event.altKey) return;
+        const name = event.key.toLowerCase();
+        const key = byKeyboardKey.get(name);
+        if (!key || computerNotes.has(name)) return;
+        event.preventDefault();
+        const token = 'k:' + name;
+        computerNotes.set(name, token);
+        startNote(key.dataset.note, token);
+      });
+
+      window.addEventListener('keyup', (event) => {
+        const name = event.key.toLowerCase();
+        const token = computerNotes.get(name);
+        if (!token) return;
+        stopNote(token);
+        computerNotes.delete(name);
+      });
+
+      window.addEventListener('blur', () => {
+        [...activeVoices.keys()].forEach(stopNote);
+        pointerNotes.clear();
+        computerNotes.clear();
+      });
+    })();
+  </script>
+</body>
+</html>
