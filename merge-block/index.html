@@ -8,7 +8,7 @@
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
   <title>Merge Block</title>
-  <link rel="stylesheet" href="./styles.css?v=4">
+  <link rel="stylesheet" href="./styles.css?v=5">
 </head>
 <body>
   <div class="app-shell">
@@ -69,17 +69,38 @@
         <div class="control-group">
           <span class="control-title">盤面を回す</span>
           <div class="two-buttons">
-            <button type="button" id="board-left" aria-label="盤面を左に回す"><b>↶</b><small>BOARD</small></button>
-            <button type="button" id="board-right" aria-label="盤面を右に回す"><b>↷</b><small>BOARD</small></button>
+            <button type="button" id="board-left" aria-label="盤面を左に回す">
+              <svg class="rotate-icon" viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M4.1 7.6A8 8 0 1 1 4 16"/>
+                <path d="M4 4v4h4"/>
+              </svg>
+              <span class="visually-hidden">盤面を左に回す</span>
+            </button>
+            <button type="button" id="board-right" aria-label="盤面を右に回す">
+              <svg class="rotate-icon" viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M19.9 7.6A8 8 0 1 0 20 16"/>
+                <path d="M20 4v4h-4"/>
+              </svg>
+              <span class="visually-hidden">盤面を右に回す</span>
+            </button>
           </div>
         </div>
 
         <div class="control-group">
           <span class="control-title">落とす場所</span>
           <div class="move-controls">
-            <button type="button" id="move-left" aria-label="ブロックを左へ">←</button>
-            <button type="button" id="drop"><small>ここへ</small><strong>DROP</strong></button>
-            <button type="button" id="move-right" aria-label="ブロックを右へ">→</button>
+            <button type="button" id="move-left" aria-label="ブロックを左へ">
+              <span class="triangle-button triangle-left" aria-hidden="true"></span>
+              <span class="visually-hidden">ブロックを左へ</span>
+            </button>
+            <button type="button" id="drop" aria-label="ブロックを落とす">
+              <span class="triangle-button triangle-down" aria-hidden="true"></span>
+              <span class="visually-hidden">ブロックを落とす</span>
+            </button>
+            <button type="button" id="move-right" aria-label="ブロックを右へ">
+              <span class="triangle-button triangle-right" aria-hidden="true"></span>
+              <span class="visually-hidden">ブロックを右へ</span>
+            </button>
           </div>
         </div>
 
@@ -116,6 +137,6 @@
   </div>
 
   <div class="toast" id="toast" role="status" aria-live="polite"></div>
-  <script src="./app.js?v=4" defer></script>
+  <script src="./app.js?v=5" defer></script>
 </body>
 </html>
