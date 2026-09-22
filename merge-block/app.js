@@ -1,3 +1,12 @@
+
+// ゲーム中の誤操作を防ぐため、ピンチ拡大・縮小を無効化する。
+document.addEventListener("gesturestart", (event) => event.preventDefault(), { passive: false });
+document.addEventListener("gesturechange", (event) => event.preventDefault(), { passive: false });
+document.addEventListener("gestureend", (event) => event.preventDefault(), { passive: false });
+document.addEventListener("touchmove", (event) => {
+  if (event.touches && event.touches.length > 1) event.preventDefault();
+}, { passive: false });
+
 const SIZE = 9;
 const CENTER = (SIZE - 1) / 2;
 const CLEAR_COUNT = 4;
