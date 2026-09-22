@@ -75,6 +75,7 @@ let countdownToken = 0;
 let playLocked = false;
 let lastFinishTime = null;
 let lastWasBest = false;
+let timeAttackSetupPaused = false;
 
 function clamp(value, min, max) {
   return Math.min(max, Math.max(min, value));
@@ -155,6 +156,42 @@ function stopTimer() {
 function setPlayLocked(locked) {
   playLocked = locked;
   board.classList.toggle("is-locked", locked);
+}
+
+function cancelActiveDrag() {
+  if (!pointerState) return;
+  const state = pointerState;
+  pointerState = null;
+
+  try {
+    if (state.tile?.hasPointerCapture?.(state.pointerId)) {
+      state.tile.releasePointerCapture(state.pointerId);
+    }
+  } catch (_) {}
+
+  state.tile?.classList.remove("is-drag-source");
+  state.ghost?.remove();
+}
+
+function pauseTimeAttackForSetup() {
+  cancelActiveDrag();
+  if (!timeAttackEnabled) return;
+
+  timeAttackSetupPaused = true;
+  countdownToken += 1;
+  cancelTimer();
+  elapsedMs = 0;
+  timerDisplay.textContent = formatTime(0);
+  countdown.hidden = true;
+  setPlayLocked(true);
+}
+
+function resumeTimeAttackAfterSetup() {
+  if (!timeAttackEnabled || !timeAttackSetupPaused) {
+    setPlayLocked(false);
+    return;
+  }
+  startNewPuzzle(size);
 }
 
 function sleep(ms) {
@@ -421,6 +458,8 @@ function handleTileTap(index) {
 }
 
 function startNewPuzzle(nextSize = size) {
+  cancelActiveDrag();
+  timeAttackSetupPaused = false;
   countdownToken += 1;
   cancelTimer();
   size = nextSize;
@@ -618,8 +657,8 @@ async function renderLibrary() {
       button.appendChild(image);
 
       button.addEventListener("click", () => {
+        closeImportModal(false);
         selectCustomArt(record.blob, record.id);
-        closeImportModal();
         showToast("この絵をパズルに入れたよ");
       });
 
@@ -632,17 +671,20 @@ async function renderLibrary() {
 }
 
 async function openImportModal() {
+  pauseTimeAttackForSetup();
   await renderLibrary();
   importModal.classList.add("is-open");
   importModal.setAttribute("aria-hidden", "false");
   document.body.classList.add("modal-open");
 }
 
-function closeImportModal() {
+function closeImportModal(restartTimedRun = true) {
   importModal.classList.remove("is-open");
   importModal.setAttribute("aria-hidden", "true");
   document.body.classList.remove("modal-open");
   cleanupGalleryUrls();
+
+  if (restartTimedRun) resumeTimeAttackAfterSetup();
 }
 
 function selectCustomArt(blob, id = "custom") {
@@ -746,22 +788,22 @@ function openCropEditor(source) {
   cropGesture = null;
   renderCrop();
 
-  importModal.classList.remove("is-open");
-  importModal.setAttribute("aria-hidden", "true");
-  cleanupGalleryUrls();
+  closeImportModal(false);
 
   cropModal.classList.add("is-open");
   cropModal.setAttribute("aria-hidden", "false");
   document.body.classList.add("modal-open");
 }
 
-function closeCropEditor() {
+function closeCropEditor(restartTimedRun = true) {
   cropModal.classList.remove("is-open");
   cropModal.setAttribute("aria-hidden", "true");
   document.body.classList.remove("modal-open");
   cropPointers.clear();
   cropGesture = null;
   cropSession = null;
+
+  if (restartTimedRun) resumeTimeAttackAfterSetup();
 }
 
 function makeCroppedBlob() {
@@ -791,7 +833,7 @@ async function confirmCrop() {
   try {
     const blob = makeCroppedBlob();
     const record = await storePuzzleArt(blob, "import");
-    closeCropEditor();
+    closeCropEditor(false);
     selectCustomArt(blob, record.id);
     showToast("正方形で保存してパズルに入れたよ");
   } catch (error) {
@@ -855,8 +897,8 @@ importButton.addEventListener("click", openImportModal);
 importCloseButton.addEventListener("click", closeImportModal);
 clearImportButton.addEventListener("click", clearCustomArt);
 emojiOnlyButton.addEventListener("click", () => {
+  closeImportModal(false);
   clearCustomArt();
-  closeImportModal();
   showToast("絵文字だけにしたよ");
 });
 
