@@ -12,8 +12,17 @@ const eraserButton = document.querySelector("#eraser");
 const undoButton = document.querySelector("#undo");
 const redoButton = document.querySelector("#redo");
 const clearButton = document.querySelector("#clear");
-const saveButton = document.querySelector("#save");
+const puzzleSaveButton = document.querySelector("#puzzle-save");
+const phoneSaveButton = document.querySelector("#phone-save");
 const toast = document.querySelector("#toast");
+
+const cropModal = document.querySelector("#crop-modal");
+const cropPreview = document.querySelector("#crop-preview");
+const cropCtx = cropPreview.getContext("2d", { alpha: false });
+const cropCloseButton = document.querySelector("#crop-close");
+const cropResetButton = document.querySelector("#crop-reset");
+const cropConfirmButton = document.querySelector("#crop-confirm");
+const cropZoom = document.querySelector("#crop-zoom");
 
 const RATIOS = {
   "1:1": { w: 1, h: 1, pixels: [1000, 1000] },
@@ -34,9 +43,17 @@ let activeStroke = null;
 let pointerId = null;
 let toastTimer = null;
 
+let cropSession = null;
+const cropPointers = new Map();
+let cropGesture = null;
+
 const drafts = Object.fromEntries(
   Object.keys(RATIOS).map((ratio) => [ratio, { actions: [], redo: [] }])
 );
+
+function clamp(value, min, max) {
+  return Math.min(max, Math.max(min, value));
+}
 
 function restoreDrafts() {
   try {
@@ -149,8 +166,8 @@ function redraw() {
 function canvasPoint(event) {
   const rect = canvas.getBoundingClientRect();
   return {
-    x: Math.max(0, Math.min(1, (event.clientX - rect.left) / rect.width)),
-    y: Math.max(0, Math.min(1, (event.clientY - rect.top) / rect.height))
+    x: clamp((event.clientX - rect.left) / rect.width, 0, 1),
+    y: clamp((event.clientY - rect.top) / rect.height, 0, 1)
   };
 }
 
@@ -272,7 +289,7 @@ function showToast(message) {
   toast.textContent = message;
   toast.classList.add("is-open");
   window.clearTimeout(toastTimer);
-  toastTimer = window.setTimeout(() => toast.classList.remove("is-open"), 1600);
+  toastTimer = window.setTimeout(() => toast.classList.remove("is-open"), 1900);
 }
 
 function openDatabase() {
@@ -293,48 +310,224 @@ function openDatabase() {
   });
 }
 
-function canvasToBlob() {
-  return new Promise((resolve, reject) => {
-    canvas.toBlob((blob) => {
-      if (blob) resolve(blob);
-      else reject(new Error("PNG creation failed"));
-    }, "image/png");
+async function storePuzzleArt(blob) {
+  const db = await openDatabase();
+  const id = "puzzle-art-" + Date.now() + "-" + Math.random().toString(36).slice(2, 8);
+  const record = {
+    id,
+    kind: "puzzle-art",
+    source: "paint",
+    ratio: "1:1",
+    originalRatio: currentRatio,
+    createdAt: new Date().toISOString(),
+    width: 1000,
+    height: 1000,
+    blob
+  };
+
+  await new Promise((resolve, reject) => {
+    const tx = db.transaction(STORE_NAME, "readwrite");
+    tx.objectStore(STORE_NAME).put(record);
+    tx.oncomplete = resolve;
+    tx.onerror = () => reject(tx.error);
+    tx.onabort = () => reject(tx.error);
+  });
+
+  db.close();
+  return record;
+}
+
+function dataUrlToBlob(dataUrl) {
+  const parts = dataUrl.split(",");
+  const mime = (parts[0].match(/data:(.*?);base64/) || [])[1] || "image/png";
+  const binary = atob(parts[1]);
+  const bytes = new Uint8Array(binary.length);
+  for (let i = 0; i < binary.length; i += 1) bytes[i] = binary.charCodeAt(i);
+  return new Blob([bytes], { type: mime });
+}
+
+function canvasBlobSync(sourceCanvas) {
+  return dataUrlToBlob(sourceCanvas.toDataURL("image/png"));
+}
+
+function downloadBlob(blob, filename) {
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = filename;
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  window.setTimeout(() => URL.revokeObjectURL(url), 1200);
+}
+
+function canShareFile(file) {
+  if (!navigator.share) return false;
+  if (!navigator.canShare) return true;
+  try {
+    return navigator.canShare({ files: [file] });
+  } catch (error) {
+    return false;
+  }
+}
+
+async function shareOrDownload(blob, filename, title) {
+  const file = new File([blob], filename, { type: "image/png" });
+
+  if (canShareFile(file)) {
+    try {
+      await navigator.share({
+        files: [file],
+        title
+      });
+      return "shared";
+    } catch (error) {
+      if (error?.name === "AbortError") return "cancelled";
+      console.warn("Share failed", error);
+    }
+  }
+
+  downloadBlob(blob, filename);
+  return "downloaded";
+}
+
+function cropMetrics() {
+  const points = [...cropPointers.values()];
+  if (!points.length) return null;
+  const x = points.reduce((sum, point) => sum + point.x, 0) / points.length;
+  const y = points.reduce((sum, point) => sum + point.y, 0) / points.length;
+  let distance = null;
+  if (points.length >= 2) {
+    distance = Math.hypot(points[0].x - points[1].x, points[0].y - points[1].y);
+  }
+  return { x, y, distance };
+}
+
+function cropSizeInSource() {
+  if (!cropSession) return 0;
+  return Math.min(cropSession.width, cropSession.height) / cropSession.zoom;
+}
+
+function clampCropCenter() {
+  if (!cropSession) return;
+  const half = cropSizeInSource() / 2;
+  cropSession.cx = clamp(cropSession.cx, half, cropSession.width - half);
+  cropSession.cy = clamp(cropSession.cy, half, cropSession.height - half);
+}
+
+function renderCrop() {
+  if (!cropSession) return;
+  const cropSize = cropSizeInSource();
+  const sx = cropSession.cx - cropSize / 2;
+  const sy = cropSession.cy - cropSize / 2;
+
+  cropCtx.save();
+  cropCtx.fillStyle = "#ffffff";
+  cropCtx.fillRect(0, 0, cropPreview.width, cropPreview.height);
+  cropCtx.drawImage(
+    cropSession.source,
+    sx, sy, cropSize, cropSize,
+    0, 0, cropPreview.width, cropPreview.height
+  );
+  cropCtx.restore();
+  cropZoom.value = String(cropSession.zoom);
+}
+
+function resetCrop() {
+  if (!cropSession) return;
+  cropSession.cx = cropSession.width / 2;
+  cropSession.cy = cropSession.height / 2;
+  cropSession.zoom = 1;
+  renderCrop();
+}
+
+function openCropEditor(source, onConfirm) {
+  cropSession = {
+    source,
+    width: source.width || source.naturalWidth,
+    height: source.height || source.naturalHeight,
+    cx: (source.width || source.naturalWidth) / 2,
+    cy: (source.height || source.naturalHeight) / 2,
+    zoom: 1,
+    onConfirm
+  };
+  cropPointers.clear();
+  cropGesture = null;
+  renderCrop();
+  cropModal.classList.add("is-open");
+  cropModal.setAttribute("aria-hidden", "false");
+  document.body.classList.add("modal-open");
+}
+
+function closeCropEditor() {
+  cropModal.classList.remove("is-open");
+  cropModal.setAttribute("aria-hidden", "true");
+  document.body.classList.remove("modal-open");
+  cropPointers.clear();
+  cropGesture = null;
+  cropSession = null;
+}
+
+function makeCroppedCanvas() {
+  const output = document.createElement("canvas");
+  output.width = 1000;
+  output.height = 1000;
+  const outputCtx = output.getContext("2d", { alpha: false });
+  const cropSize = cropSizeInSource();
+  const sx = cropSession.cx - cropSize / 2;
+  const sy = cropSession.cy - cropSize / 2;
+  outputCtx.fillStyle = "#ffffff";
+  outputCtx.fillRect(0, 0, 1000, 1000);
+  outputCtx.drawImage(cropSession.source, sx, sy, cropSize, cropSize, 0, 0, 1000, 1000);
+  return output;
+}
+
+function confirmCrop() {
+  if (!cropSession) return;
+  const cropped = makeCroppedCanvas();
+  const blob = canvasBlobSync(cropped);
+  const callback = cropSession.onConfirm;
+  closeCropEditor();
+  callback?.(blob, cropped);
+}
+
+async function saveForPuzzle() {
+  openCropEditor(canvas, async (blob) => {
+    const stamp = new Date().toISOString().replace(/[:.]/g, "-");
+    const storePromise = storePuzzleArt(blob);
+
+    const sharePromise = shareOrDownload(
+      blob,
+      "split-puzzle-" + stamp + ".png",
+      "Split Puzzle"
+    );
+
+    try {
+      await storePromise;
+      const result = await sharePromise;
+      if (result === "cancelled") {
+        showToast("パズルに保存したよ");
+      } else {
+        showToast("パズルに保存したよ ✓");
+      }
+    } catch (error) {
+      console.error(error);
+      showToast("パズルへの保存に失敗しました");
+    }
   });
 }
 
-async function saveDrawing() {
-  saveButton.disabled = true;
-  try {
-    const blob = await canvasToBlob();
-    const db = await openDatabase();
-    const id = "paint-" + Date.now() + "-" + Math.random().toString(36).slice(2, 8);
+async function saveToPhone() {
+  const blob = canvasBlobSync(canvas);
+  const stamp = new Date().toISOString().replace(/[:.]/g, "-");
+  const result = await shareOrDownload(
+    blob,
+    "paint-" + stamp + ".png",
+    "ペイント"
+  );
 
-    const record = {
-      id,
-      kind: "paint",
-      ratio: currentRatio,
-      createdAt: new Date().toISOString(),
-      width: canvas.width,
-      height: canvas.height,
-      blob
-    };
-
-    await new Promise((resolve, reject) => {
-      const tx = db.transaction(STORE_NAME, "readwrite");
-      tx.objectStore(STORE_NAME).put(record);
-      tx.oncomplete = () => resolve();
-      tx.onerror = () => reject(tx.error);
-      tx.onabort = () => reject(tx.error);
-    });
-
-    db.close();
-    showToast("ほぞんした！ ✓");
-  } catch (error) {
-    console.error(error);
-    showToast("ほぞんできなかった");
-  } finally {
-    saveButton.disabled = false;
-  }
+  if (result === "shared") showToast("保存メニューをひらいたよ");
+  if (result === "downloaded") showToast("画像を書き出したよ");
 }
 
 canvas.addEventListener("pointerdown", (event) => {
@@ -379,7 +572,81 @@ eraserButton.addEventListener("click", () => setTool("eraser"));
 undoButton.addEventListener("click", undo);
 redoButton.addEventListener("click", redo);
 clearButton.addEventListener("click", clearCanvas);
-saveButton.addEventListener("click", saveDrawing);
+puzzleSaveButton.addEventListener("click", saveForPuzzle);
+phoneSaveButton.addEventListener("click", saveToPhone);
+
+cropPreview.addEventListener("pointerdown", (event) => {
+  if (!cropSession) return;
+  event.preventDefault();
+  cropPreview.setPointerCapture(event.pointerId);
+  cropPointers.set(event.pointerId, { x: event.clientX, y: event.clientY });
+  cropGesture = cropMetrics();
+});
+
+cropPreview.addEventListener("pointermove", (event) => {
+  if (!cropSession || !cropPointers.has(event.pointerId)) return;
+  event.preventDefault();
+
+  const before = cropGesture;
+  cropPointers.set(event.pointerId, { x: event.clientX, y: event.clientY });
+  const after = cropMetrics();
+  if (!before || !after) {
+    cropGesture = after;
+    return;
+  }
+
+  const rect = cropPreview.getBoundingClientRect();
+  const sourceSizeBefore = cropSizeInSource();
+
+  cropSession.cx -= (after.x - before.x) * sourceSizeBefore / rect.width;
+  cropSession.cy -= (after.y - before.y) * sourceSizeBefore / rect.height;
+
+  if (before.distance && after.distance) {
+    cropSession.zoom = clamp(
+      cropSession.zoom * (after.distance / before.distance),
+      1,
+      6
+    );
+  }
+
+  clampCropCenter();
+  cropGesture = after;
+  renderCrop();
+});
+
+function releaseCropPointer(event) {
+  cropPointers.delete(event.pointerId);
+  if (cropPreview.hasPointerCapture(event.pointerId)) {
+    cropPreview.releasePointerCapture(event.pointerId);
+  }
+  cropGesture = cropMetrics();
+}
+
+cropPreview.addEventListener("pointerup", releaseCropPointer);
+cropPreview.addEventListener("pointercancel", releaseCropPointer);
+
+cropPreview.addEventListener("wheel", (event) => {
+  if (!cropSession) return;
+  event.preventDefault();
+  cropSession.zoom = clamp(cropSession.zoom * (event.deltaY > 0 ? 0.92 : 1.08), 1, 6);
+  clampCropCenter();
+  renderCrop();
+}, { passive: false });
+
+cropZoom.addEventListener("input", () => {
+  if (!cropSession) return;
+  cropSession.zoom = Number(cropZoom.value);
+  clampCropCenter();
+  renderCrop();
+});
+
+cropResetButton.addEventListener("click", resetCrop);
+cropConfirmButton.addEventListener("click", confirmCrop);
+cropCloseButton.addEventListener("click", closeCropEditor);
+
+cropModal.addEventListener("click", (event) => {
+  if (event.target === cropModal) closeCropEditor();
+});
 
 window.addEventListener("resize", fitFrame);
 window.addEventListener("orientationchange", () => window.setTimeout(fitFrame, 100));
