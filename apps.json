@@ -72,7 +72,7 @@
   {
     "id": "merge-block",
     "name": "Merge Block",
-    "url": "./merge-block/?v=9",
+    "url": "./merge-block/?v=10",
     "icon": "./assets/merge-block.svg?v=2",
     "description": "2〜3個の色ブロックを落とし、中心重力でつなげるマージパズル"
   },
