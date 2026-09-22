@@ -65,14 +65,14 @@
   {
     "id": "split-puzzle",
     "name": "Split Puzzle",
-    "url": "./split-puzzle/?v=3",
+    "url": "./split-puzzle/?v=4",
     "icon": "./assets/split-puzzle.svg",
     "description": "えもじの半分どうしをつなげる絵あわせパズル"
   },
   {
     "id": "paint",
     "name": "ペイント",
-    "url": "./paint/?v=2",
+    "url": "./paint/?v=3",
     "icon": "./assets/paint.svg",
     "description": "キャンバスのかたちをえらんで、ゆびでおえかきしよう"
   }
