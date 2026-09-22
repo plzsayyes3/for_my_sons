@@ -50,6 +50,8 @@ const playAgainButton = document.querySelector("#play-again");
 const toast = document.querySelector("#toast");
 const setupOverlay = document.querySelector("#setup-overlay");
 const setupCancelButton = document.querySelector("#setup-cancel");
+const particleLayer = document.querySelector("#particle-layer");
+const chainPop = document.querySelector("#chain-pop");
 
 let board = [];
 let currentPiece = null;
@@ -63,9 +65,186 @@ let clearing = new Set();
 let movingCells = new Map();
 let toastTimer = 0;
 let pointerActive = false;
+let landingBurst = new Set();
+let mergeGlow = new Set();
+let charging = new Set();
+let corePulling = false;
+let audioContext = null;
 
 function wait(ms) {
   return new Promise((resolve) => window.setTimeout(resolve, ms));
+}
+
+function getAudioContext() {
+  if (audioContext) {
+    if (audioContext.state === "suspended") audioContext.resume().catch(() => {});
+    return audioContext;
+  }
+
+  const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+  if (!AudioContextClass) return null;
+
+  try {
+    audioContext = new AudioContextClass();
+    if (audioContext.state === "suspended") audioContext.resume().catch(() => {});
+    return audioContext;
+  } catch (_) {
+    return null;
+  }
+}
+
+function tone(frequency, duration, options = {}) {
+  const context = getAudioContext();
+  if (!context) return;
+
+  const start = context.currentTime + (options.delay || 0);
+  const oscillator = context.createOscillator();
+  const gain = context.createGain();
+
+  oscillator.type = options.type || "sine";
+  oscillator.frequency.setValueAtTime(frequency, start);
+  if (options.endFrequency) {
+    oscillator.frequency.exponentialRampToValueAtTime(
+      Math.max(30, options.endFrequency),
+      start + duration
+    );
+  }
+
+  const peak = options.gain ?? 0.035;
+  gain.gain.setValueAtTime(0.0001, start);
+  gain.gain.exponentialRampToValueAtTime(peak, start + Math.min(.012, duration * .25));
+  gain.gain.exponentialRampToValueAtTime(0.0001, start + duration);
+
+  oscillator.connect(gain);
+  gain.connect(context.destination);
+  oscillator.start(start);
+  oscillator.stop(start + duration + .02);
+}
+
+function sfxMove() {
+  tone(330, .035, { gain: .018, type: "triangle", endFrequency: 300 });
+}
+
+function sfxRotate() {
+  tone(135, .09, { gain: .028, type: "sine", endFrequency: 105 });
+  tone(210, .055, { gain: .012, type: "triangle", delay: .025, endFrequency: 175 });
+}
+
+function sfxDrop() {
+  tone(290, .09, { gain: .022, type: "sine", endFrequency: 150 });
+}
+
+function sfxLand() {
+  tone(118, .075, { gain: .038, type: "triangle", endFrequency: 92 });
+  tone(235, .045, { gain: .013, type: "sine", delay: .018, endFrequency: 180 });
+}
+
+function sfxMerge() {
+  tone(440, .065, { gain: .024, type: "sine", endFrequency: 560 });
+}
+
+function sfxGravityTurn() {
+  tone(175, .095, { gain: .018, type: "sine", endFrequency: 245 });
+}
+
+function sfxClear(chain) {
+  const base = 500 + Math.min(chain - 1, 5) * 65;
+  tone(base, .11, { gain: .03, type: "sine", endFrequency: base * 1.18 });
+  tone(base * 1.32, .12, { gain: .021, type: "sine", delay: .055, endFrequency: base * 1.48 });
+}
+
+function sfxChain(chain) {
+  if (chain < 2) return;
+  const base = 630 + Math.min(chain - 2, 5) * 75;
+  tone(base, .09, { gain: .025, type: "triangle", endFrequency: base * 1.12 });
+  tone(base * 1.28, .11, { gain: .02, type: "triangle", delay: .07, endFrequency: base * 1.4 });
+}
+
+function showChainFeedback(chain) {
+  chainPop.textContent = chain > 1 ? chain + " CHAIN!" : "CLEAR!";
+  chainPop.style.setProperty("--chain-scale", String(Math.min(1.24, 1.02 + chain * .035)));
+  chainPop.classList.remove("is-showing");
+  void chainPop.offsetWidth;
+  chainPop.classList.add("is-showing");
+}
+
+function spawnClearParticles(indices) {
+  indices.forEach((index) => {
+    const value = board[index];
+    if (!value) return;
+
+    const { x, y } = coordsFor(index);
+    const count = 4;
+
+    for (let i = 0; i < count; i += 1) {
+      const particle = document.createElement("i");
+      particle.className = "clear-particle";
+      particle.style.left = ((x + .5) / SIZE * 100) + "%";
+      particle.style.top = ((y + .5) / SIZE * 100) + "%";
+      particle.style.setProperty("--particle-color", value.color);
+      particle.style.setProperty("--particle-size", (5 + Math.random() * 4).toFixed(1) + "px");
+
+      const angle = (Math.PI * 2 * i / count) + (Math.random() - .5) * .65;
+      const distance = 22 + Math.random() * 26;
+      particle.style.setProperty("--particle-x", (Math.cos(angle) * distance).toFixed(1) + "px");
+      particle.style.setProperty("--particle-y", (Math.sin(angle) * distance).toFixed(1) + "px");
+      particle.style.setProperty("--particle-r", ((Math.random() - .5) * 240).toFixed(0) + "deg");
+
+      particleLayer.appendChild(particle);
+      window.setTimeout(() => particle.remove(), 470);
+    }
+  });
+}
+
+function sameColorContacts(seedIndices) {
+  const result = new Set();
+
+  seedIndices.forEach((index) => {
+    const value = board[index];
+    if (!value) return;
+
+    neighbors(index).forEach((next) => {
+      if (!board[next] || board[next].color !== value.color) return;
+      result.add(index);
+      result.add(next);
+    });
+  });
+
+  return result;
+}
+
+async function landingFeedback(indices) {
+  landingBurst = new Set(indices);
+  renderBoard();
+  sfxLand();
+
+  try {
+    const animation = boardElement.animate(
+      [
+        { transform: "translateY(0)" },
+        { transform: "translateY(2px)" },
+        { transform: "translateY(-1px)" },
+        { transform: "translateY(0)" }
+      ],
+      { duration: 145, easing: "cubic-bezier(.2,.82,.24,1)" }
+    );
+    await animation.finished;
+  } catch (_) {
+    await wait(145);
+  }
+
+  landingBurst = new Set();
+
+  const contacts = sameColorContacts(indices);
+  if (contacts.size) {
+    mergeGlow = contacts;
+    renderBoard();
+    sfxMerge();
+    await wait(150);
+    mergeGlow = new Set();
+  }
+
+  renderBoard();
 }
 
 function indexFor(x, y) {
@@ -199,6 +378,7 @@ function renderBoard() {
 
       if (isCore(x, y)) {
         cell.classList.add("is-core");
+        if (corePulling) cell.classList.add("is-pulling");
         boardElement.appendChild(cell);
         continue;
       }
@@ -209,6 +389,9 @@ function renderBoard() {
         face.className = "block-face";
         face.style.setProperty("--block-color", data.color);
         joinedClasses(x, y, data.color, null).forEach((name) => face.classList.add(name));
+        if (landingBurst.has(index)) face.classList.add("is-landing");
+        if (mergeGlow.has(index)) face.classList.add("is-merging");
+        if (charging.has(index)) face.classList.add("is-charging");
         if (clearing.has(index)) face.classList.add("is-clearing");
         cell.appendChild(face);
       }
@@ -351,7 +534,9 @@ function setDropFromPointer(event) {
   const ratio = Math.max(0, Math.min(0.9999, (event.clientX - rect.left) / rect.width));
   const cellX = Math.floor(ratio * SIZE);
   const centered = Math.round(cellX - (currentPiece.colors.length - 1) / 2);
-  dropStart = Math.max(0, Math.min(SIZE - currentPiece.colors.length, centered));
+  const nextStart = Math.max(0, Math.min(SIZE - currentPiece.colors.length, centered));
+  if (nextStart !== dropStart) sfxMove();
+  dropStart = nextStart;
   updateLanding();
 }
 
@@ -375,6 +560,7 @@ function rotateBoardData(source, clockwise) {
 async function rotateBoard(clockwise) {
   if (locked) return;
 
+  sfxRotate();
   locked = true;
   landing = null;
   renderBoard();
@@ -565,6 +751,24 @@ async function settleDetached() {
     await wait(62);
   }
 
+  const horizontalCandidates = detachedComponents().some((component) => {
+    const bounds = componentBounds(component);
+    const dx =
+      bounds.avgX < CENTER - 0.01 ? 1 :
+      bounds.avgX > CENTER + 0.01 ? -1 :
+      0;
+    return dx && canShift(component, dx, 0);
+  });
+
+  if (horizontalCandidates) {
+    corePulling = true;
+    renderBoard();
+    sfxGravityTurn();
+    await wait(120);
+    corePulling = false;
+    renderBoard();
+  }
+
   safety = 120;
 
   // 中心線まで来たら、中心へ横移動。
@@ -600,10 +804,24 @@ async function resolveBoard() {
 
     chain += 1;
     chainElement.textContent = "×" + chain;
+    showChainFeedback(chain);
+    sfxChain(chain);
 
-    clearing = new Set(groups.flat());
+    const clearIndices = groups.flat();
+    charging = new Set(clearIndices);
     renderBoard();
-    await wait(235);
+    sfxMerge();
+
+    // 認識できる短い「溜め」を入れてから消す。
+    await wait(125);
+
+    charging = new Set();
+    clearing = new Set(clearIndices);
+    spawnClearParticles(clearIndices);
+    renderBoard();
+    sfxClear(chain);
+
+    await wait(245);
 
     let removed = 0;
     clearing.forEach((index) => {
@@ -619,7 +837,7 @@ async function resolveBoard() {
     bestScoreElement.textContent = String(saveBest());
     renderBoard();
 
-    await wait(80);
+    await wait(70);
     await settleDetached();
   }
 
@@ -646,19 +864,47 @@ function hasAnyMove(piece) {
 
 async function animateDrop(target) {
   const maxSteps = Math.max(...target.routes.map((route) => route.path.length));
+  let bent = false;
 
   for (let step = 0; step < maxSteps; step += 1) {
     movingCells = new Map();
+    let bendingNow = false;
 
     target.routes.forEach((route) => {
-      const point = route.path[Math.min(step, route.path.length - 1)];
+      const position = Math.min(step, route.path.length - 1);
+      const point = route.path[position];
+      const previous = route.path[Math.max(0, position - 1)];
+
+      if (
+        !bent &&
+        position > 0 &&
+        point.y === CENTER &&
+        previous.y === CENTER &&
+        point.x !== previous.x
+      ) {
+        bendingNow = true;
+      }
+
       movingCells.set(point.x + "," + point.y, route.color);
     });
 
+    if (bendingNow && !bent) {
+      bent = true;
+      corePulling = true;
+      renderBoard();
+      sfxGravityTurn();
+      await wait(85);
+      corePulling = false;
+    }
+
     renderBoard();
-    await wait(58);
+
+    // 最初は少しゆっくり、進むほど速くして落下の加速感を出す。
+    const delay = Math.max(34, 78 - step * 8);
+    await wait(delay);
   }
 
+  corePulling = false;
   movingCells = new Map();
 }
 
@@ -668,6 +914,7 @@ async function dropCurrent() {
     return;
   }
 
+  sfxDrop();
   locked = true;
   const target = landing;
   dropButton.disabled = true;
@@ -692,6 +939,7 @@ async function dropCurrent() {
   movingCells = new Map();
   renderBoard();
 
+  await landingFeedback(target.cells.map((cell) => indexFor(cell.x, cell.y)));
   await resolveBoard();
 
   currentPiece = nextPiece;
@@ -755,6 +1003,10 @@ function newGame(nextDifficulty) {
   score = 0;
   locked = false;
   clearing = new Set();
+  charging = new Set();
+  landingBurst = new Set();
+  mergeGlow = new Set();
+  corePulling = false;
   movingCells = new Map();
   chainElement.textContent = "—";
   scoreElement.textContent = "0";
@@ -780,12 +1032,14 @@ difficultyButtons.forEach((button) => {
 
 moveLeftButton.addEventListener("click", () => {
   if (locked) return;
+  sfxMove();
   dropStart -= 1;
   updateLanding();
 });
 
 moveRightButton.addEventListener("click", () => {
   if (locked) return;
+  sfxMove();
   dropStart += 1;
   updateLanding();
 });
@@ -837,10 +1091,12 @@ window.addEventListener("keydown", (event) => {
 
   if (event.key === "ArrowLeft") {
     event.preventDefault();
+    sfxMove();
     dropStart -= 1;
     updateLanding();
   } else if (event.key === "ArrowRight") {
     event.preventDefault();
+    sfxMove();
     dropStart += 1;
     updateLanding();
   } else if (event.key === "q") {
