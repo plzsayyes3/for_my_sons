@@ -66,6 +66,33 @@
       font-size: 12px;
       font-weight: 650;
     }
+    .sound-picker {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      padding: 0 4px 6px;
+      flex: 0 0 auto;
+    }
+    .sound-button {
+      min-height: 42px;
+      padding: 0 14px;
+      border: 1px solid rgba(90,84,75,.16);
+      border-radius: 14px;
+      background: rgba(255,255,255,.64);
+      color: #59544d;
+      font: inherit;
+      font-size: 13px;
+      font-weight: 750;
+      box-shadow: 0 3px 10px rgba(55,50,43,.06);
+      touch-action: manipulation;
+    }
+    .sound-button[aria-pressed="true"] {
+      color: #fff;
+      background: #3c3935;
+      border-color: #3c3935;
+      box-shadow: 0 4px 12px rgba(55,50,43,.18);
+    }
+    .sound-button:active { transform: scale(.97); }
     .piano-shell {
       flex: 1 1 auto;
       min-height: 0;
@@ -162,6 +189,8 @@
     }
     @media (max-height: 520px) {
       .title p, .status { display: none; }
+      .sound-picker { gap: 5px; padding-bottom: 4px; }
+      .sound-button { min-height: 36px; padding: 0 10px; font-size: 12px; }
       .keyboard { min-height: 180px; }
     }
   </style>
@@ -175,6 +204,14 @@
         <p>けんばんを おしてみよう</p>
       </div>
     </header>
+
+    <div class="sound-picker" id="sound-picker" aria-label="音色をえらぶ">
+      <button class="sound-button" type="button" data-sound="piano" aria-pressed="true">🎹 ピアノ</button>
+      <button class="sound-button" type="button" data-sound="organ" aria-pressed="false">🎵 オルガン</button>
+      <button class="sound-button" type="button" data-sound="marimba" aria-pressed="false">🪵 もっきん</button>
+      <button class="sound-button" type="button" data-sound="bell" aria-pressed="false">🔔 ベル</button>
+      <button class="sound-button" type="button" data-sound="synth" aria-pressed="false">✨ シンセ</button>
+    </div>
 
     <section class="piano-shell" aria-label="ピアノ">
       <div class="keyboard" id="keyboard">
@@ -214,12 +251,15 @@
     (() => {
       const root = document.getElementById('keyboard');
       const status = document.getElementById('status');
+      const soundPicker = document.getElementById('sound-picker');
+      const soundButtons = [...soundPicker.querySelectorAll('[data-sound]')];
       const keys = [...root.querySelectorAll('[data-note]')];
       const byKeyboardKey = new Map(keys.filter((el) => el.dataset.key).map((el) => [el.dataset.key, el]));
       const noteIndex = { C: 0, 'C#': 1, D: 2, 'D#': 3, E: 4, F: 5, 'F#': 6, G: 7, 'G#': 8, A: 9, 'A#': 10, B: 11 };
 
       let audioContext = null;
       let master = null;
+      let currentSound = 'piano';
       const activeVoices = new Map();
       const pointerNotes = new Map();
       const computerNotes = new Map();
@@ -240,7 +280,7 @@
           }
           audioContext = new AudioCtx();
           master = audioContext.createGain();
-          master.gain.value = 0.65;
+          master.gain.value = 0.58;
           master.connect(audioContext.destination);
         }
         if (audioContext.state === 'suspended') audioContext.resume();
@@ -248,35 +288,82 @@
         return true;
       }
 
+      function createOsc(type, frequency, destination, level = 1, detune = 0) {
+        const osc = audioContext.createOscillator();
+        const gain = audioContext.createGain();
+        osc.type = type;
+        osc.frequency.value = frequency;
+        osc.detune.value = detune;
+        gain.gain.value = level;
+        osc.connect(gain);
+        gain.connect(destination);
+        return osc;
+      }
+
+      function buildVoice(frequency, now) {
+        const output = audioContext.createGain();
+        output.connect(master);
+        const oscillators = [];
+        let release = 0.22;
+
+        if (currentSound === 'organ') {
+          oscillators.push(createOsc('sine', frequency, output, 0.68));
+          oscillators.push(createOsc('sine', frequency * 2, output, 0.22));
+          oscillators.push(createOsc('sine', frequency * 3, output, 0.10));
+          output.gain.setValueAtTime(0.0001, now);
+          output.gain.exponentialRampToValueAtTime(0.34, now + 0.025);
+          output.gain.exponentialRampToValueAtTime(0.27, now + 0.11);
+          release = 0.18;
+        } else if (currentSound === 'marimba') {
+          oscillators.push(createOsc('sine', frequency, output, 0.78));
+          oscillators.push(createOsc('sine', frequency * 4, output, 0.11));
+          oscillators.push(createOsc('sine', frequency * 7, output, 0.055));
+          output.gain.setValueAtTime(0.0001, now);
+          output.gain.exponentialRampToValueAtTime(0.52, now + 0.008);
+          output.gain.exponentialRampToValueAtTime(0.05, now + 0.42);
+          output.gain.exponentialRampToValueAtTime(0.0001, now + 1.15);
+          release = 0.10;
+        } else if (currentSound === 'bell') {
+          oscillators.push(createOsc('sine', frequency, output, 0.54));
+          oscillators.push(createOsc('sine', frequency * 2.01, output, 0.24));
+          oscillators.push(createOsc('sine', frequency * 3.98, output, 0.13));
+          oscillators.push(createOsc('sine', frequency * 6.12, output, 0.07));
+          output.gain.setValueAtTime(0.0001, now);
+          output.gain.exponentialRampToValueAtTime(0.42, now + 0.006);
+          output.gain.exponentialRampToValueAtTime(0.08, now + 0.55);
+          output.gain.exponentialRampToValueAtTime(0.0001, now + 2.1);
+          release = 0.35;
+        } else if (currentSound === 'synth') {
+          const filter = audioContext.createBiquadFilter();
+          filter.type = 'lowpass';
+          filter.frequency.setValueAtTime(Math.min(7000, frequency * 8), now);
+          filter.Q.value = 3.2;
+          filter.connect(output);
+          oscillators.push(createOsc('sawtooth', frequency, filter, 0.42, -7));
+          oscillators.push(createOsc('sawtooth', frequency, filter, 0.42, 7));
+          output.gain.setValueAtTime(0.0001, now);
+          output.gain.exponentialRampToValueAtTime(0.28, now + 0.03);
+          output.gain.exponentialRampToValueAtTime(0.18, now + 0.20);
+          release = 0.42;
+        } else {
+          oscillators.push(createOsc('triangle', frequency, output, 0.78));
+          oscillators.push(createOsc('sine', frequency * 2, output, 0.16));
+          oscillators.push(createOsc('sine', frequency * 3, output, 0.06));
+          output.gain.setValueAtTime(0.0001, now);
+          output.gain.exponentialRampToValueAtTime(0.42, now + 0.015);
+          output.gain.exponentialRampToValueAtTime(0.18, now + 0.26);
+          release = 0.26;
+        }
+
+        oscillators.forEach((osc) => osc.start(now));
+        return { output, oscillators, release, sound: currentSound };
+      }
+
       function startNote(note, token) {
         if (!ensureAudio() || activeVoices.has(token)) return;
         const now = audioContext.currentTime;
-        const frequency = frequencyFor(note);
-        const gain = audioContext.createGain();
-        const osc1 = audioContext.createOscillator();
-        const osc2 = audioContext.createOscillator();
-
-        osc1.type = 'triangle';
-        osc2.type = 'sine';
-        osc1.frequency.value = frequency;
-        osc2.frequency.value = frequency * 2;
-
-        const partial = audioContext.createGain();
-        partial.gain.value = 0.13;
-
-        osc1.connect(gain);
-        osc2.connect(partial);
-        partial.connect(gain);
-        gain.connect(master);
-
-        gain.gain.setValueAtTime(0.0001, now);
-        gain.gain.exponentialRampToValueAtTime(0.42, now + 0.015);
-        gain.gain.exponentialRampToValueAtTime(0.22, now + 0.22);
-
-        osc1.start(now);
-        osc2.start(now);
-
-        activeVoices.set(token, { note, gain, osc1, osc2 });
+        const voice = buildVoice(frequencyFor(note), now);
+        activeVoices.set(token, { note, ...voice });
         setKeyActive(note, true);
       }
 
@@ -284,21 +371,39 @@
         const voice = activeVoices.get(token);
         if (!voice || !audioContext) return;
         const now = audioContext.currentTime;
-        voice.gain.gain.cancelScheduledValues(now);
-        voice.gain.gain.setValueAtTime(Math.max(voice.gain.gain.value, 0.0001), now);
-        voice.gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.22);
-        voice.osc1.stop(now + 0.24);
-        voice.osc2.stop(now + 0.24);
+        const release = voice.release;
+
+        voice.output.gain.cancelScheduledValues(now);
+        voice.output.gain.setValueAtTime(Math.max(voice.output.gain.value, 0.0001), now);
+        voice.output.gain.exponentialRampToValueAtTime(0.0001, now + release);
+        voice.oscillators.forEach((osc) => {
+          try { osc.stop(now + release + 0.04); } catch (_) {}
+        });
         activeVoices.delete(token);
 
         const stillPlaying = [...activeVoices.values()].some((v) => v.note === voice.note);
         if (!stillPlaying) setKeyActive(voice.note, false);
       }
 
+      function stopAllNotes() {
+        [...activeVoices.keys()].forEach(stopNote);
+        pointerNotes.clear();
+        computerNotes.clear();
+      }
+
       function setKeyActive(note, active) {
         const key = keys.find((el) => el.dataset.note === note);
         if (key) key.classList.toggle('is-active', active);
       }
+
+      soundPicker.addEventListener('click', (event) => {
+        const button = event.target.closest('[data-sound]');
+        if (!button || button.dataset.sound === currentSound) return;
+        stopAllNotes();
+        currentSound = button.dataset.sound;
+        soundButtons.forEach((item) => item.setAttribute('aria-pressed', String(item === button)));
+        status.textContent = button.textContent.trim() + ' のおと';
+      });
 
       keys.forEach((key) => {
         key.addEventListener('pointerdown', (event) => {
@@ -340,11 +445,7 @@
         computerNotes.delete(name);
       });
 
-      window.addEventListener('blur', () => {
-        [...activeVoices.keys()].forEach(stopNote);
-        pointerNotes.clear();
-        computerNotes.clear();
-      });
+      window.addEventListener('blur', stopAllNotes);
     })();
   </script>
 </body>
