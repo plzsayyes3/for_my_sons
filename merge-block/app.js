@@ -374,7 +374,7 @@ async function rotateBoard(clockwise) {
   try {
     const animation = boardFrame.animate(
       [{ transform: "rotate(0deg)" }, { transform: "rotate(" + angle + "deg)" }],
-      { duration: 190, easing: "cubic-bezier(.2,.7,.2,1)" }
+      { duration: 280, easing: "cubic-bezier(.2,.7,.2,1)" }
     );
     await animation.finished;
   } catch (_) {}
@@ -781,9 +781,8 @@ moveRightButton.addEventListener("click", () => {
   updateLanding();
 });
 
-// アイコンが示す回転方向と実際の盤面回転を一致させる。
-boardLeftButton.addEventListener("click", () => rotateBoard(true));
-boardRightButton.addEventListener("click", () => rotateBoard(false));
+boardLeftButton.addEventListener("click", () => rotateBoard(false));
+boardRightButton.addEventListener("click", () => rotateBoard(true));
 dropButton.addEventListener("click", dropCurrent);
 newGameButton.addEventListener("click", openSetup);
 setupCancelButton.addEventListener("click", closeSetup);
