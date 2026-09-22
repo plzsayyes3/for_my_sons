@@ -18,7 +18,7 @@
         <p class="eyebrow">FOR MY SONS</p>
         <h1>ペイント</h1>
       </div>
-      <button class="save-button" id="save" type="button">ほぞん</button>
+      <span class="topbar-spacer" aria-hidden="true"></span>
     </header>
 
     <main>
@@ -30,6 +30,17 @@
           <button type="button" data-ratio="2:3">2:3</button>
           <button type="button" data-ratio="16:9">16:9</button>
         </div>
+      </section>
+
+      <section class="save-actions" aria-label="保存">
+        <button class="save-choice puzzle-save" id="puzzle-save" type="button">
+          <span class="save-choice-icon" aria-hidden="true">🧩</span>
+          <span><strong>パズルに保存</strong><small>写真にも保存</small></span>
+        </button>
+        <button class="save-choice phone-save" id="phone-save" type="button">
+          <span class="save-choice-icon" aria-hidden="true">↓</span>
+          <span><strong>携帯に保存</strong><small>いまの形のまま</small></span>
+        </button>
       </section>
 
       <section class="canvas-stage" id="canvas-stage">
@@ -71,6 +82,32 @@
         </div>
       </section>
     </main>
+  </div>
+
+  <div class="modal crop-modal" id="crop-modal" aria-hidden="true">
+    <section class="modal-card crop-card" role="dialog" aria-modal="true" aria-labelledby="crop-title">
+      <div class="modal-head">
+        <div>
+          <p class="modal-kicker">PUZZLE</p>
+          <h2 id="crop-title">正方形にしよう</h2>
+        </div>
+        <button class="modal-close" id="crop-close" type="button" aria-label="とじる">✕</button>
+      </div>
+      <p class="crop-help">指でうごかして、2本指で大きさをかえられるよ。</p>
+      <div class="crop-preview-wrap">
+        <canvas id="crop-preview" width="720" height="720" aria-label="正方形の切り抜きプレビュー"></canvas>
+        <div class="crop-guide" aria-hidden="true"></div>
+      </div>
+      <div class="zoom-row">
+        <span aria-hidden="true">−</span>
+        <input id="crop-zoom" type="range" min="1" max="6" step="0.01" value="1" aria-label="拡大">
+        <span aria-hidden="true">＋</span>
+      </div>
+      <div class="crop-actions">
+        <button class="secondary-action" id="crop-reset" type="button">まんなか</button>
+        <button class="primary-action" id="crop-confirm" type="button">これで決定</button>
+      </div>
+    </section>
   </div>
 
   <div class="toast" id="toast" role="status" aria-live="polite"></div>
