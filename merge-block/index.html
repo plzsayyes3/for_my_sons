@@ -1,0 +1,134 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#f2eee7">
+  <meta name="color-scheme" content="light">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <title>Merge Block</title>
+  <link rel="stylesheet" href="./styles.css?v=1">
+</head>
+<body>
+  <div class="app-shell">
+    <header class="topbar">
+      <a class="icon-button" href="../" aria-label="For My Sonsにもどる">‹</a>
+      <div class="title-wrap">
+        <p class="eyebrow">FOR MY SONS</p>
+        <h1>Merge Block</h1>
+      </div>
+      <button class="icon-button reset-button" id="new-game" type="button" aria-label="あたらしくはじめる">↻</button>
+    </header>
+
+    <main class="game-layout">
+      <section class="board-column" aria-label="ゲームばん">
+        <div class="score-row">
+          <div class="score-chip">
+            <span>SCORE</span>
+            <strong id="score">0</strong>
+          </div>
+          <div class="score-chip">
+            <span>BEST</span>
+            <strong id="best-score">0</strong>
+          </div>
+          <div class="score-chip merge-chip">
+            <span>MERGE</span>
+            <strong id="merge-readout">—</strong>
+          </div>
+        </div>
+
+        <div class="board-wrap" id="board-wrap">
+          <button class="edge-zone edge-zone-top" data-side="top" type="button" aria-label="上から入れる"></button>
+          <button class="edge-zone edge-zone-right" data-side="right" type="button" aria-label="右から入れる"></button>
+          <button class="edge-zone edge-zone-bottom" data-side="bottom" type="button" aria-label="下から入れる"></button>
+          <button class="edge-zone edge-zone-left" data-side="left" type="button" aria-label="左から入れる"></button>
+          <div class="center-dot" aria-hidden="true"></div>
+          <div id="board" class="board" role="grid" aria-label="Merge Block 9かける9"></div>
+        </div>
+
+        <p class="board-hint" id="game-status" aria-live="polite">
+          4つの面からブロックを中心へ送ろう。
+        </p>
+      </section>
+
+      <section class="controls" aria-label="コントローラー">
+        <section class="control-panel piece-panel">
+          <div class="panel-head">
+            <span>BLOCK</span>
+            <small>いま / つぎ</small>
+          </div>
+
+          <div class="piece-row">
+            <div>
+              <span class="mini-label">NOW</span>
+              <div class="piece-preview current-preview" id="current-preview" aria-label="いまのブロック"></div>
+            </div>
+            <div>
+              <span class="mini-label">NEXT</span>
+              <div class="piece-preview next-preview" id="next-preview" aria-label="つぎのブロック"></div>
+            </div>
+          </div>
+
+          <div class="rotate-row" role="group" aria-label="ブロックを回す">
+            <button id="rotate-left" type="button" aria-label="左に回す">↶</button>
+            <span>まわす</span>
+            <button id="rotate-right" type="button" aria-label="右に回す">↷</button>
+          </div>
+        </section>
+
+        <section class="control-panel place-panel">
+          <div class="panel-head">
+            <span>PLACE</span>
+            <small id="side-label">上から</small>
+          </div>
+
+          <div class="direction-pad" role="group" aria-label="入れる方向">
+            <span></span>
+            <button data-direction="top" type="button" aria-label="上から">↑</button>
+            <span></span>
+            <button data-direction="left" type="button" aria-label="左から">←</button>
+            <div class="gravity-mark" aria-hidden="true">●</div>
+            <button data-direction="right" type="button" aria-label="右から">→</button>
+            <span></span>
+            <button data-direction="bottom" type="button" aria-label="下から">↓</button>
+            <span></span>
+          </div>
+
+          <label class="lane-control" for="lane">
+            <span>いち</span>
+            <input id="lane" type="range" min="1" max="9" value="5" step="1">
+            <strong id="lane-value">5</strong>
+          </label>
+
+          <button class="place-button" id="place" type="button">
+            <span>中心へ</span>
+            <strong>PLACE</strong>
+          </button>
+        </section>
+      </section>
+    </main>
+
+    <section class="prototype-note">
+      <strong>仮組</strong>
+      <span>同じ色が上下左右で触れると、すき間が消えて1つの塊に見える。4方向すべてから置けなくなったら終了。</span>
+    </section>
+  </div>
+
+  <div class="game-over" id="game-over" aria-hidden="true">
+    <section class="game-over-card" role="dialog" aria-modal="true" aria-labelledby="game-over-title">
+      <p class="game-over-kicker">MERGE BLOCK</p>
+      <h2 id="game-over-title">いっぱい！</h2>
+      <p>4つの面から、もう入れられないよ。</p>
+      <div class="final-score">
+        <span>SCORE</span>
+        <strong id="final-score">0</strong>
+      </div>
+      <button id="play-again" type="button">もういちど</button>
+    </section>
+  </div>
+
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+  <script src="./app.js?v=1" defer></script>
+</body>
+</html>
