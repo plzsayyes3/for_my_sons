@@ -3,12 +3,12 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <meta name="theme-color" content="#f2eee7">
+  <meta name="theme-color" content="#f3eee6">
   <meta name="color-scheme" content="light">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
   <title>Merge Block</title>
-  <link rel="stylesheet" href="./styles.css?v=1">
+  <link rel="stylesheet" href="./styles.css?v=2">
 </head>
 <body>
   <div class="app-shell">
@@ -18,117 +18,89 @@
         <p class="eyebrow">FOR MY SONS</p>
         <h1>Merge Block</h1>
       </div>
-      <button class="icon-button reset-button" id="new-game" type="button" aria-label="あたらしくはじめる">↻</button>
+      <button class="icon-button" id="new-game" type="button" aria-label="あたらしくはじめる">↻</button>
     </header>
 
     <main class="game-layout">
+      <section class="side-panel info-panel" aria-label="ゲーム情報">
+        <div class="difficulty" role="group" aria-label="むずかしさ">
+          <button type="button" data-level="easy" class="is-active"><strong>やさしい</strong><small>3色</small></button>
+          <button type="button" data-level="normal"><strong>ふつう</strong><small>4色</small></button>
+          <button type="button" data-level="hard"><strong>むずかしい</strong><small>5色</small></button>
+          <button type="button" data-level="extreme"><strong>超むずかしい</strong><small>6色</small></button>
+        </div>
+
+        <div class="stats">
+          <div><span>SCORE</span><strong id="score">0</strong></div>
+          <div><span>BEST</span><strong id="best-score">0</strong></div>
+          <div><span>CHAIN</span><strong id="chain">—</strong></div>
+        </div>
+
+        <div class="piece-card next-card">
+          <span>NEXT</span>
+          <div class="piece-preview" id="next-preview" aria-label="つぎのブロック"></div>
+        </div>
+      </section>
+
       <section class="board-column" aria-label="ゲームばん">
-        <div class="score-row">
-          <div class="score-chip">
-            <span>SCORE</span>
-            <strong id="score">0</strong>
-          </div>
-          <div class="score-chip">
-            <span>BEST</span>
-            <strong id="best-score">0</strong>
-          </div>
-          <div class="score-chip merge-chip">
-            <span>MERGE</span>
-            <strong id="merge-readout">—</strong>
-          </div>
+        <div class="incoming-label">
+          <span>ここから落ちる</span>
+          <b>↓</b>
         </div>
 
         <div class="board-wrap" id="board-wrap">
-          <button class="edge-zone edge-zone-top" data-side="top" type="button" aria-label="上から入れる"></button>
-          <button class="edge-zone edge-zone-right" data-side="right" type="button" aria-label="右から入れる"></button>
-          <button class="edge-zone edge-zone-bottom" data-side="bottom" type="button" aria-label="下から入れる"></button>
-          <button class="edge-zone edge-zone-left" data-side="left" type="button" aria-label="左から入れる"></button>
-          <div class="center-dot" aria-hidden="true"></div>
-          <div id="board" class="board" role="grid" aria-label="Merge Block 9かける9"></div>
+          <div class="incoming-piece" id="incoming-piece" aria-label="いまのブロック"></div>
+          <div class="board-frame" id="board-frame">
+            <div id="board" class="board" role="grid" aria-label="Merge Block 9かける9"></div>
+          </div>
         </div>
 
         <p class="board-hint" id="game-status" aria-live="polite">
-          4つの面からブロックを中心へ送ろう。
+          盤面を回して、土台のある場所へ落とそう。
         </p>
       </section>
 
-      <section class="controls" aria-label="コントローラー">
-        <section class="control-panel piece-panel">
-          <div class="panel-head">
-            <span>BLOCK</span>
-            <small>いま / つぎ</small>
+      <section class="side-panel control-panel" aria-label="コントローラー">
+        <div class="piece-card current-card">
+          <span>NOW</span>
+          <div class="piece-preview" id="current-preview" aria-label="いまのブロック"></div>
+        </div>
+
+        <div class="control-group">
+          <span class="control-title">盤面を回す</span>
+          <div class="two-buttons">
+            <button type="button" id="board-left" aria-label="盤面を左に回す"><b>↶</b><small>BOARD</small></button>
+            <button type="button" id="board-right" aria-label="盤面を右に回す"><b>↷</b><small>BOARD</small></button>
           </div>
+        </div>
 
-          <div class="piece-row">
-            <div>
-              <span class="mini-label">NOW</span>
-              <div class="piece-preview current-preview" id="current-preview" aria-label="いまのブロック"></div>
-            </div>
-            <div>
-              <span class="mini-label">NEXT</span>
-              <div class="piece-preview next-preview" id="next-preview" aria-label="つぎのブロック"></div>
-            </div>
+        <div class="control-group">
+          <span class="control-title">落とす場所</span>
+          <div class="move-controls">
+            <button type="button" id="move-left" aria-label="ブロックを左へ">←</button>
+            <button type="button" id="drop"><small>ここへ</small><strong>DROP</strong></button>
+            <button type="button" id="move-right" aria-label="ブロックを右へ">→</button>
           </div>
+        </div>
 
-          <div class="rotate-row" role="group" aria-label="ブロックを回す">
-            <button id="rotate-left" type="button" aria-label="左に回す">↶</button>
-            <span>まわす</span>
-            <button id="rotate-right" type="button" aria-label="右に回す">↷</button>
-          </div>
-        </section>
-
-        <section class="control-panel place-panel">
-          <div class="panel-head">
-            <span>PLACE</span>
-            <small id="side-label">上から</small>
-          </div>
-
-          <div class="direction-pad" role="group" aria-label="入れる方向">
-            <span></span>
-            <button data-direction="top" type="button" aria-label="上から">↑</button>
-            <span></span>
-            <button data-direction="left" type="button" aria-label="左から">←</button>
-            <div class="gravity-mark" aria-hidden="true">●</div>
-            <button data-direction="right" type="button" aria-label="右から">→</button>
-            <span></span>
-            <button data-direction="bottom" type="button" aria-label="下から">↓</button>
-            <span></span>
-          </div>
-
-          <label class="lane-control" for="lane">
-            <span>いち</span>
-            <input id="lane" type="range" min="1" max="9" value="5" step="1">
-            <strong id="lane-value">5</strong>
-          </label>
-
-          <button class="place-button" id="place" type="button">
-            <span>中心へ</span>
-            <strong>PLACE</strong>
-          </button>
-        </section>
+        <p class="rule-note">
+          ブロックはいつも上から落ちる。反対側までは通り抜けない。同じ色が4個以上つながると消える。
+        </p>
       </section>
     </main>
-
-    <section class="prototype-note">
-      <strong>仮組</strong>
-      <span>同じ色が上下左右で触れると、すき間が消えて1つの塊に見える。4方向すべてから置けなくなったら終了。</span>
-    </section>
   </div>
 
   <div class="game-over" id="game-over" aria-hidden="true">
     <section class="game-over-card" role="dialog" aria-modal="true" aria-labelledby="game-over-title">
-      <p class="game-over-kicker">MERGE BLOCK</p>
-      <h2 id="game-over-title">いっぱい！</h2>
-      <p>4つの面から、もう入れられないよ。</p>
-      <div class="final-score">
-        <span>SCORE</span>
-        <strong id="final-score">0</strong>
-      </div>
-      <button id="play-again" type="button">もういちど</button>
+      <p>MERGE BLOCK</p>
+      <h2 id="game-over-title">置けない！</h2>
+      <span>4方向すべてに置ける場所がなくなったよ。</span>
+      <div class="final-score"><small>SCORE</small><strong id="final-score">0</strong></div>
+      <button type="button" id="play-again">もういちど</button>
     </section>
   </div>
 
   <div class="toast" id="toast" role="status" aria-live="polite"></div>
-  <script src="./app.js?v=1" defer></script>
+  <script src="./app.js?v=2" defer></script>
 </body>
 </html>
