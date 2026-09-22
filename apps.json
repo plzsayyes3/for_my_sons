@@ -16,7 +16,7 @@
   {
     "id": "piano",
     "name": "ピアノ",
-    "url": "./piano/?v=13",
+    "url": "./piano/?v=14",
     "icon": "./assets/piano.svg",
     "description": "けんばんをおして、音をならそう"
   },
