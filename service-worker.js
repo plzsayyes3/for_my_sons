@@ -12,6 +12,10 @@ const SHELL = [
   './split-puzzle/index.html',
   './split-puzzle/styles.css',
   './split-puzzle/app.js',
+  './paint/?v=1',
+  './paint/index.html',
+  './paint/styles.css',
+  './paint/app.js',
   './assets/for-my-sons-icon.svg',
   './assets/kids-3d.svg',
   './assets/minecraft-english.svg',
@@ -22,7 +26,8 @@ const SHELL = [
   './assets/step-up.svg',
   './assets/match3.svg',
   './assets/space-survival.svg',
-  './assets/split-puzzle.svg'
+  './assets/split-puzzle.svg',
+  './assets/paint.svg'
 ];
 
 self.addEventListener('install', (event) => {
