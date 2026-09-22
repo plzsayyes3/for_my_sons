@@ -70,6 +70,13 @@
     "description": "えもじの半分どうしをつなげる絵あわせパズル"
   },
   {
+    "id": "merge-block",
+    "name": "Merge Block",
+    "url": "./merge-block/?v=1",
+    "icon": "./assets/merge-block.svg",
+    "description": "4つの面から中心へブロックを送り、同じ色をつなげるパズル"
+  },
+  {
     "id": "paint",
     "name": "ペイント",
     "url": "./paint/?v=3",
