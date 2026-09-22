@@ -1,4 +1,4 @@
-const CACHE_NAME = 'for-my-sons-v18';
+const CACHE_NAME = 'for-my-sons-v17';
 const SHELL = [
   './',
   './index.html',
@@ -6,8 +6,8 @@ const SHELL = [
   './app.js',
   './apps.json',
   './manifest.webmanifest',
-  './piano/?v=13',
-  './piano/index.html?v=13',
+  './piano/?v=14',
+  './piano/index.html?v=14',
   './split-puzzle/?v=4',
   './split-puzzle/index.html',
   './split-puzzle/styles.css?v=4',
