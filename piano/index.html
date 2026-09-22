@@ -225,6 +225,18 @@
       box-shadow: 0 0 0 5px rgba(225,140,58,.14);
     }
     .score-note.is-future { opacity: .58; }
+    .score-accidental {
+      position: absolute;
+      top: var(--y);
+      left: var(--x);
+      transform: translate(-20px, -55%);
+      font-family: "Times New Roman", serif;
+      font-size: 21px;
+      line-height: 1;
+      font-weight: 700;
+      color: #3f3a35;
+      pointer-events: none;
+    }
     .score-note-label {
       position: absolute;
       top: calc(var(--y) + 15px);
@@ -867,6 +879,7 @@
         <button class="song-chip" type="button" data-song="hotcross" aria-pressed="false">🥐 ホットクロスバンズ</button>
         <button class="song-chip" type="button" data-song="saints" aria-pressed="false">🎺 聖者の行進</button>
         <button class="song-chip" type="button" data-song="silentnight" aria-pressed="false">🌙 きよしこの夜</button>
+        <button class="song-chip" type="button" data-song="ievan" aria-pressed="false">🥬 イエヴァン・ポルッカ</button>
       </div>
       <div class="score-staff" id="score-staff" aria-label="選んだ曲の楽譜">
         <div class="staff-clef" aria-hidden="true">𝄞</div>
@@ -1192,6 +1205,19 @@
             'D5','D5','F5','D5','B4','C5','E5',
             'C5','G4','E4','G4','F4','D4','C4'
           ]
+        },
+        ievan: {
+          title: '🥬 イエヴァン・ポルッカ',
+          notes: [
+            'B4','B4','B4','C#5','D5','B4','B4','D5',
+            'C#5','A4','A4','C#5','D5','C#5','B4','A4','B4','F#4',
+            'B4','B4','B4','C#5','D5','B4','B4',
+            'E5','F#5','E5','D5','C#5','B4','B4',
+            'F#5','D5','D5','F#5','E5','C#5','C#5','D5',
+            'E5','F#5','E5','D5','C#5','B4','C#5','D5','E5',
+            'F#5','D5','D5','F#5','E5','C#5','C#5','D5',
+            'E5','F#5','E5','D5','C#5','B4','B4'
+          ]
         }
       };
       const solfegeName = { C:'ド', D:'レ', E:'ミ', F:'ファ', G:'ソ', A:'ラ', B:'シ' };
@@ -1204,8 +1230,8 @@
       }
 
       function solfegeFor(note) {
-        const match = note.match(/^([A-G])#?(\d)$/);
-        return match ? solfegeName[match[1]] : note;
+        const match = note.match(/^([A-G])(#?)(\d)$/);
+        return match ? solfegeName[match[1]] + (match[2] ? '♯' : '') : note;
       }
 
       let audioContext = null;
@@ -1679,7 +1705,7 @@
       }
 
       function renderScore() {
-        scoreStaff.querySelectorAll('.score-note, .score-note-label, .ledger-line').forEach((node) => node.remove());
+        scoreStaff.querySelectorAll('.score-note, .score-note-label, .score-accidental, .ledger-line').forEach((node) => node.remove());
 
         const song = currentSong();
         scoreTitle.textContent = song.title;
@@ -1701,6 +1727,15 @@
           noteEl.style.setProperty('--x', x + '%');
           noteEl.style.setProperty('--y', scoreY(note) + 'px');
           scoreStaff.appendChild(noteEl);
+
+          if (note.includes('#')) {
+            const accidental = document.createElement('div');
+            accidental.className = 'score-accidental';
+            accidental.style.setProperty('--x', x + '%');
+            accidental.style.setProperty('--y', scoreY(note) + 'px');
+            accidental.textContent = '♯';
+            scoreStaff.appendChild(accidental);
+          }
 
           const label = document.createElement('div');
           label.className = 'score-note-label';
