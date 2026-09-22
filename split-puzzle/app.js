@@ -1,23 +1,23 @@
 const board = document.querySelector("#board");
 const moveCount = document.querySelector("#move-count");
 const newPuzzleButton = document.querySelector("#new-puzzle");
-const importButton = document.querySelector("#import-button");
 const difficultyButtons = [...document.querySelectorAll("[data-size]")];
 const celebration = document.querySelector("#celebration");
 const clearMoves = document.querySelector("#clear-moves");
 const playAgain = document.querySelector("#play-again");
-const toast = document.querySelector("#toast");
 
-const customSource = document.querySelector("#custom-source");
-const customPreview = document.querySelector("#custom-preview");
-const removeCustomButton = document.querySelector("#remove-custom");
-
+const importButton = document.querySelector("#import-button");
 const importModal = document.querySelector("#import-modal");
 const importCloseButton = document.querySelector("#import-close");
 const deviceImportButton = document.querySelector("#device-import");
-const fileInput = document.querySelector("#file-input");
-const paintGallery = document.querySelector("#paint-gallery");
-const galleryEmpty = document.querySelector("#gallery-empty");
+const imageInput = document.querySelector("#image-input");
+const artLibrary = document.querySelector("#art-library");
+const libraryEmpty = document.querySelector("#library-empty");
+const emojiOnlyButton = document.querySelector("#emoji-only");
+const currentArt = document.querySelector("#current-art");
+const currentArtImage = document.querySelector("#current-art-image");
+const clearImportButton = document.querySelector("#clear-import");
+const toast = document.querySelector("#toast");
 
 const cropModal = document.querySelector("#crop-modal");
 const cropPreview = document.querySelector("#crop-preview");
@@ -47,13 +47,14 @@ let pieces = [];
 let moves = 0;
 let selectedIndex = null;
 let pointerState = null;
-let activeCustomArt = null;
+let customArt = null;
+let customArtUrl = null;
+let galleryUrls = [];
 let toastTimer = null;
 
 let cropSession = null;
 const cropPointers = new Map();
 let cropGesture = null;
-let galleryObjectUrls = [];
 
 function clamp(value, min, max) {
   return Math.min(max, Math.max(min, value));
@@ -68,21 +69,23 @@ function shuffled(list) {
   return copy;
 }
 
-function createArtPool(count) {
-  const emoji = shuffled(EMOJI_ART);
-  if (!activeCustomArt) return emoji.slice(0, count);
+function showToast(message) {
+  toast.textContent = message;
+  toast.classList.add("is-open");
+  window.clearTimeout(toastTimer);
+  toastTimer = window.setTimeout(() => toast.classList.remove("is-open"), 1700);
+}
 
-  const pool = [
-    activeCustomArt,
-    ...emoji.slice(0, Math.max(0, count - 1))
-  ];
-  return shuffled(pool);
+function createArtPool(count) {
+  const emojis = shuffled(EMOJI_ART);
+  if (!customArt || count < 1) return emojis.slice(0, count);
+  return [customArt, ...emojis.slice(0, Math.max(0, count - 1))];
 }
 
 function makePuzzle(nextSize) {
   const count = nextSize * nextSize;
   const edgeCount = 2 * nextSize * (nextSize - 1);
-  const artPool = createArtPool(edgeCount);
+  const artPool = shuffled(createArtPool(edgeCount));
   let artIndex = 0;
 
   const solved = Array.from({ length: count }, (_, index) => ({
@@ -98,10 +101,7 @@ function makePuzzle(nextSize) {
       const leftIndex = row * nextSize + col;
       const rightIndex = leftIndex + 1;
       const art = artPool[artIndex++];
-      const edge = {
-        id: "h-" + row + "-" + col,
-        art
-      };
+      const edge = { id: "h-" + row + "-" + col, art };
       solved[leftIndex].right = edge;
       solved[rightIndex].left = edge;
     }
@@ -112,10 +112,7 @@ function makePuzzle(nextSize) {
       const topIndex = row * nextSize + col;
       const bottomIndex = topIndex + nextSize;
       const art = artPool[artIndex++];
-      const edge = {
-        id: "v-" + row + "-" + col,
-        art
-      };
+      const edge = { id: "v-" + row + "-" + col, art };
       solved[topIndex].bottom = edge;
       solved[bottomIndex].top = edge;
     }
@@ -274,13 +271,6 @@ function hideCelebration() {
   celebration.setAttribute("aria-hidden", "true");
 }
 
-function showToast(message) {
-  toast.textContent = message;
-  toast.classList.add("is-open");
-  window.clearTimeout(toastTimer);
-  toastTimer = window.setTimeout(() => toast.classList.remove("is-open"), 1800);
-}
-
 function beginDrag(event, tile) {
   const index = Number(tile.dataset.index);
   const rect = tile.getBoundingClientRect();
@@ -348,9 +338,7 @@ function finishDrag(event) {
 
   if (targetTile && board.contains(targetTile)) {
     const targetIndex = Number(targetTile.dataset.index);
-    if (targetIndex !== state.index) {
-      swapPieces(state.index, targetIndex);
-    }
+    if (targetIndex !== state.index) swapPieces(state.index, targetIndex);
   }
 }
 
@@ -372,7 +360,7 @@ function openDatabase() {
   });
 }
 
-async function getPaintArt() {
+async function readPuzzleArt() {
   const db = await openDatabase();
   const records = await new Promise((resolve, reject) => {
     const tx = db.transaction(STORE_NAME, "readonly");
@@ -383,31 +371,57 @@ async function getPaintArt() {
   db.close();
 
   return records
-    .filter((record) => record?.blob instanceof Blob && (record.kind === "puzzle-art" || record.kind === "paint"))
-    .sort((a, b) => String(b.createdAt || "").localeCompare(String(a.createdAt || "")));
+    .filter((record) => record.kind === "puzzle-art" && record.blob)
+    .sort((a, b) => String(b.createdAt).localeCompare(String(a.createdAt)));
 }
 
-function clearGalleryUrls() {
-  galleryObjectUrls.forEach((url) => URL.revokeObjectURL(url));
-  galleryObjectUrls = [];
+async function storePuzzleArt(blob, source = "import") {
+  const db = await openDatabase();
+  const id = "puzzle-art-" + Date.now() + "-" + Math.random().toString(36).slice(2, 8);
+  const record = {
+    id,
+    kind: "puzzle-art",
+    source,
+    ratio: "1:1",
+    createdAt: new Date().toISOString(),
+    width: 1000,
+    height: 1000,
+    blob
+  };
+
+  await new Promise((resolve, reject) => {
+    const tx = db.transaction(STORE_NAME, "readwrite");
+    tx.objectStore(STORE_NAME).put(record);
+    tx.oncomplete = resolve;
+    tx.onerror = () => reject(tx.error);
+    tx.onabort = () => reject(tx.error);
+  });
+
+  db.close();
+  return record;
 }
 
-async function renderPaintGallery() {
-  clearGalleryUrls();
-  paintGallery.replaceChildren();
+function cleanupGalleryUrls() {
+  galleryUrls.forEach((url) => URL.revokeObjectURL(url));
+  galleryUrls = [];
+}
+
+async function renderLibrary() {
+  cleanupGalleryUrls();
+  artLibrary.replaceChildren();
 
   try {
-    const records = await getPaintArt();
-    galleryEmpty.hidden = records.length > 0;
+    const records = await readPuzzleArt();
+    libraryEmpty.hidden = records.length > 0;
 
     records.forEach((record) => {
       const url = URL.createObjectURL(record.blob);
-      galleryObjectUrls.push(url);
+      galleryUrls.push(url);
 
       const button = document.createElement("button");
       button.type = "button";
-      button.className = "gallery-item";
-      button.setAttribute("aria-label", "この絵をつかう");
+      button.className = "art-card";
+      button.setAttribute("aria-label", "この絵をパズルにつかう");
 
       const image = document.createElement("img");
       image.src = url;
@@ -415,50 +429,67 @@ async function renderPaintGallery() {
       button.appendChild(image);
 
       button.addEventListener("click", () => {
+        selectCustomArt(record.blob, record.id);
         closeImportModal();
-        openCropFromBlob(record.blob);
+        showToast("この絵をパズルに入れたよ");
       });
 
-      paintGallery.appendChild(button);
+      artLibrary.appendChild(button);
     });
   } catch (error) {
     console.error(error);
-    galleryEmpty.hidden = false;
-    galleryEmpty.textContent = "保存した絵を読みこめませんでした。";
+    libraryEmpty.hidden = false;
   }
 }
 
-function openImportModal() {
+async function openImportModal() {
+  await renderLibrary();
   importModal.classList.add("is-open");
   importModal.setAttribute("aria-hidden", "false");
   document.body.classList.add("modal-open");
-  renderPaintGallery();
 }
 
 function closeImportModal() {
   importModal.classList.remove("is-open");
   importModal.setAttribute("aria-hidden", "true");
   document.body.classList.remove("modal-open");
-  clearGalleryUrls();
+  cleanupGalleryUrls();
 }
 
-function loadImageFromBlob(blob) {
+function selectCustomArt(blob, id = "custom") {
+  if (customArtUrl) URL.revokeObjectURL(customArtUrl);
+  customArtUrl = URL.createObjectURL(blob);
+  customArt = {
+    id,
+    type: "image",
+    value: customArtUrl
+  };
+  currentArtImage.src = customArtUrl;
+  currentArt.hidden = false;
+  startNewPuzzle();
+}
+
+function clearCustomArt() {
+  if (customArtUrl) URL.revokeObjectURL(customArtUrl);
+  customArtUrl = null;
+  customArt = null;
+  currentArtImage.removeAttribute("src");
+  currentArt.hidden = true;
+  startNewPuzzle();
+}
+
+function loadImageFromFile(file) {
   return new Promise((resolve, reject) => {
-    const url = URL.createObjectURL(blob);
+    const url = URL.createObjectURL(file);
     const image = new Image();
-
     image.onload = () => {
-      resolve({
-        image,
-        cleanup: () => URL.revokeObjectURL(url)
-      });
+      URL.revokeObjectURL(url);
+      resolve(image);
     };
-
     image.onerror = () => {
       URL.revokeObjectURL(url);
-      reject(new Error("画像を読みこめませんでした"));
+      reject(new Error("Image load failed"));
     };
-
     image.src = url;
   });
 }
@@ -513,20 +544,23 @@ function resetCrop() {
   renderCrop();
 }
 
-function openCropEditor(source, cleanup) {
+function openCropEditor(source) {
   cropSession = {
     source,
     width: source.naturalWidth || source.width,
     height: source.naturalHeight || source.height,
     cx: (source.naturalWidth || source.width) / 2,
     cy: (source.naturalHeight || source.height) / 2,
-    zoom: 1,
-    cleanup
+    zoom: 1
   };
-
   cropPointers.clear();
   cropGesture = null;
   renderCrop();
+
+  importModal.classList.remove("is-open");
+  importModal.setAttribute("aria-hidden", "true");
+  cleanupGalleryUrls();
+
   cropModal.classList.add("is-open");
   cropModal.setAttribute("aria-hidden", "false");
   document.body.classList.add("modal-open");
@@ -538,12 +572,10 @@ function closeCropEditor() {
   document.body.classList.remove("modal-open");
   cropPointers.clear();
   cropGesture = null;
-
-  if (cropSession?.cleanup) cropSession.cleanup();
   cropSession = null;
 }
 
-function makeCroppedCanvas() {
+function makeCroppedBlob() {
   const output = document.createElement("canvas");
   output.width = 1000;
   output.height = 1000;
@@ -551,38 +583,33 @@ function makeCroppedCanvas() {
   const cropSize = cropSizeInSource();
   const sx = cropSession.cx - cropSize / 2;
   const sy = cropSession.cy - cropSize / 2;
-
   outputCtx.fillStyle = "#ffffff";
   outputCtx.fillRect(0, 0, 1000, 1000);
   outputCtx.drawImage(cropSession.source, sx, sy, cropSize, cropSize, 0, 0, 1000, 1000);
-  return output;
+
+  const dataUrl = output.toDataURL("image/png");
+  const parts = dataUrl.split(",");
+  const binary = atob(parts[1]);
+  const bytes = new Uint8Array(binary.length);
+  for (let i = 0; i < binary.length; i += 1) bytes[i] = binary.charCodeAt(i);
+  return new Blob([bytes], { type: "image/png" });
 }
 
-function confirmCrop() {
+async function confirmCrop() {
   if (!cropSession) return;
-  const cropped = makeCroppedCanvas();
-  const dataUrl = cropped.toDataURL("image/png");
+  cropConfirmButton.disabled = true;
 
-  activeCustomArt = {
-    id: "custom-" + Date.now(),
-    type: "image",
-    value: dataUrl
-  };
-
-  customPreview.src = dataUrl;
-  customSource.hidden = false;
-  closeCropEditor();
-  startNewPuzzle(size);
-  showToast("この絵をパズルに入れたよ");
-}
-
-async function openCropFromBlob(blob) {
   try {
-    const loaded = await loadImageFromBlob(blob);
-    openCropEditor(loaded.image, loaded.cleanup);
+    const blob = makeCroppedBlob();
+    const record = await storePuzzleArt(blob, "import");
+    closeCropEditor();
+    selectCustomArt(blob, record.id);
+    showToast("正方形で保存してパズルに入れたよ");
   } catch (error) {
     console.error(error);
-    showToast("画像を読みこめなかった");
+    showToast("画像を保存できなかった");
+  } finally {
+    cropConfirmButton.disabled = false;
   }
 }
 
@@ -626,29 +653,37 @@ difficultyButtons.forEach((button) => {
 newPuzzleButton.addEventListener("click", () => startNewPuzzle());
 playAgain.addEventListener("click", () => startNewPuzzle());
 
+celebration.addEventListener("click", (event) => {
+  if (event.target === celebration) hideCelebration();
+});
+
 importButton.addEventListener("click", openImportModal);
 importCloseButton.addEventListener("click", closeImportModal);
+clearImportButton.addEventListener("click", clearCustomArt);
+emojiOnlyButton.addEventListener("click", () => {
+  clearCustomArt();
+  closeImportModal();
+  showToast("絵文字だけにしたよ");
+});
 
 importModal.addEventListener("click", (event) => {
   if (event.target === importModal) closeImportModal();
 });
 
-deviceImportButton.addEventListener("click", () => fileInput.click());
+deviceImportButton.addEventListener("click", () => imageInput.click());
 
-fileInput.addEventListener("change", () => {
-  const file = fileInput.files?.[0];
-  fileInput.value = "";
+imageInput.addEventListener("change", async () => {
+  const file = imageInput.files?.[0];
+  imageInput.value = "";
   if (!file) return;
-  closeImportModal();
-  openCropFromBlob(file);
-});
 
-removeCustomButton.addEventListener("click", () => {
-  activeCustomArt = null;
-  customPreview.removeAttribute("src");
-  customSource.hidden = true;
-  startNewPuzzle(size);
-  showToast("絵文字だけにもどしたよ");
+  try {
+    const image = await loadImageFromFile(file);
+    openCropEditor(image);
+  } catch (error) {
+    console.error(error);
+    showToast("画像をひらけなかった");
+  }
 });
 
 cropPreview.addEventListener("pointerdown", (event) => {
@@ -724,10 +759,10 @@ cropModal.addEventListener("click", (event) => {
   if (event.target === cropModal) closeCropEditor();
 });
 
-celebration.addEventListener("click", (event) => {
-  if (event.target === celebration) hideCelebration();
-});
-
 window.addEventListener("resize", updateEmojiScale);
+window.addEventListener("beforeunload", () => {
+  if (customArtUrl) URL.revokeObjectURL(customArtUrl);
+  cleanupGalleryUrls();
+});
 
 startNewPuzzle(3);
