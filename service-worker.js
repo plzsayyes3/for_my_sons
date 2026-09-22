@@ -1,4 +1,4 @@
-const CACHE_NAME = 'for-my-sons-v3';
+const CACHE_NAME = 'for-my-sons-v4';
 const SHELL = [
   './',
   './index.html',
@@ -6,9 +6,12 @@ const SHELL = [
   './app.js',
   './apps.json',
   './manifest.webmanifest',
+  './piano/',
+  './piano/index.html',
   './assets/for-my-sons-icon.svg',
   './assets/kids-3d.svg',
   './assets/minecraft-english.svg',
+  './assets/piano.svg',
   './assets/typing.svg',
   './assets/pressure.svg',
   './assets/roulette.svg',
