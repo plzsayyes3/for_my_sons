@@ -121,6 +121,36 @@
       font-size: 11px;
       font-weight: 700;
     }
+    .song-picker {
+      display: flex;
+      gap: 7px;
+      margin: 0 0 9px;
+      padding: 1px 0 3px;
+      overflow-x: auto;
+      overscroll-behavior-x: contain;
+      scrollbar-width: none;
+      -webkit-overflow-scrolling: touch;
+    }
+    .song-picker::-webkit-scrollbar { display: none; }
+    .song-chip {
+      flex: 0 0 auto;
+      min-height: 36px;
+      padding: 0 12px;
+      border: 1px solid #ded6ca;
+      border-radius: 999px;
+      background: #f4eee5;
+      color: #5b554e;
+      font: inherit;
+      font-size: 12px;
+      font-weight: 800;
+      white-space: nowrap;
+      touch-action: manipulation;
+    }
+    .song-chip[aria-pressed="true"] {
+      background: #3c3935;
+      border-color: #3c3935;
+      color: #fff;
+    }
     .score-restart {
       min-width: 44px;
       min-height: 38px;
@@ -785,6 +815,8 @@
       .title p, .status, .sample-credit { display: none; }
       .app.is-score .score-panel { margin-bottom: 4px; padding: 6px 8px; }
       .app.is-score .score-head { margin-bottom: 4px; }
+      .app.is-score .song-picker { margin-bottom: 4px; gap: 5px; }
+      .app.is-score .song-chip { min-height: 30px; padding: 0 9px; font-size: 10px; }
       .app.is-score .score-title { font-size: 15px; }
       .app.is-score .score-staff { height: 108px; }
       .app.is-score .keyboard { min-height: 112px; }
@@ -818,12 +850,25 @@
     <section class="score-panel" id="score-panel" aria-label="楽譜モード">
       <div class="score-head">
         <div class="score-title-wrap">
-          <h2 class="score-title">⭐ きらきら星</h2>
+          <h2 class="score-title" id="score-title">⭐ きらきら星</h2>
           <p class="score-sub" id="score-guide">オレンジの音を ひいてみよう</p>
         </div>
         <button class="score-restart" id="score-restart" type="button">↺ さいしょ</button>
       </div>
-      <div class="score-staff" id="score-staff" aria-label="きらきら星の楽譜">
+      <div class="song-picker" id="song-picker" aria-label="曲をえらぶ">
+        <button class="song-chip" type="button" data-song="twinkle" aria-pressed="true">⭐ きらきら星</button>
+        <button class="song-chip" type="button" data-song="mary" aria-pressed="false">🐑 メリーさん</button>
+        <button class="song-chip" type="button" data-song="frere" aria-pressed="false">👏 グーチョキパーのメロディ</button>
+        <button class="song-chip" type="button" data-song="butterfly" aria-pressed="false">🦋 ちょうちょう</button>
+        <button class="song-chip" type="button" data-song="london" aria-pressed="false">🌉 ロンドン橋</button>
+        <button class="song-chip" type="button" data-song="row" aria-pressed="false">🚣 こげこげボート</button>
+        <button class="song-chip" type="button" data-song="joy" aria-pressed="false">🎵 よろこびの歌</button>
+        <button class="song-chip" type="button" data-song="jingle" aria-pressed="false">🔔 ジングルベル</button>
+        <button class="song-chip" type="button" data-song="hotcross" aria-pressed="false">🥐 ホットクロスバンズ</button>
+        <button class="song-chip" type="button" data-song="saints" aria-pressed="false">🎺 聖者の行進</button>
+        <button class="song-chip" type="button" data-song="silentnight" aria-pressed="false">🌙 きよしこの夜</button>
+      </div>
+      <div class="score-staff" id="score-staff" aria-label="選んだ曲の楽譜">
         <div class="staff-clef" aria-hidden="true">𝄞</div>
         <div class="staff-line l1"></div>
         <div class="staff-line l2"></div>
@@ -1002,7 +1047,10 @@
       const scoreModeButton = document.getElementById('score-mode');
       const scorePanel = document.getElementById('score-panel');
       const scoreStaff = document.getElementById('score-staff');
+      const scoreTitle = document.getElementById('score-title');
       const scoreGuide = document.getElementById('score-guide');
+      const songPicker = document.getElementById('song-picker');
+      const songChips = [...songPicker.querySelectorAll('[data-song]')];
       const scoreRestart = document.getElementById('score-restart');
       const scoreProgressBar = document.getElementById('score-progress-bar');
       const scoreProgressText = document.getElementById('score-progress-text');
@@ -1038,17 +1086,127 @@
       const pianoSampleBuffers = new Map();
       const pianoSampleFetches = new Map();
       const pendingNotes = new Set();
-      const twinkleNotes = [
-        'C4','C4','G4','G4','A4','A4','G4',
-        'F4','F4','E4','E4','D4','D4','C4',
-        'G4','G4','F4','F4','E4','E4','D4',
-        'G4','G4','F4','F4','E4','E4','D4',
-        'C4','C4','G4','G4','A4','A4','G4',
-        'F4','F4','E4','E4','D4','D4','C4'
-      ];
-      const solfege = { C4:'ド', D4:'レ', E4:'ミ', F4:'ファ', G4:'ソ', A4:'ラ', B4:'シ', C5:'ド' };
+      const scoreSongs = {
+        twinkle: {
+          title: '⭐ きらきら星',
+          notes: [
+            'C4','C4','G4','G4','A4','A4','G4',
+            'F4','F4','E4','E4','D4','D4','C4',
+            'G4','G4','F4','F4','E4','E4','D4',
+            'G4','G4','F4','F4','E4','E4','D4',
+            'C4','C4','G4','G4','A4','A4','G4',
+            'F4','F4','E4','E4','D4','D4','C4'
+          ]
+        },
+        mary: {
+          title: '🐑 メリーさんのひつじ',
+          notes: [
+            'E4','D4','C4','D4','E4','E4','E4',
+            'D4','D4','D4','E4','G4','G4',
+            'E4','D4','C4','D4','E4','E4','E4','E4',
+            'D4','D4','E4','D4','C4'
+          ]
+        },
+        frere: {
+          title: '👏 グーチョキパーのメロディ',
+          notes: [
+            'C4','D4','E4','C4','C4','D4','E4','C4',
+            'E4','F4','G4','E4','F4','G4',
+            'G4','A4','G4','F4','E4','C4',
+            'G4','A4','G4','F4','E4','C4',
+            'C4','G4','C4','C4','G4','C4'
+          ]
+        },
+        butterfly: {
+          title: '🦋 ちょうちょう',
+          notes: [
+            'G4','E4','E4','F4','D4','D4','C4','D4','E4','F4','G4','G4','G4',
+            'G4','E4','E4','F4','D4','D4','C4','E4','G4','G4','C4','C4',
+            'D4','D4','D4','D4','D4','E4','F4',
+            'E4','E4','E4','E4','E4','F4','G4',
+            'G4','E4','E4','F4','D4','D4','C4','E4','G4','G4','C4','C4'
+          ]
+        },
+        london: {
+          title: '🌉 ロンドン橋',
+          notes: [
+            'G4','A4','G4','F4','E4','F4','G4',
+            'D4','E4','F4','E4','F4','G4',
+            'G4','A4','G4','F4','E4','F4','G4',
+            'D4','G4','E4','C4'
+          ]
+        },
+        row: {
+          title: '🚣 こげこげボート',
+          notes: [
+            'C4','C4','C4','D4','E4',
+            'E4','D4','E4','F4','G4',
+            'C5','C5','C5','G4','G4','G4','E4','E4','E4','C4','C4','C4',
+            'G4','F4','E4','D4','C4'
+          ]
+        },
+        joy: {
+          title: '🎵 よろこびの歌',
+          notes: [
+            'E4','E4','F4','G4','G4','F4','E4','D4',
+            'C4','C4','D4','E4','E4','D4','D4',
+            'E4','E4','F4','G4','G4','F4','E4','D4',
+            'C4','C4','D4','E4','D4','C4','C4'
+          ]
+        },
+        jingle: {
+          title: '🔔 ジングルベル',
+          notes: [
+            'E4','E4','E4','E4','E4','E4',
+            'E4','G4','C4','D4','E4',
+            'F4','F4','F4','F4','F4','E4','E4','E4','E4','D4','D4','E4','D4','G4',
+            'E4','E4','E4','E4','E4','E4',
+            'E4','G4','C4','D4','E4',
+            'F4','F4','F4','F4','F4','E4','E4','E4','G4','G4','F4','D4','C4'
+          ]
+        },
+        hotcross: {
+          title: '🥐 ホットクロスバンズ',
+          notes: [
+            'E4','D4','C4','E4','D4','C4',
+            'C4','C4','C4','C4','D4','D4','D4','D4',
+            'E4','D4','C4'
+          ]
+        },
+        saints: {
+          title: '🎺 聖者の行進',
+          notes: [
+            'C4','E4','F4','G4','C4','E4','F4','G4',
+            'C4','E4','F4','G4','E4','C4','E4','D4',
+            'E4','E4','D4','C4','C4','E4','G4','G4','G4',
+            'F4','E4','F4','G4','E4','C4','D4','C4'
+          ]
+        },
+        silentnight: {
+          title: '🌙 きよしこの夜',
+          notes: [
+            'G4','A4','G4','E4','G4','A4','G4','E4',
+            'D5','D5','B4','C5','C5','G4',
+            'A4','A4','C5','B4','A4','G4','A4','G4','E4',
+            'A4','A4','C5','B4','A4','G4','A4','G4','E4',
+            'D5','D5','F5','D5','B4','C5','E5',
+            'C5','G4','E4','G4','F4','D4','C4'
+          ]
+        }
+      };
+      const solfegeName = { C:'ド', D:'レ', E:'ミ', F:'ファ', G:'ソ', A:'ラ', B:'シ' };
+      let currentSongId = 'twinkle';
       let scoreMode = false;
       let scoreIndex = 0;
+
+      function currentSong() {
+        return scoreSongs[currentSongId];
+      }
+
+      function solfegeFor(note) {
+        const match = note.match(/^([A-G])#?(\d)$/);
+        return match ? solfegeName[match[1]] : note;
+      }
 
       let audioContext = null;
       let master = null;
@@ -1500,7 +1658,10 @@
       });
 
       function scoreY(note) {
-        const step = { C4:0, D4:1, E4:2, F4:3, G4:4, A4:5, B4:6, C5:7 }[note] ?? 0;
+        const match = note.match(/^([A-G])#?(\d)$/);
+        if (!match) return 103;
+        const letterStep = { C:0, D:1, E:2, F:3, G:4, A:5, B:6 }[match[1]];
+        const step = (Number(match[2]) - 4) * 7 + letterStep;
         return 103 - step * 7.5;
       }
 
@@ -1510,8 +1671,9 @@
 
       function markNextKey() {
         clearNextKey();
-        if (!scoreMode || scoreIndex >= twinkleNotes.length) return;
-        const target = twinkleNotes[scoreIndex];
+        const song = currentSong();
+        if (!scoreMode || scoreIndex >= song.notes.length) return;
+        const target = song.notes[scoreIndex];
         const key = keys.find((item) => item.dataset.note === target);
         if (key) key.classList.add('is-next');
       }
@@ -1519,9 +1681,11 @@
       function renderScore() {
         scoreStaff.querySelectorAll('.score-note, .score-note-label, .ledger-line').forEach((node) => node.remove());
 
+        const song = currentSong();
+        scoreTitle.textContent = song.title;
         const windowSize = 8;
-        const start = Math.max(0, Math.min(scoreIndex - 2, twinkleNotes.length - windowSize));
-        const visible = twinkleNotes.slice(start, start + windowSize);
+        const start = Math.max(0, Math.min(scoreIndex - 2, song.notes.length - windowSize));
+        const visible = song.notes.slice(start, start + windowSize);
         const usableLeft = 18;
         const usableRight = 92;
 
@@ -1542,7 +1706,7 @@
           label.className = 'score-note-label';
           label.style.setProperty('--x', x + '%');
           label.style.setProperty('--y', scoreY(note) + 'px');
-          label.textContent = solfege[note] || '';
+          label.textContent = solfegeFor(note);
           scoreStaff.appendChild(label);
 
           if (note === 'C4') {
@@ -1553,17 +1717,17 @@
           }
         });
 
-        const done = scoreIndex >= twinkleNotes.length;
+        const done = scoreIndex >= song.notes.length;
         scoreFinish.classList.toggle('show', done);
-        const percent = Math.min(100, (scoreIndex / twinkleNotes.length) * 100);
+        const percent = Math.min(100, (scoreIndex / song.notes.length) * 100);
         scoreProgressBar.style.width = percent + '%';
-        scoreProgressText.textContent = scoreIndex + ' / ' + twinkleNotes.length;
+        scoreProgressText.textContent = scoreIndex + ' / ' + song.notes.length;
 
         if (done) {
           scoreGuide.textContent = 'さいごまで ひけたよ！';
         } else {
-          const next = twinkleNotes[scoreIndex];
-          scoreGuide.textContent = 'つぎは「' + (solfege[next] || next) + '」';
+          const next = song.notes[scoreIndex];
+          scoreGuide.textContent = 'つぎは「' + solfegeFor(next) + '」';
         }
         markNextKey();
       }
@@ -1571,7 +1735,7 @@
       function resetScore() {
         scoreIndex = 0;
         renderScore();
-        status.textContent = 'きらきら星を はじめよう';
+        status.textContent = currentSong().title.replace(/^\S+\s*/, '') + 'を はじめよう';
       }
 
       function setScoreMode(enabled) {
@@ -1594,25 +1758,40 @@
       }
 
       function handleScoreNote(note) {
-        if (!scoreMode || scoreIndex >= twinkleNotes.length) return;
-        const target = twinkleNotes[scoreIndex];
+        const song = currentSong();
+        if (!scoreMode || scoreIndex >= song.notes.length) return;
+        const target = song.notes[scoreIndex];
         if (note !== target) {
-          scoreGuide.textContent = 'もういちど。「' + (solfege[target] || target) + '」だよ';
+          scoreGuide.textContent = 'もういちど。「' + solfegeFor(target) + '」だよ';
           status.textContent = 'ちがう おとも だいじょうぶ';
           return;
         }
 
         scoreIndex += 1;
         renderScore();
-        if (scoreIndex >= twinkleNotes.length) {
-          status.textContent = '🎉 きらきら星、できた！';
+        if (scoreIndex >= song.notes.length) {
+          status.textContent = '🎉 ' + song.title.replace(/^\S+\s*/, '') + '、できた！';
         } else {
           status.textContent = 'そのちょうし！';
         }
       }
 
+      function selectScoreSong(songId) {
+        if (!scoreSongs[songId]) return;
+        currentSongId = songId;
+        songChips.forEach((chip) => chip.setAttribute('aria-pressed', String(chip.dataset.song === songId)));
+        const activeChip = songChips.find((chip) => chip.dataset.song === songId);
+        activeChip?.scrollIntoView?.({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+        resetScore();
+      }
+
       scoreModeButton.addEventListener('click', () => setScoreMode(!scoreMode));
       scoreRestart.addEventListener('click', resetScore);
+      songPicker.addEventListener('click', (event) => {
+        const chip = event.target.closest('[data-song]');
+        if (!chip || chip.dataset.song === currentSongId) return;
+        selectScoreSong(chip.dataset.song);
+      });
 
       function setSoundCheckOpen(open) {
         app.classList.toggle('sound-check-open', open);
