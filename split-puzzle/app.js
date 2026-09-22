@@ -1,7 +1,8 @@
 const board = document.querySelector("#board");
 const moveCount = document.querySelector("#move-count");
 const newPuzzleButton = document.querySelector("#new-puzzle");
-const difficultyButtons = [...document.querySelectorAll("[data-size]")];
+const difficultyButtons = [...document.querySelectorAll("[data-level]")];
+const levelDescription = document.querySelector("#level-description");
 const celebration = document.querySelector("#celebration");
 const clearMoves = document.querySelector("#clear-moves");
 const playAgain = document.querySelector("#play-again");
@@ -38,7 +39,7 @@ const cropZoom = document.querySelector("#crop-zoom");
 
 const DB_NAME = "for-my-sons-art";
 const STORE_NAME = "drawings";
-const BEST_TIME_KEY = "split-puzzle-best-times-v1";
+const BEST_TIME_KEY = "split-puzzle-best-times-v2";
 
 const EMOJI_ART = [
   "🐶","🐱","🐰","🦊","🐻","🐼","🐸","🐵","🦁","🐯",
@@ -52,7 +53,17 @@ const EMOJI_ART = [
   value
 }));
 
-let size = 3;
+const LEVELS = {
+  1: { size: 2, fixed: [], label: "Lv1・4マス・固定なし" },
+  2: { size: 3, fixed: [4], label: "Lv2・9マス・まんなか固定" },
+  3: { size: 3, fixed: [], label: "Lv3・9マス・固定なし" },
+  4: { size: 4, fixed: [5, 6, 9, 10], label: "Lv4・16マス・まんなか4マス固定" },
+  5: { size: 4, fixed: [], label: "Lv5・16マス・固定なし" }
+};
+
+let currentLevel = 3;
+let size = LEVELS[currentLevel].size;
+let fixedPositions = new Set(LEVELS[currentLevel].fixed);
 let pieces = [];
 let moves = 0;
 let selectedIndex = null;
@@ -99,7 +110,7 @@ function readBestTimes() {
 }
 
 function bestKey() {
-  return String(size);
+  return "level-" + currentLevel;
 }
 
 function getBestTime() {
@@ -191,7 +202,7 @@ function resumeTimeAttackAfterSetup() {
     setPlayLocked(false);
     return;
   }
-  startNewPuzzle(size);
+  startNewPuzzle(currentLevel);
 }
 
 function sleep(ms) {
@@ -259,7 +270,7 @@ function setTimeAttackEnabled(enabled) {
     showToast("タイムアタック OFF");
   } else {
     showToast("タイムアタック START");
-    startNewPuzzle(size);
+    startNewPuzzle(currentLevel);
   }
 }
 
@@ -285,7 +296,7 @@ function createArtPool(count) {
   return [customArt, ...emojis.slice(0, Math.max(0, count - 1))];
 }
 
-function makePuzzle(nextSize) {
+function makePuzzle(nextSize, fixedIndices = []) {
   const count = nextSize * nextSize;
   const edgeCount = 2 * nextSize * (nextSize - 1);
   const artPool = shuffled(createArtPool(edgeCount));
@@ -321,12 +332,26 @@ function makePuzzle(nextSize) {
     }
   }
 
-  let shuffledPieces = shuffled(solved);
-  while (shuffledPieces.every((piece, index) => piece.id === solved[index].id)) {
-    shuffledPieces = shuffled(solved);
+  const fixed = new Set(fixedIndices);
+  const movableIndices = solved
+    .map((_, index) => index)
+    .filter((index) => !fixed.has(index));
+  const movablePieces = movableIndices.map((index) => solved[index]);
+
+  let shuffledMovable = shuffled(movablePieces);
+  while (
+    shuffledMovable.length > 1 &&
+    shuffledMovable.every((piece, index) => piece.id === movablePieces[index].id)
+  ) {
+    shuffledMovable = shuffled(movablePieces);
   }
 
-  return shuffledPieces;
+  const result = [...solved];
+  movableIndices.forEach((boardIndex, index) => {
+    result[boardIndex] = shuffledMovable[index];
+  });
+
+  return result;
 }
 
 function makeArtElement(edge, edgeName) {
@@ -366,7 +391,17 @@ function render() {
     tile.setAttribute("role", "gridcell");
     tile.setAttribute("aria-rowindex", String(row));
     tile.setAttribute("aria-colindex", String(col));
-    tile.setAttribute("aria-label", row + "だん " + col + "ばんのピース");
+    const isFixed = fixedPositions.has(index);
+    tile.setAttribute(
+      "aria-label",
+      row + "だん " + col + "ばんのピース" + (isFixed ? " こてい" : "")
+    );
+
+    if (isFixed) {
+      tile.classList.add("is-fixed");
+      tile.disabled = true;
+      tile.setAttribute("aria-disabled", "true");
+    }
 
     if (selectedIndex === index) tile.classList.add("is-selected");
 
@@ -421,6 +456,7 @@ function isSolved() {
 
 function swapPieces(a, b) {
   if (a === b || a < 0 || b < 0 || a >= pieces.length || b >= pieces.length) return;
+  if (fixedPositions.has(a) || fixedPositions.has(b)) return;
 
   [pieces[a], pieces[b]] = [pieces[b], pieces[a]];
   selectedIndex = null;
@@ -442,6 +478,8 @@ function swapPieces(a, b) {
 }
 
 function handleTileTap(index) {
+  if (fixedPositions.has(index)) return;
+
   if (selectedIndex === null) {
     selectedIndex = index;
     render();
@@ -457,20 +495,27 @@ function handleTileTap(index) {
   swapPieces(selectedIndex, index);
 }
 
-function startNewPuzzle(nextSize = size) {
+function startNewPuzzle(nextLevel = currentLevel) {
   cancelActiveDrag();
   timeAttackSetupPaused = false;
   countdownToken += 1;
   cancelTimer();
-  size = nextSize;
+
+  const normalizedLevel = LEVELS[nextLevel] ? Number(nextLevel) : 3;
+  const config = LEVELS[normalizedLevel];
+  currentLevel = normalizedLevel;
+  size = config.size;
+  fixedPositions = new Set(config.fixed);
+
   moves = 0;
   selectedIndex = null;
-  pieces = makePuzzle(size);
+  pieces = makePuzzle(size, config.fixed);
   hideCelebration();
 
   difficultyButtons.forEach((button) => {
-    button.classList.toggle("is-active", Number(button.dataset.size) === size);
+    button.classList.toggle("is-active", Number(button.dataset.level) === currentLevel);
   });
+  levelDescription.textContent = config.label;
 
   render();
   updateBestDisplay();
@@ -501,6 +546,7 @@ function hideCelebration() {
 
 function beginDrag(event, tile) {
   const index = Number(tile.dataset.index);
+  if (fixedPositions.has(index)) return;
   const rect = tile.getBoundingClientRect();
 
   pointerState = {
@@ -880,7 +926,7 @@ board.addEventListener("keydown", (event) => {
 });
 
 difficultyButtons.forEach((button) => {
-  button.addEventListener("click", () => startNewPuzzle(Number(button.dataset.size)));
+  button.addEventListener("click", () => startNewPuzzle(Number(button.dataset.level)));
 });
 
 newPuzzleButton.addEventListener("click", () => startNewPuzzle());
