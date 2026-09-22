@@ -1,10 +1,55 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256">
-  <rect width="256" height="256" rx="58" fill="#f3eee6"/>
-  <g transform="translate(38 38)">
-    <rect x="0" y="0" width="82" height="82" rx="19" fill="#f26b5b"/>
-    <rect x="88" y="0" width="92" height="82" rx="19" fill="#5f91df"/>
-    <rect x="0" y="88" width="82" height="92" rx="19" fill="#62b982"/>
-    <path d="M88 88h42v42h50v50H88z" fill="#f3b64a"/>
-    <circle cx="86" cy="86" r="11" fill="#272522"/>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" role="img" aria-label="Merge Block">
+  <defs>
+    <linearGradient id="bg" x1="28" y1="22" x2="224" y2="232" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FBF9F5"/>
+      <stop offset="1" stop-color="#F0EBE3"/>
+    </linearGradient>
+    <linearGradient id="blue" x1="48" y1="48" x2="112" y2="116" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#7FB7E7"/>
+      <stop offset="1" stop-color="#679CCF"/>
+    </linearGradient>
+    <linearGradient id="amber" x1="140" y1="48" x2="214" y2="116" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#F0C65F"/>
+      <stop offset="1" stop-color="#E6AD42"/>
+    </linearGradient>
+    <linearGradient id="green" x1="48" y1="140" x2="112" y2="214" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#82BE9E"/>
+      <stop offset="1" stop-color="#68A887"/>
+    </linearGradient>
+    <linearGradient id="red" x1="145" y1="145" x2="211" y2="211" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#E56A57"/>
+      <stop offset="1" stop-color="#CF4F42"/>
+    </linearGradient>
+    <filter id="outerShadow" x="-25%" y="-25%" width="150%" height="160%">
+      <feDropShadow dx="0" dy="7" stdDeviation="8" flood-color="#786F63" flood-opacity=".18"/>
+    </filter>
+    <filter id="tileShadow" x="-25%" y="-25%" width="150%" height="160%">
+      <feDropShadow dx="0" dy="4" stdDeviation="4.5" flood-color="#5F574E" flood-opacity=".18"/>
+    </filter>
+  </defs>
+
+  <rect x="14" y="14" width="228" height="228" rx="50" fill="url(#bg)" filter="url(#outerShadow)"/>
+
+  <g filter="url(#tileShadow)">
+    <rect x="40" y="40" width="80" height="80" rx="20" fill="url(#blue)"/>
+    <rect x="136" y="40" width="80" height="80" rx="20" fill="url(#amber)"/>
+    <rect x="40" y="136" width="80" height="80" rx="20" fill="url(#green)"/>
   </g>
+
+  <path
+    d="M148 207V151
+       Q148 144 155 144
+       Q160 144 164 150
+       L178 171
+       L192 150
+       Q196 144 201 144
+       Q208 144 208 151
+       V207"
+    fill="none"
+    stroke="url(#red)"
+    stroke-width="20"
+    stroke-linecap="round"
+    stroke-linejoin="round"
+    filter="url(#tileShadow)"
+  />
 </svg>
