@@ -49,6 +49,7 @@ let score = 0;
 let difficulty = "easy";
 let locked = false;
 let clearing = new Set();
+let movingCells = new Map();
 let toastTimer = 0;
 let pointerActive = false;
 
@@ -78,7 +79,7 @@ function cellAt(x, y, source) {
 }
 
 function bestKey() {
-  return "merge-block-best-v2-" + difficulty;
+  return "merge-block-best-v3-" + difficulty;
 }
 
 function readBest() {
@@ -135,6 +136,7 @@ function renderIncoming() {
   incomingPiece.style.width = (currentPiece.colors.length / SIZE * 100) + "%";
   incomingPiece.style.gridTemplateColumns = "repeat(" + currentPiece.colors.length + ", 1fr)";
   incomingPiece.classList.toggle("is-invalid", !landing);
+  incomingPiece.classList.toggle("is-moving", locked && movingCells.size > 0);
 
   currentPiece.colors.forEach((color) => {
     const block = document.createElement("div");
@@ -166,11 +168,9 @@ function renderBoard() {
   const pathSet = new Set();
 
   if (landing && currentPiece && !locked) {
-    landing.cells.forEach((cell, i) => {
-      previewMap.set(cell.x + "," + cell.y, currentPiece.colors[i]);
-      for (let y = 0; y <= cell.y; y += 1) {
-        pathSet.add(cell.x + "," + y);
-      }
+    landing.routes.forEach((route) => {
+      previewMap.set(route.final.x + "," + route.final.y, route.color);
+      route.path.forEach((point) => pathSet.add(point.x + "," + point.y));
     });
   }
 
@@ -179,11 +179,12 @@ function renderBoard() {
   for (let y = 0; y < SIZE; y += 1) {
     for (let x = 0; x < SIZE; x += 1) {
       const index = indexFor(x, y);
+      const key = x + "," + y;
       const cell = document.createElement("div");
       cell.className = "board-cell";
       cell.setAttribute("role", "gridcell");
 
-      if (pathSet.has(x + "," + y)) cell.classList.add("is-path");
+      if (pathSet.has(key)) cell.classList.add("is-path");
 
       if (isCore(x, y)) {
         cell.classList.add("is-core");
@@ -201,13 +202,21 @@ function renderBoard() {
         cell.appendChild(face);
       }
 
-      const ghostColor = previewMap.get(x + "," + y);
-      if (ghostColor) {
-        const ghost = document.createElement("div");
-        ghost.className = "ghost-face";
-        ghost.style.setProperty("--block-color", ghostColor);
-        joinedClasses(x, y, ghostColor, previewMap).forEach((name) => ghost.classList.add(name));
-        cell.appendChild(ghost);
+      const movingColor = movingCells.get(key);
+      if (movingColor) {
+        const moving = document.createElement("div");
+        moving.className = "moving-face";
+        moving.style.setProperty("--block-color", movingColor);
+        cell.appendChild(moving);
+      } else {
+        const ghostColor = previewMap.get(key);
+        if (ghostColor) {
+          const ghost = document.createElement("div");
+          ghost.className = "ghost-face";
+          ghost.style.setProperty("--block-color", ghostColor);
+          joinedClasses(x, y, ghostColor, previewMap).forEach((name) => ghost.classList.add(name));
+          cell.appendChild(ghost);
+        }
       }
 
       boardElement.appendChild(cell);
@@ -217,52 +226,101 @@ function renderBoard() {
   renderIncoming();
 }
 
-function canOccupyPiece(startX, y, piece, source) {
-  for (let i = 0; i < piece.colors.length; i += 1) {
-    const x = startX + i;
-    if (!inside(x, y) || isCore(x, y)) return false;
-    if (cellAt(x, y, source)) return false;
-  }
-  return true;
-}
+function simulateSingleBlock(startX, color, source) {
+  if (!inside(startX, 0) || isCore(startX, 0) || cellAt(startX, 0, source)) return null;
 
-function hasSupportBelow(startX, y, piece, source) {
-  const nextY = y + 1;
-  for (let i = 0; i < piece.colors.length; i += 1) {
-    const x = startX + i;
-    if (isCore(x, nextY)) return true;
-    if (inside(x, nextY) && cellAt(x, nextY, source)) return true;
-  }
-  return false;
-}
+  const path = [];
+  let x = startX;
+  let y = 0;
 
-function findLanding(startX, piece, source) {
-  if (startX < 0 || startX + piece.colors.length > SIZE) return null;
-  if (!canOccupyPiece(startX, 0, piece, source)) return null;
+  while (true) {
+    if (!inside(x, y) || isCore(x, y) || cellAt(x, y, source)) return null;
+    path.push({ x, y });
 
-  for (let y = 0; y < CENTER; y += 1) {
-    if (!canOccupyPiece(startX, y, piece, source)) return null;
+    if (y < CENTER) {
+      const nextY = y + 1;
 
-    if (hasSupportBelow(startX, y, piece, source)) {
-      return {
-        x: startX,
-        y,
-        cells: piece.colors.map((color, i) => ({ x: startX + i, y, color }))
-      };
+      if (isCore(x, nextY) || cellAt(x, nextY, source)) {
+        return { color, path, final: { x, y } };
+      }
+
+      y = nextY;
+      continue;
     }
 
-    if (y + 1 >= CENTER) break;
-    if (!canOccupyPiece(startX, y + 1, piece, source)) return null;
+    // 中心線まで来たら、中心へ向かって横に吸われる。
+    // ただし中心線の1段下に土台がある場合は、その場に置ける。
+    if (y === CENTER) {
+      if (cellAt(x, CENTER + 1, source)) {
+        return { color, path, final: { x, y } };
+      }
+
+      const dx = x < CENTER ? 1 : x > CENTER ? -1 : 0;
+      if (!dx) return null;
+
+      while (true) {
+        const nextX = x + dx;
+        if (!inside(nextX, CENTER)) return null;
+
+        if (isCore(nextX, CENTER) || cellAt(nextX, CENTER, source)) {
+          return { color, path, final: { x, y: CENTER } };
+        }
+
+        x = nextX;
+        path.push({ x, y: CENTER });
+      }
+    }
+
+    return null;
+  }
+}
+
+function simulatePieceDrop(startX, piece, source) {
+  if (startX < 0 || startX + piece.colors.length > SIZE) return null;
+
+  const working = source.slice();
+  const routes = new Array(piece.colors.length);
+
+  // 2〜3個は「ひとつの横棒」ではなく、同時に来る独立ブロック。
+  // 中心に近いものから確定させ、他のブロックは引っ掛からず重力を続ける。
+  const order = piece.colors
+    .map((color, offset) => ({
+      color,
+      offset,
+      x: startX + offset,
+      distance: Math.abs(startX + offset - CENTER)
+    }))
+    .sort((a, b) => a.distance - b.distance || a.x - b.x);
+
+  for (const item of order) {
+    const route = simulateSingleBlock(item.x, item.color, working);
+    if (!route) return null;
+
+    routes[item.offset] = route;
+    working[indexFor(route.final.x, route.final.y)] = {
+      color: item.color,
+      transient: true
+    };
   }
 
-  return null;
+  return {
+    x: startX,
+    routes,
+    cells: routes.map((route) => ({
+      x: route.final.x,
+      y: route.final.y,
+      color: route.color
+    }))
+  };
 }
 
 function updateLanding() {
   if (!currentPiece) return;
+
   const maxStart = SIZE - currentPiece.colors.length;
   dropStart = Math.max(0, Math.min(maxStart, dropStart));
-  landing = findLanding(dropStart, currentPiece, board);
+  landing = simulatePieceDrop(dropStart, currentPiece, board);
+
   dropButton.disabled = locked || !landing;
   moveLeftButton.disabled = locked || dropStart <= 0;
   moveRightButton.disabled = locked || dropStart >= maxStart;
@@ -270,8 +328,8 @@ function updateLanding() {
   boardRightButton.disabled = locked;
 
   gameStatus.textContent = landing
-    ? "ここなら土台に当たる。DROPで落とす。"
-    : "この場所は土台がない。左右へ動かすか、盤面を回そう。";
+    ? "DROPすると、それぞれのブロックが重力に沿って確定する。"
+    : "この位置からは入れられない。左右へ動かすか、盤面を回そう。";
 
   renderBoard();
 }
@@ -305,6 +363,7 @@ function rotateBoardData(source, clockwise) {
 
 async function rotateBoard(clockwise) {
   if (locked) return;
+
   locked = true;
   landing = null;
   renderBoard();
@@ -318,6 +377,8 @@ async function rotateBoard(clockwise) {
     await animation.finished;
   } catch (_) {}
 
+  // 確定済みブロックは盤面と一緒に90度回るだけ。
+  // 回転したことを理由に、重力で再配置はしない。
   board = rotateBoardData(board, clockwise);
   boardFrame.style.transform = "rotate(0deg)";
   locked = false;
@@ -366,7 +427,6 @@ function colorGroups() {
 function anchoredSet() {
   const anchored = new Set();
   const queue = [];
-
   const starts = [
     [CENTER, CENTER - 1],
     [CENTER + 1, CENTER],
@@ -436,14 +496,18 @@ function componentBounds(component) {
 
 function canShift(component, dx, dy) {
   const own = new Set(component);
+
   for (const index of component) {
     const { x, y } = coordsFor(index);
     const nx = x + dx;
     const ny = y + dy;
+
     if (!inside(nx, ny) || isCore(nx, ny)) return false;
+
     const nextIndex = indexFor(nx, ny);
     if (board[nextIndex] && !own.has(nextIndex)) return false;
   }
+
   return true;
 }
 
@@ -460,6 +524,7 @@ function shiftComponent(component, dx, dy) {
   moving.forEach((item) => {
     board[item.from] = null;
   });
+
   moving.forEach((item) => {
     board[item.to] = item.value;
   });
@@ -468,6 +533,7 @@ function shiftComponent(component, dx, dy) {
 async function settleDetached() {
   let safety = 120;
 
+  // 消去で支えを失った塊は、まず画面下方向へ。
   while (safety-- > 0) {
     const components = detachedComponents()
       .sort((a, b) => componentBounds(b).maxY - componentBounds(a).maxY);
@@ -478,6 +544,7 @@ async function settleDetached() {
       const bounds = componentBounds(component);
       if (bounds.maxY >= CENTER) continue;
       if (!canShift(component, 0, 1)) continue;
+
       shiftComponent(component, 0, 1);
       moved = true;
     }
@@ -489,14 +556,20 @@ async function settleDetached() {
 
   safety = 120;
 
+  // 中心線まで来たら、中心へ横移動。
   while (safety-- > 0) {
     const components = detachedComponents();
     let moved = false;
 
     for (const component of components) {
       const bounds = componentBounds(component);
-      const dx = bounds.avgX < CENTER - 0.01 ? 1 : bounds.avgX > CENTER + 0.01 ? -1 : 0;
+      const dx =
+        bounds.avgX < CENTER - 0.01 ? 1 :
+        bounds.avgX > CENTER + 0.01 ? -1 :
+        0;
+
       if (!dx || !canShift(component, dx, 0)) continue;
+
       shiftComponent(component, dx, 0);
       moved = true;
     }
@@ -544,7 +617,7 @@ async function resolveBoard() {
 
 function boardHasMoveForPiece(source, piece) {
   for (let x = 0; x <= SIZE - piece.colors.length; x += 1) {
-    if (findLanding(x, piece, source)) return true;
+    if (simulatePieceDrop(x, piece, source)) return true;
   }
   return false;
 }
@@ -561,27 +634,26 @@ function hasAnyMove(piece) {
 }
 
 async function animateDrop(target) {
-  const boardRect = boardElement.getBoundingClientRect();
-  const incomingRect = incomingPiece.getBoundingClientRect();
-  const cellSize = boardRect.height / SIZE;
-  const targetTop = boardRect.top + target.y * cellSize + 1;
-  const delta = targetTop - incomingRect.top;
+  const maxSteps = Math.max(...target.routes.map((route) => route.path.length));
 
-  try {
-    const animation = incomingPiece.animate(
-      [
-        { transform: "translateY(0)" },
-        { transform: "translateY(" + delta + "px)" }
-      ],
-      { duration: Math.max(120, 65 + target.y * 30), easing: "cubic-bezier(.18,.72,.22,1)" }
-    );
-    await animation.finished;
-  } catch (_) {}
+  for (let step = 0; step < maxSteps; step += 1) {
+    movingCells = new Map();
+
+    target.routes.forEach((route) => {
+      const point = route.path[Math.min(step, route.path.length - 1)];
+      movingCells.set(point.x + "," + point.y, route.color);
+    });
+
+    renderBoard();
+    await wait(58);
+  }
+
+  movingCells = new Map();
 }
 
 async function dropCurrent() {
   if (locked || !landing || !currentPiece) {
-    if (!locked) showToast("ここには土台がない");
+    if (!locked) showToast("この位置からは入れられない");
     return;
   }
 
@@ -604,7 +676,9 @@ async function dropCurrent() {
   score += currentPiece.colors.length * 5;
   scoreElement.textContent = String(score);
   bestScoreElement.textContent = String(saveBest());
+
   landing = null;
+  movingCells = new Map();
   renderBoard();
 
   await resolveBoard();
@@ -659,6 +733,7 @@ function newGame(nextDifficulty) {
   score = 0;
   locked = false;
   clearing = new Set();
+  movingCells = new Map();
   chainElement.textContent = "—";
   scoreElement.textContent = "0";
   bestScoreElement.textContent = String(readBest());
@@ -711,7 +786,9 @@ boardWrap.addEventListener("pointermove", (event) => {
 function endPointer(event) {
   pointerActive = false;
   try {
-    if (boardWrap.hasPointerCapture?.(event.pointerId)) boardWrap.releasePointerCapture(event.pointerId);
+    if (boardWrap.hasPointerCapture?.(event.pointerId)) {
+      boardWrap.releasePointerCapture(event.pointerId);
+    }
   } catch (_) {}
 }
 
