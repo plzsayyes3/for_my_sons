@@ -8,7 +8,7 @@
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
   <title>Split Puzzle</title>
-  <link rel="stylesheet" href="./styles.css?v=5">
+  <link rel="stylesheet" href="./styles.css?v=6">
 </head>
 <body>
   <div class="app-shell">
@@ -23,12 +23,27 @@
 
     <main>
       <section class="status-panel" aria-label="パズルの設定">
-        <div class="difficulty" role="group" aria-label="むずかしさ">
-          <button type="button" data-size="2">かんたん</button>
-          <button type="button" data-size="3" class="is-active">ふつう</button>
-          <button type="button" data-size="4">むずかしい</button>
+        <div class="difficulty" role="group" aria-label="むずかしさ 5だんかい">
+          <button type="button" data-level="1" aria-label="レベル1 4マス">
+            <strong>1</strong><small>4</small>
+          </button>
+          <button type="button" data-level="2" aria-label="レベル2 9マス まんなか固定">
+            <strong>2</strong><small>9🔒</small>
+          </button>
+          <button type="button" data-level="3" class="is-active" aria-label="レベル3 9マス 固定なし">
+            <strong>3</strong><small>9</small>
+          </button>
+          <button type="button" data-level="4" aria-label="レベル4 16マス まんなか4マス固定">
+            <strong>4</strong><small>16🔒</small>
+          </button>
+          <button type="button" data-level="5" aria-label="レベル5 16マス 固定なし">
+            <strong>5</strong><small>16</small>
+          </button>
         </div>
-        <div class="moves" aria-live="polite"><span id="move-count">0</span> かい</div>
+        <div class="status-meta">
+          <span class="level-description" id="level-description">Lv3・9マス・固定なし</span>
+          <div class="moves" aria-live="polite"><span id="move-count">0</span> かい</div>
+        </div>
       </section>
 
       <section class="time-attack-panel" aria-label="タイムアタック">
@@ -133,6 +148,6 @@
   </div>
 
   <div class="toast" id="toast" role="status" aria-live="polite"></div>
-  <script src="./app.js?v=5" defer></script>
+  <script src="./app.js?v=6" defer></script>
 </body>
 </html>
