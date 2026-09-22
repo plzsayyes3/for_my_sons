@@ -211,6 +211,8 @@
       <button class="sound-button" type="button" data-sound="marimba" aria-pressed="false">🪵 もっきん</button>
       <button class="sound-button" type="button" data-sound="bell" aria-pressed="false">🔔 ベル</button>
       <button class="sound-button" type="button" data-sound="synth" aria-pressed="false">✨ シンセ</button>
+      <button class="sound-button" type="button" data-sound="recorder" aria-pressed="false">🪈 リコーダー</button>
+      <button class="sound-button" type="button" data-sound="violin" aria-pressed="false">🎻 バイオリン</button>
     </div>
 
     <section class="piano-shell" aria-label="ピアノ">
@@ -345,6 +347,34 @@
           output.gain.exponentialRampToValueAtTime(0.28, now + 0.03);
           output.gain.exponentialRampToValueAtTime(0.18, now + 0.20);
           release = 0.42;
+        } else if (currentSound === 'recorder') {
+          const filter = audioContext.createBiquadFilter();
+          filter.type = 'lowpass';
+          filter.frequency.setValueAtTime(Math.min(5200, frequency * 7), now);
+          filter.Q.value = 1.3;
+          filter.connect(output);
+          oscillators.push(createOsc('sine', frequency, filter, 0.72));
+          oscillators.push(createOsc('sine', frequency * 2, filter, 0.15));
+          oscillators.push(createOsc('sine', frequency * 3, filter, 0.07));
+          oscillators.push(createOsc('triangle', frequency, filter, 0.08, 2));
+          output.gain.setValueAtTime(0.0001, now);
+          output.gain.exponentialRampToValueAtTime(0.25, now + 0.055);
+          output.gain.exponentialRampToValueAtTime(0.21, now + 0.18);
+          release = 0.16;
+        } else if (currentSound === 'violin') {
+          const filter = audioContext.createBiquadFilter();
+          filter.type = 'lowpass';
+          filter.frequency.setValueAtTime(Math.min(6500, frequency * 9), now);
+          filter.Q.value = 1.8;
+          filter.connect(output);
+          oscillators.push(createOsc('sawtooth', frequency, filter, 0.24, -5));
+          oscillators.push(createOsc('sawtooth', frequency, filter, 0.24, 5));
+          oscillators.push(createOsc('triangle', frequency * 2, filter, 0.10));
+          oscillators.push(createOsc('sine', frequency * 3, filter, 0.045));
+          output.gain.setValueAtTime(0.0001, now);
+          output.gain.exponentialRampToValueAtTime(0.23, now + 0.11);
+          output.gain.exponentialRampToValueAtTime(0.19, now + 0.34);
+          release = 0.48;
         } else {
           oscillators.push(createOsc('triangle', frequency, output, 0.78));
           oscillators.push(createOsc('sine', frequency * 2, output, 0.16));
