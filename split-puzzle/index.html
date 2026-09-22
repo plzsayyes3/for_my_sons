@@ -31,6 +31,17 @@
         <div class="moves" aria-live="polite"><span id="move-count">0</span> かい</div>
       </section>
 
+      <section class="time-attack-panel" aria-label="タイムアタック">
+        <button class="time-attack-toggle" id="time-attack-toggle" type="button" aria-pressed="false">
+          <span aria-hidden="true">⏱</span>
+          <span>タイムアタック</span>
+        </button>
+        <div class="time-readout" id="time-readout" hidden>
+          <strong id="timer">00:00.0</strong>
+          <span>ベスト <b id="best-time">--:--.-</b></span>
+        </div>
+      </section>
+
       <section class="art-bar" aria-label="パズルの絵">
         <button class="import-button" id="import-button" type="button">
           <span class="import-icon" aria-hidden="true">＋</span>
@@ -47,6 +58,9 @@
       </section>
 
       <section class="puzzle-area">
+        <div class="countdown" id="countdown" aria-live="assertive" hidden>
+          <span id="countdown-text">3</span>
+        </div>
         <div id="board" class="board" role="grid" aria-label="絵あわせパズル"></div>
       </section>
 
@@ -112,6 +126,8 @@
       <div class="clear-emoji" aria-hidden="true">🎉</div>
       <h2 id="clear-title">できた！</h2>
       <p><span id="clear-moves">0</span> かいで かんせい</p>
+      <p class="clear-time-row" id="clear-time-row" hidden>タイム <strong id="clear-time">00:00.0</strong></p>
+      <p class="clear-best" id="clear-best" hidden>🏆 ベストタイム！</p>
       <button id="play-again" type="button">もういちど</button>
     </div>
   </div>
