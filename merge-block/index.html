@@ -8,7 +8,7 @@
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
   <title>Merge Block</title>
-  <link rel="stylesheet" href="./styles.css?v=3">
+  <link rel="stylesheet" href="./styles.css?v=4">
 </head>
 <body>
   <div class="app-shell">
@@ -18,7 +18,7 @@
         <p class="eyebrow">FOR MY SONS</p>
         <h1>Merge Block</h1>
       </div>
-      <button class="icon-button" id="new-game" type="button" aria-label="あたらしくはじめる">↻</button>
+      <button class="icon-button" id="new-game" type="button" aria-label="ゲームを設定してやり直す">↻</button>
     </header>
 
     <main class="game-layout">
@@ -31,9 +31,9 @@
         </div>
 
         <div class="stats">
-          <div><span>SCORE</span><strong id="score">0</strong></div>
-          <div><span>BEST</span><strong id="best-score">0</strong></div>
-          <div><span>CHAIN</span><strong id="chain">—</strong></div>
+          <div class="score-stat"><span>SCORE</span><strong id="score">0</strong></div>
+          <div class="best-stat"><span>BEST</span><strong id="best-score">0</strong></div>
+          <div class="chain-stat"><span>CHAIN</span><strong id="chain">—</strong></div>
         </div>
 
         <div class="piece-card next-card">
@@ -90,6 +90,21 @@
     </main>
   </div>
 
+
+  <div class="setup-overlay" id="setup-overlay" aria-hidden="true">
+    <section class="setup-card" role="dialog" aria-modal="true" aria-labelledby="setup-title">
+      <p>NEW GAME</p>
+      <h2 id="setup-title">むずかしさ</h2>
+      <div class="setup-levels" role="group" aria-label="新しいゲームのむずかしさ">
+        <button type="button" data-level="easy"><strong>やさしい</strong><small>3色</small></button>
+        <button type="button" data-level="normal"><strong>ふつう</strong><small>4色</small></button>
+        <button type="button" data-level="hard"><strong>むずかしい</strong><small>5色</small></button>
+        <button type="button" data-level="extreme"><strong>超むずかしい</strong><small>6色</small></button>
+      </div>
+      <button class="setup-cancel" id="setup-cancel" type="button">もどる</button>
+    </section>
+  </div>
+
   <div class="game-over" id="game-over" aria-hidden="true">
     <section class="game-over-card" role="dialog" aria-modal="true" aria-labelledby="game-over-title">
       <p>MERGE BLOCK</p>
@@ -101,6 +116,6 @@
   </div>
 
   <div class="toast" id="toast" role="status" aria-live="polite"></div>
-  <script src="./app.js?v=3" defer></script>
+  <script src="./app.js?v=4" defer></script>
 </body>
 </html>
