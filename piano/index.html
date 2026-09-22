@@ -83,6 +83,184 @@
       background: #3c3935;
       border-color: #3c3935;
     }
+    .score-panel {
+      display: none;
+      flex: 0 0 auto;
+      margin: 0 4px 8px;
+      padding: 12px 14px 10px;
+      border-radius: 20px;
+      background: rgba(255,255,255,.76);
+      border: 1px solid rgba(255,255,255,.9);
+      box-shadow: 0 8px 22px rgba(55,50,43,.08);
+    }
+    .app.is-score .score-panel { display: block; }
+    .app.is-score .sound-picker,
+    .app.is-score .synth-panel { display: none; }
+    .app.is-score .piano-shell {
+      min-height: 0;
+      padding-top: 0;
+    }
+    .app.is-score .keyboard { min-height: 180px; }
+    .score-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      margin-bottom: 8px;
+    }
+    .score-title-wrap { min-width: 0; }
+    .score-title {
+      margin: 0;
+      font-size: 18px;
+      line-height: 1.05;
+      letter-spacing: -.02em;
+    }
+    .score-sub {
+      margin: 4px 0 0;
+      color: #77716a;
+      font-size: 11px;
+      font-weight: 700;
+    }
+    .score-restart {
+      min-width: 44px;
+      min-height: 38px;
+      padding: 0 11px;
+      border: 0;
+      border-radius: 12px;
+      background: #ece6dc;
+      color: #4b4640;
+      font: inherit;
+      font-size: 12px;
+      font-weight: 800;
+    }
+    .score-staff {
+      position: relative;
+      height: 118px;
+      overflow: hidden;
+      border-radius: 14px;
+      background: #fffdf8;
+      border: 1px solid #e5ded3;
+    }
+    .staff-clef {
+      position: absolute;
+      left: 10px;
+      top: 12px;
+      z-index: 2;
+      font-family: "Times New Roman", serif;
+      font-size: 62px;
+      line-height: 1;
+      color: #312e2a;
+    }
+    .staff-line {
+      position: absolute;
+      left: 52px;
+      right: 10px;
+      height: 1px;
+      background: #6f6962;
+      opacity: .72;
+    }
+    .staff-line.l1 { top: 28px; }
+    .staff-line.l2 { top: 43px; }
+    .staff-line.l3 { top: 58px; }
+    .staff-line.l4 { top: 73px; }
+    .staff-line.l5 { top: 88px; }
+    .score-note {
+      position: absolute;
+      top: var(--y);
+      left: var(--x);
+      width: 18px;
+      height: 13px;
+      border-radius: 50%;
+      background: #2f2c28;
+      transform: translate(-50%, -50%) rotate(-14deg);
+      transition: opacity 160ms ease, transform 160ms ease, background 160ms ease;
+    }
+    .score-note::after {
+      content: "";
+      position: absolute;
+      right: 0;
+      top: -28px;
+      width: 2px;
+      height: 32px;
+      border-radius: 2px;
+      background: currentColor;
+    }
+    .score-note.is-past {
+      opacity: .22;
+    }
+    .score-note.is-current {
+      background: #e18c3a;
+      color: #e18c3a;
+      transform: translate(-50%, -50%) rotate(-14deg) scale(1.28);
+      box-shadow: 0 0 0 5px rgba(225,140,58,.14);
+    }
+    .score-note.is-future { opacity: .58; }
+    .score-note-label {
+      position: absolute;
+      top: calc(var(--y) + 15px);
+      left: var(--x);
+      transform: translateX(-50%);
+      font-size: 10px;
+      font-weight: 850;
+      color: #6c655d;
+    }
+    .ledger-line {
+      position: absolute;
+      top: 103px;
+      width: 28px;
+      height: 1px;
+      background: #6f6962;
+      transform: translateX(-50%);
+    }
+    .score-progress {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-top: 8px;
+    }
+    .score-progress-track {
+      flex: 1 1 auto;
+      height: 7px;
+      overflow: hidden;
+      border-radius: 999px;
+      background: #e8e1d7;
+    }
+    .score-progress-bar {
+      width: 0%;
+      height: 100%;
+      border-radius: inherit;
+      background: #3c3935;
+      transition: width 180ms ease;
+    }
+    .score-progress-text {
+      flex: 0 0 auto;
+      min-width: 52px;
+      text-align: right;
+      color: #706a62;
+      font-size: 11px;
+      font-weight: 800;
+      font-variant-numeric: tabular-nums;
+    }
+    .white-key.is-next {
+      box-shadow: inset 0 0 0 4px #e7a35f, inset 0 -8px 0 rgba(0,0,0,.035);
+    }
+    .black-key.is-next {
+      box-shadow: 0 6px 8px rgba(0,0,0,.35), inset 0 0 0 3px #e7a35f;
+    }
+    .score-finish {
+      position: absolute;
+      inset: 0;
+      display: none;
+      place-items: center;
+      z-index: 5;
+      background: rgba(255,253,248,.92);
+      text-align: center;
+      font-size: 22px;
+      font-weight: 900;
+      color: #3d3934;
+    }
+    .score-finish.show { display: grid; }
+
     .sound-check {
       position: fixed;
       left: 50%;
@@ -581,6 +759,9 @@
       flex: 0 0 auto;
     }
     @media (max-width: 700px) {
+      .score-panel { padding: 10px 10px 8px; }
+      .score-staff { height: 108px; }
+      .score-note-label { display: none; }
       .fader-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px 6px; }
       .synth-panel { padding: 10px 10px 12px; }
       .fader-control { min-height: 128px; } .fader-range { height: 82px; }
@@ -591,12 +772,22 @@
       .topbar { min-height: 46px; padding-bottom: 6px; }
       .back { width: 40px; height: 40px; }
       .keyboard { min-height: 210px; }
+      .app.is-score .score-panel { padding-top: 8px; padding-bottom: 7px; }
+      .app.is-score .score-head { margin-bottom: 5px; }
+      .app.is-score .score-staff { height: 92px; }
+      .app.is-score .keyboard { min-height: 130px; }
+      .app.is-score .score-sub { display: none; }
       .app.is-custom .piano-shell { height: clamp(120px, 38vh, 180px); }
       .app.is-custom .keyboard { min-height: 0; }
       .status { padding-top: 5px; }
     }
     @media (max-height: 520px) {
-      .title p, .status { display: none; }
+      .title p, .status, .sample-credit { display: none; }
+      .app.is-score .score-panel { margin-bottom: 4px; padding: 6px 8px; }
+      .app.is-score .score-head { margin-bottom: 4px; }
+      .app.is-score .score-title { font-size: 15px; }
+      .app.is-score .score-staff { height: 82px; }
+      .app.is-score .keyboard { min-height: 112px; }
       .sound-picker { gap: 5px; padding-bottom: 4px; }
       .sound-button { min-height: 36px; padding: 0 10px; font-size: 12px; }
       .keyboard { min-height: 180px; }
@@ -618,10 +809,34 @@
         <p>けんばんを おしてみよう</p>
       </div>
       <div class="top-actions">
+        <button class="utility-button" id="score-mode" type="button" aria-label="楽譜モード" aria-pressed="false">🎼</button>
         <button class="utility-button" id="sound-test" type="button" aria-label="マナーモードでも音が出るか確認">🔊</button>
         <button class="utility-button" id="rotate-screen" type="button" aria-label="横向き表示にする" aria-pressed="false">↻</button>
       </div>
     </header>
+
+    <section class="score-panel" id="score-panel" aria-label="楽譜モード">
+      <div class="score-head">
+        <div class="score-title-wrap">
+          <h2 class="score-title">⭐ きらきら星</h2>
+          <p class="score-sub" id="score-guide">オレンジの音を ひいてみよう</p>
+        </div>
+        <button class="score-restart" id="score-restart" type="button">↺ さいしょ</button>
+      </div>
+      <div class="score-staff" id="score-staff" aria-label="きらきら星の楽譜">
+        <div class="staff-clef" aria-hidden="true">𝄞</div>
+        <div class="staff-line l1"></div>
+        <div class="staff-line l2"></div>
+        <div class="staff-line l3"></div>
+        <div class="staff-line l4"></div>
+        <div class="staff-line l5"></div>
+        <div class="score-finish" id="score-finish">🎉 できた！</div>
+      </div>
+      <div class="score-progress">
+        <div class="score-progress-track"><div class="score-progress-bar" id="score-progress-bar"></div></div>
+        <div class="score-progress-text" id="score-progress-text">0 / 42</div>
+      </div>
+    </section>
 
     <div class="sound-picker" id="sound-picker" aria-label="音色をえらぶ">
       <button class="sound-button" type="button" data-sound="piano" aria-pressed="true">🎹 ピアノ</button>
@@ -784,6 +999,14 @@
       const status = document.getElementById('status');
       const soundPicker = document.getElementById('sound-picker');
       const synthBack = document.getElementById('synth-back');
+      const scoreModeButton = document.getElementById('score-mode');
+      const scorePanel = document.getElementById('score-panel');
+      const scoreStaff = document.getElementById('score-staff');
+      const scoreGuide = document.getElementById('score-guide');
+      const scoreRestart = document.getElementById('score-restart');
+      const scoreProgressBar = document.getElementById('score-progress-bar');
+      const scoreProgressText = document.getElementById('score-progress-text');
+      const scoreFinish = document.getElementById('score-finish');
       const soundTestButton = document.getElementById('sound-test');
       const rotateButton = document.getElementById('rotate-screen');
       const soundCheck = document.getElementById('sound-check');
@@ -815,6 +1038,17 @@
       const pianoSampleBuffers = new Map();
       const pianoSampleFetches = new Map();
       const pendingNotes = new Set();
+      const twinkleNotes = [
+        'C4','C4','G4','G4','A4','A4','G4',
+        'F4','F4','E4','E4','D4','D4','C4',
+        'G4','G4','F4','F4','E4','E4','D4',
+        'G4','G4','F4','F4','E4','E4','D4',
+        'C4','C4','G4','G4','A4','A4','G4',
+        'F4','F4','E4','E4','D4','D4','C4'
+      ];
+      const solfege = { C4:'ド', D4:'レ', E4:'ミ', F4:'ファ', G4:'ソ', A4:'ラ', B4:'シ', C5:'ド' };
+      let scoreMode = false;
+      let scoreIndex = 0;
 
       let audioContext = null;
       let master = null;
@@ -1171,6 +1405,7 @@
 
       async function startNote(note, token) {
         if (!ensureAudio() || activeVoices.has(token) || pendingNotes.has(token)) return;
+        handleScoreNote(note);
 
         if (currentSound === 'piano') {
           pendingNotes.add(token);
@@ -1264,6 +1499,121 @@
         });
       });
 
+      function scoreY(note) {
+        const step = { C4:0, D4:1, E4:2, F4:3, G4:4, A4:5, B4:6, C5:7 }[note] ?? 0;
+        return 103 - step * 7.5;
+      }
+
+      function clearNextKey() {
+        keys.forEach((key) => key.classList.remove('is-next'));
+      }
+
+      function markNextKey() {
+        clearNextKey();
+        if (!scoreMode || scoreIndex >= twinkleNotes.length) return;
+        const target = twinkleNotes[scoreIndex];
+        const key = keys.find((item) => item.dataset.note === target);
+        if (key) key.classList.add('is-next');
+      }
+
+      function renderScore() {
+        scoreStaff.querySelectorAll('.score-note, .score-note-label, .ledger-line').forEach((node) => node.remove());
+
+        const windowSize = 8;
+        const start = Math.max(0, Math.min(scoreIndex - 2, twinkleNotes.length - windowSize));
+        const visible = twinkleNotes.slice(start, start + windowSize);
+        const usableLeft = 74;
+        const usableRight = 94;
+
+        visible.forEach((note, localIndex) => {
+          const absoluteIndex = start + localIndex;
+          const x = usableLeft + (localIndex / Math.max(1, visible.length - 1)) * (usableRight - usableLeft);
+
+          const noteEl = document.createElement('div');
+          noteEl.className = 'score-note ' + (
+            absoluteIndex < scoreIndex ? 'is-past' :
+            absoluteIndex === scoreIndex ? 'is-current' : 'is-future'
+          );
+          noteEl.style.setProperty('--x', x + '%');
+          noteEl.style.setProperty('--y', scoreY(note) + 'px');
+          scoreStaff.appendChild(noteEl);
+
+          const label = document.createElement('div');
+          label.className = 'score-note-label';
+          label.style.setProperty('--x', x + '%');
+          label.style.setProperty('--y', scoreY(note) + 'px');
+          label.textContent = solfege[note] || '';
+          scoreStaff.appendChild(label);
+
+          if (note === 'C4') {
+            const ledger = document.createElement('div');
+            ledger.className = 'ledger-line';
+            ledger.style.left = x + '%';
+            scoreStaff.appendChild(ledger);
+          }
+        });
+
+        const done = scoreIndex >= twinkleNotes.length;
+        scoreFinish.classList.toggle('show', done);
+        const percent = Math.min(100, (scoreIndex / twinkleNotes.length) * 100);
+        scoreProgressBar.style.width = percent + '%';
+        scoreProgressText.textContent = scoreIndex + ' / ' + twinkleNotes.length;
+
+        if (done) {
+          scoreGuide.textContent = 'さいごまで ひけたよ！';
+        } else {
+          const next = twinkleNotes[scoreIndex];
+          scoreGuide.textContent = 'つぎは「' + (solfege[next] || next) + '」';
+        }
+        markNextKey();
+      }
+
+      function resetScore() {
+        scoreIndex = 0;
+        renderScore();
+        status.textContent = 'きらきら星を はじめよう';
+      }
+
+      function setScoreMode(enabled) {
+        scoreMode = enabled;
+        app.classList.toggle('is-score', enabled);
+        scoreModeButton.setAttribute('aria-pressed', String(enabled));
+        scoreModeButton.setAttribute('aria-label', enabled ? '楽譜モードをやめる' : '楽譜モード');
+
+        if (enabled) {
+          stopAllNotes();
+          currentSound = 'piano';
+          soundButtons.forEach((item) => item.setAttribute('aria-pressed', String(item.dataset.sound === 'piano')));
+          app.classList.remove('is-custom');
+          resetScore();
+        } else {
+          clearNextKey();
+          scoreFinish.classList.remove('show');
+          status.textContent = 'タップすると おとがでるよ';
+        }
+      }
+
+      function handleScoreNote(note) {
+        if (!scoreMode || scoreIndex >= twinkleNotes.length) return;
+        const target = twinkleNotes[scoreIndex];
+        if (note !== target) {
+          scoreGuide.textContent = 'もういちど。「' + (solfege[target] || target) + '」だよ';
+          status.textContent = 'ちがう おとも だいじょうぶ';
+          return;
+        }
+
+        scoreIndex += 1;
+        renderScore();
+        if (scoreIndex >= twinkleNotes.length) {
+          status.textContent = '🎉 きらきら星、できた！';
+        } else {
+          status.textContent = 'そのちょうし！';
+        }
+      }
+
+      scoreModeButton.addEventListener('click', () => setScoreMode(!scoreMode));
+      scoreRestart.addEventListener('click', resetScore);
+
       function setSoundCheckOpen(open) {
         app.classList.toggle('sound-check-open', open);
         soundCheck.setAttribute('aria-hidden', String(!open));
@@ -1347,6 +1697,7 @@
       helpBackdrop.addEventListener('click', () => setHelpOpen(false));
 
       function selectSound(sound) {
+        if (scoreMode) setScoreMode(false);
         stopAllNotes();
         if (app.classList.contains('help-open')) setHelpOpen(false);
         currentSound = sound;
@@ -1414,6 +1765,7 @@
         }
       });
 
+      renderScore();
       warmPianoSamples();
       window.addEventListener('blur', stopAllNotes);
     })();
