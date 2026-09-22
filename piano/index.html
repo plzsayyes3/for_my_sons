@@ -774,7 +774,7 @@
       .keyboard { min-height: 210px; }
       .app.is-score .score-panel { padding-top: 8px; padding-bottom: 7px; }
       .app.is-score .score-head { margin-bottom: 5px; }
-      .app.is-score .score-staff { height: 92px; }
+      .app.is-score .score-staff { height: 110px; }
       .app.is-score .keyboard { min-height: 130px; }
       .app.is-score .score-sub { display: none; }
       .app.is-custom .piano-shell { height: clamp(120px, 38vh, 180px); }
@@ -786,7 +786,7 @@
       .app.is-score .score-panel { margin-bottom: 4px; padding: 6px 8px; }
       .app.is-score .score-head { margin-bottom: 4px; }
       .app.is-score .score-title { font-size: 15px; }
-      .app.is-score .score-staff { height: 82px; }
+      .app.is-score .score-staff { height: 108px; }
       .app.is-score .keyboard { min-height: 112px; }
       .sound-picker { gap: 5px; padding-bottom: 4px; }
       .sound-button { min-height: 36px; padding: 0 10px; font-size: 12px; }
@@ -1522,8 +1522,8 @@
         const windowSize = 8;
         const start = Math.max(0, Math.min(scoreIndex - 2, twinkleNotes.length - windowSize));
         const visible = twinkleNotes.slice(start, start + windowSize);
-        const usableLeft = 74;
-        const usableRight = 94;
+        const usableLeft = 18;
+        const usableRight = 92;
 
         visible.forEach((note, localIndex) => {
           const absoluteIndex = start + localIndex;
