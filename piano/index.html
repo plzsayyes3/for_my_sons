@@ -213,6 +213,7 @@
       <button class="sound-button" type="button" data-sound="synth" aria-pressed="false">✨ シンセ</button>
       <button class="sound-button" type="button" data-sound="recorder" aria-pressed="false">🪈 リコーダー</button>
       <button class="sound-button" type="button" data-sound="violin" aria-pressed="false">🎻 バイオリン</button>
+      <button class="sound-button" type="button" data-sound="melodica" aria-pressed="false">🎼 鍵盤ハーモニカ</button>
     </div>
 
     <section class="piano-shell" aria-label="ピアノ">
@@ -375,6 +376,20 @@
           output.gain.exponentialRampToValueAtTime(0.23, now + 0.11);
           output.gain.exponentialRampToValueAtTime(0.19, now + 0.34);
           release = 0.48;
+        } else if (currentSound === 'melodica') {
+          const filter = audioContext.createBiquadFilter();
+          filter.type = 'lowpass';
+          filter.frequency.setValueAtTime(Math.min(5800, frequency * 8), now);
+          filter.Q.value = 1.1;
+          filter.connect(output);
+          oscillators.push(createOsc('square', frequency, filter, 0.18));
+          oscillators.push(createOsc('triangle', frequency, filter, 0.42));
+          oscillators.push(createOsc('sine', frequency * 2, filter, 0.13));
+          oscillators.push(createOsc('sine', frequency * 3, filter, 0.055));
+          output.gain.setValueAtTime(0.0001, now);
+          output.gain.exponentialRampToValueAtTime(0.27, now + 0.045);
+          output.gain.exponentialRampToValueAtTime(0.235, now + 0.16);
+          release = 0.20;
         } else {
           oscillators.push(createOsc('triangle', frequency, output, 0.78));
           oscillators.push(createOsc('sine', frequency * 2, output, 0.16));
