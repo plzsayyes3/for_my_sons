@@ -1099,10 +1099,10 @@ window.addEventListener("keydown", (event) => {
     sfxMove();
     dropStart += 1;
     updateLanding();
-  } else if (event.key === "q") {
+  } else if (event.key.toLowerCase() === "a" || event.key.toLowerCase() === "q") {
     event.preventDefault();
     rotateBoard(false);
-  } else if (event.key === "e") {
+  } else if (event.key.toLowerCase() === "d" || event.key.toLowerCase() === "e") {
     event.preventDefault();
     rotateBoard(true);
   } else if (event.key === "ArrowDown" || event.key === "Enter" || event.key === " ") {
