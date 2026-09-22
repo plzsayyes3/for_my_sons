@@ -895,3 +895,230 @@ button:active:not(:disabled),
   .two-buttons button,
   .move-controls button { min-height: 50px; }
 }
+
+
+/* v5: role-shaped controls */
+.visually-hidden {
+  position: absolute !important;
+  width: 1px !important;
+  height: 1px !important;
+  padding: 0 !important;
+  margin: -1px !important;
+  overflow: hidden !important;
+  clip: rect(0, 0, 0, 0) !important;
+  white-space: nowrap !important;
+  border: 0 !important;
+}
+
+.rotate-icon {
+  width: 25px;
+  height: 25px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.9;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.triangle-button {
+  display: block;
+  width: 0;
+  height: 0;
+  filter: drop-shadow(0 5px 8px rgba(39,37,34,.12));
+  transition: transform 120ms ease, opacity 120ms ease;
+}
+
+.triangle-left {
+  border-top: 20px solid transparent;
+  border-bottom: 20px solid transparent;
+  border-right: 31px solid var(--ink);
+}
+
+.triangle-right {
+  border-top: 20px solid transparent;
+  border-bottom: 20px solid transparent;
+  border-left: 31px solid var(--ink);
+}
+
+.triangle-down {
+  border-left: 23px solid transparent;
+  border-right: 23px solid transparent;
+  border-top: 34px solid var(--ink);
+}
+
+@media (max-width: 759px) {
+  /* Controls are deliberately two rows:
+     rotate circles above, movement/drop triangles below. */
+  .control-panel {
+    grid-template-columns: 1fr;
+    gap: 6px;
+    padding: 5px 10px 7px;
+    background: transparent;
+    box-shadow: none;
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+  }
+
+  .control-panel .control-group {
+    display: grid;
+    place-items: center;
+  }
+
+  .two-buttons {
+    width: 136px;
+    height: 54px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 20px;
+  }
+
+  .two-buttons button {
+    width: 52px;
+    min-width: 52px;
+    height: 52px;
+    min-height: 52px;
+    padding: 0;
+    display: grid;
+    place-items: center;
+    border: 1px solid rgba(39,37,34,.07);
+    border-radius: 50%;
+    background: rgba(255,255,255,.82);
+    color: var(--ink);
+    box-shadow:
+      0 7px 16px rgba(39,37,34,.09),
+      inset 0 1px 0 rgba(255,255,255,.9);
+  }
+
+  .two-buttons button:active:not(:disabled) {
+    transform: scale(.92);
+  }
+
+  .rotate-icon {
+    width: 27px;
+    height: 27px;
+    stroke-width: 1.8;
+  }
+
+  .move-controls {
+    width: min(250px, 82vw);
+    height: 58px;
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    align-items: center;
+    justify-items: center;
+    gap: 10px;
+  }
+
+  .move-controls button,
+  #drop {
+    width: 64px;
+    height: 58px;
+    min-height: 58px;
+    padding: 0;
+    display: grid;
+    place-items: center;
+    border: 0;
+    border-radius: 0;
+    background: transparent;
+    color: var(--ink);
+    box-shadow: none;
+  }
+
+  .move-controls button:active:not(:disabled) {
+    transform: scale(.92);
+  }
+
+  .move-controls button:active:not(:disabled) .triangle-button {
+    transform: scale(.9);
+  }
+
+  #drop {
+    background: transparent;
+    color: var(--ink);
+  }
+
+  .move-controls button:disabled {
+    opacity: .18;
+  }
+
+  .toast {
+    bottom: calc(env(safe-area-inset-bottom) + 126px);
+  }
+}
+
+@media (max-width: 380px), (max-height: 720px) and (max-width: 759px) {
+  .control-panel {
+    gap: 2px;
+    padding-bottom: 4px;
+  }
+
+  .two-buttons {
+    width: 126px;
+    height: 48px;
+  }
+
+  .two-buttons button {
+    width: 46px;
+    min-width: 46px;
+    height: 46px;
+    min-height: 46px;
+  }
+
+  .rotate-icon {
+    width: 24px;
+    height: 24px;
+  }
+
+  .move-controls {
+    height: 51px;
+  }
+
+  .move-controls button,
+  #drop {
+    width: 58px;
+    height: 51px;
+    min-height: 51px;
+  }
+
+  .triangle-left {
+    border-top-width: 17px;
+    border-bottom-width: 17px;
+    border-right-width: 27px;
+  }
+
+  .triangle-right {
+    border-top-width: 17px;
+    border-bottom-width: 17px;
+    border-left-width: 27px;
+  }
+
+  .triangle-down {
+    border-left-width: 20px;
+    border-right-width: 20px;
+    border-top-width: 29px;
+  }
+}
+
+/* Keep the same visual language on larger screens without changing layout. */
+@media (min-width: 760px) {
+  .two-buttons button {
+    border-radius: 50%;
+    aspect-ratio: 1;
+    padding: 0;
+  }
+
+  .two-buttons {
+    justify-items: center;
+  }
+
+  .move-controls button {
+    background: transparent;
+    box-shadow: none;
+  }
+
+  .move-controls {
+    align-items: center;
+    justify-items: center;
+  }
+}
