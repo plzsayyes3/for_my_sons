@@ -1,10 +1,34 @@
 const board = document.querySelector("#board");
 const moveCount = document.querySelector("#move-count");
 const newPuzzleButton = document.querySelector("#new-puzzle");
+const importButton = document.querySelector("#import-button");
 const difficultyButtons = [...document.querySelectorAll("[data-size]")];
 const celebration = document.querySelector("#celebration");
 const clearMoves = document.querySelector("#clear-moves");
 const playAgain = document.querySelector("#play-again");
+const toast = document.querySelector("#toast");
+
+const customSource = document.querySelector("#custom-source");
+const customPreview = document.querySelector("#custom-preview");
+const removeCustomButton = document.querySelector("#remove-custom");
+
+const importModal = document.querySelector("#import-modal");
+const importCloseButton = document.querySelector("#import-close");
+const deviceImportButton = document.querySelector("#device-import");
+const fileInput = document.querySelector("#file-input");
+const paintGallery = document.querySelector("#paint-gallery");
+const galleryEmpty = document.querySelector("#gallery-empty");
+
+const cropModal = document.querySelector("#crop-modal");
+const cropPreview = document.querySelector("#crop-preview");
+const cropCtx = cropPreview.getContext("2d", { alpha: false });
+const cropCloseButton = document.querySelector("#crop-close");
+const cropResetButton = document.querySelector("#crop-reset");
+const cropConfirmButton = document.querySelector("#crop-confirm");
+const cropZoom = document.querySelector("#crop-zoom");
+
+const DB_NAME = "for-my-sons-art";
+const STORE_NAME = "drawings";
 
 const EMOJI_ART = [
   "🐶","🐱","🐰","🦊","🐻","🐼","🐸","🐵","🦁","🐯",
@@ -23,6 +47,17 @@ let pieces = [];
 let moves = 0;
 let selectedIndex = null;
 let pointerState = null;
+let activeCustomArt = null;
+let toastTimer = null;
+
+let cropSession = null;
+const cropPointers = new Map();
+let cropGesture = null;
+let galleryObjectUrls = [];
+
+function clamp(value, min, max) {
+  return Math.min(max, Math.max(min, value));
+}
 
 function shuffled(list) {
   const copy = [...list];
@@ -34,7 +69,14 @@ function shuffled(list) {
 }
 
 function createArtPool(count) {
-  return shuffled(EMOJI_ART).slice(0, count);
+  const emoji = shuffled(EMOJI_ART);
+  if (!activeCustomArt) return emoji.slice(0, count);
+
+  const pool = [
+    activeCustomArt,
+    ...emoji.slice(0, Math.max(0, count - 1))
+  ];
+  return shuffled(pool);
 }
 
 function makePuzzle(nextSize) {
@@ -232,6 +274,13 @@ function hideCelebration() {
   celebration.setAttribute("aria-hidden", "true");
 }
 
+function showToast(message) {
+  toast.textContent = message;
+  toast.classList.add("is-open");
+  window.clearTimeout(toastTimer);
+  toastTimer = window.setTimeout(() => toast.classList.remove("is-open"), 1800);
+}
+
 function beginDrag(event, tile) {
   const index = Number(tile.dataset.index);
   const rect = tile.getBoundingClientRect();
@@ -305,6 +354,238 @@ function finishDrag(event) {
   }
 }
 
+function openDatabase() {
+  return new Promise((resolve, reject) => {
+    const request = indexedDB.open(DB_NAME, 1);
+
+    request.onupgradeneeded = () => {
+      const db = request.result;
+      if (!db.objectStoreNames.contains(STORE_NAME)) {
+        const store = db.createObjectStore(STORE_NAME, { keyPath: "id" });
+        store.createIndex("createdAt", "createdAt");
+        store.createIndex("kind", "kind");
+      }
+    };
+
+    request.onsuccess = () => resolve(request.result);
+    request.onerror = () => reject(request.error);
+  });
+}
+
+async function getPaintArt() {
+  const db = await openDatabase();
+  const records = await new Promise((resolve, reject) => {
+    const tx = db.transaction(STORE_NAME, "readonly");
+    const request = tx.objectStore(STORE_NAME).getAll();
+    request.onsuccess = () => resolve(request.result || []);
+    request.onerror = () => reject(request.error);
+  });
+  db.close();
+
+  return records
+    .filter((record) => record?.blob instanceof Blob && (record.kind === "puzzle-art" || record.kind === "paint"))
+    .sort((a, b) => String(b.createdAt || "").localeCompare(String(a.createdAt || "")));
+}
+
+function clearGalleryUrls() {
+  galleryObjectUrls.forEach((url) => URL.revokeObjectURL(url));
+  galleryObjectUrls = [];
+}
+
+async function renderPaintGallery() {
+  clearGalleryUrls();
+  paintGallery.replaceChildren();
+
+  try {
+    const records = await getPaintArt();
+    galleryEmpty.hidden = records.length > 0;
+
+    records.forEach((record) => {
+      const url = URL.createObjectURL(record.blob);
+      galleryObjectUrls.push(url);
+
+      const button = document.createElement("button");
+      button.type = "button";
+      button.className = "gallery-item";
+      button.setAttribute("aria-label", "この絵をつかう");
+
+      const image = document.createElement("img");
+      image.src = url;
+      image.alt = "";
+      button.appendChild(image);
+
+      button.addEventListener("click", () => {
+        closeImportModal();
+        openCropFromBlob(record.blob);
+      });
+
+      paintGallery.appendChild(button);
+    });
+  } catch (error) {
+    console.error(error);
+    galleryEmpty.hidden = false;
+    galleryEmpty.textContent = "保存した絵を読みこめませんでした。";
+  }
+}
+
+function openImportModal() {
+  importModal.classList.add("is-open");
+  importModal.setAttribute("aria-hidden", "false");
+  document.body.classList.add("modal-open");
+  renderPaintGallery();
+}
+
+function closeImportModal() {
+  importModal.classList.remove("is-open");
+  importModal.setAttribute("aria-hidden", "true");
+  document.body.classList.remove("modal-open");
+  clearGalleryUrls();
+}
+
+function loadImageFromBlob(blob) {
+  return new Promise((resolve, reject) => {
+    const url = URL.createObjectURL(blob);
+    const image = new Image();
+
+    image.onload = () => {
+      resolve({
+        image,
+        cleanup: () => URL.revokeObjectURL(url)
+      });
+    };
+
+    image.onerror = () => {
+      URL.revokeObjectURL(url);
+      reject(new Error("画像を読みこめませんでした"));
+    };
+
+    image.src = url;
+  });
+}
+
+function cropMetrics() {
+  const points = [...cropPointers.values()];
+  if (!points.length) return null;
+  const x = points.reduce((sum, point) => sum + point.x, 0) / points.length;
+  const y = points.reduce((sum, point) => sum + point.y, 0) / points.length;
+  let distance = null;
+  if (points.length >= 2) {
+    distance = Math.hypot(points[0].x - points[1].x, points[0].y - points[1].y);
+  }
+  return { x, y, distance };
+}
+
+function cropSizeInSource() {
+  if (!cropSession) return 0;
+  return Math.min(cropSession.width, cropSession.height) / cropSession.zoom;
+}
+
+function clampCropCenter() {
+  if (!cropSession) return;
+  const half = cropSizeInSource() / 2;
+  cropSession.cx = clamp(cropSession.cx, half, cropSession.width - half);
+  cropSession.cy = clamp(cropSession.cy, half, cropSession.height - half);
+}
+
+function renderCrop() {
+  if (!cropSession) return;
+  const cropSize = cropSizeInSource();
+  const sx = cropSession.cx - cropSize / 2;
+  const sy = cropSession.cy - cropSize / 2;
+
+  cropCtx.save();
+  cropCtx.fillStyle = "#ffffff";
+  cropCtx.fillRect(0, 0, cropPreview.width, cropPreview.height);
+  cropCtx.drawImage(
+    cropSession.source,
+    sx, sy, cropSize, cropSize,
+    0, 0, cropPreview.width, cropPreview.height
+  );
+  cropCtx.restore();
+  cropZoom.value = String(cropSession.zoom);
+}
+
+function resetCrop() {
+  if (!cropSession) return;
+  cropSession.cx = cropSession.width / 2;
+  cropSession.cy = cropSession.height / 2;
+  cropSession.zoom = 1;
+  renderCrop();
+}
+
+function openCropEditor(source, cleanup) {
+  cropSession = {
+    source,
+    width: source.naturalWidth || source.width,
+    height: source.naturalHeight || source.height,
+    cx: (source.naturalWidth || source.width) / 2,
+    cy: (source.naturalHeight || source.height) / 2,
+    zoom: 1,
+    cleanup
+  };
+
+  cropPointers.clear();
+  cropGesture = null;
+  renderCrop();
+  cropModal.classList.add("is-open");
+  cropModal.setAttribute("aria-hidden", "false");
+  document.body.classList.add("modal-open");
+}
+
+function closeCropEditor() {
+  cropModal.classList.remove("is-open");
+  cropModal.setAttribute("aria-hidden", "true");
+  document.body.classList.remove("modal-open");
+  cropPointers.clear();
+  cropGesture = null;
+
+  if (cropSession?.cleanup) cropSession.cleanup();
+  cropSession = null;
+}
+
+function makeCroppedCanvas() {
+  const output = document.createElement("canvas");
+  output.width = 1000;
+  output.height = 1000;
+  const outputCtx = output.getContext("2d", { alpha: false });
+  const cropSize = cropSizeInSource();
+  const sx = cropSession.cx - cropSize / 2;
+  const sy = cropSession.cy - cropSize / 2;
+
+  outputCtx.fillStyle = "#ffffff";
+  outputCtx.fillRect(0, 0, 1000, 1000);
+  outputCtx.drawImage(cropSession.source, sx, sy, cropSize, cropSize, 0, 0, 1000, 1000);
+  return output;
+}
+
+function confirmCrop() {
+  if (!cropSession) return;
+  const cropped = makeCroppedCanvas();
+  const dataUrl = cropped.toDataURL("image/png");
+
+  activeCustomArt = {
+    id: "custom-" + Date.now(),
+    type: "image",
+    value: dataUrl
+  };
+
+  customPreview.src = dataUrl;
+  customSource.hidden = false;
+  closeCropEditor();
+  startNewPuzzle(size);
+  showToast("この絵をパズルに入れたよ");
+}
+
+async function openCropFromBlob(blob) {
+  try {
+    const loaded = await loadImageFromBlob(blob);
+    openCropEditor(loaded.image, loaded.cleanup);
+  } catch (error) {
+    console.error(error);
+    showToast("画像を読みこめなかった");
+  }
+}
+
 board.addEventListener("pointerdown", (event) => {
   const tile = event.target.closest(".tile");
   if (!tile || !board.contains(tile)) return;
@@ -344,6 +625,104 @@ difficultyButtons.forEach((button) => {
 
 newPuzzleButton.addEventListener("click", () => startNewPuzzle());
 playAgain.addEventListener("click", () => startNewPuzzle());
+
+importButton.addEventListener("click", openImportModal);
+importCloseButton.addEventListener("click", closeImportModal);
+
+importModal.addEventListener("click", (event) => {
+  if (event.target === importModal) closeImportModal();
+});
+
+deviceImportButton.addEventListener("click", () => fileInput.click());
+
+fileInput.addEventListener("change", () => {
+  const file = fileInput.files?.[0];
+  fileInput.value = "";
+  if (!file) return;
+  closeImportModal();
+  openCropFromBlob(file);
+});
+
+removeCustomButton.addEventListener("click", () => {
+  activeCustomArt = null;
+  customPreview.removeAttribute("src");
+  customSource.hidden = true;
+  startNewPuzzle(size);
+  showToast("絵文字だけにもどしたよ");
+});
+
+cropPreview.addEventListener("pointerdown", (event) => {
+  if (!cropSession) return;
+  event.preventDefault();
+  cropPreview.setPointerCapture(event.pointerId);
+  cropPointers.set(event.pointerId, { x: event.clientX, y: event.clientY });
+  cropGesture = cropMetrics();
+});
+
+cropPreview.addEventListener("pointermove", (event) => {
+  if (!cropSession || !cropPointers.has(event.pointerId)) return;
+  event.preventDefault();
+
+  const before = cropGesture;
+  cropPointers.set(event.pointerId, { x: event.clientX, y: event.clientY });
+  const after = cropMetrics();
+  if (!before || !after) {
+    cropGesture = after;
+    return;
+  }
+
+  const rect = cropPreview.getBoundingClientRect();
+  const sourceSizeBefore = cropSizeInSource();
+
+  cropSession.cx -= (after.x - before.x) * sourceSizeBefore / rect.width;
+  cropSession.cy -= (after.y - before.y) * sourceSizeBefore / rect.height;
+
+  if (before.distance && after.distance) {
+    cropSession.zoom = clamp(
+      cropSession.zoom * (after.distance / before.distance),
+      1,
+      6
+    );
+  }
+
+  clampCropCenter();
+  cropGesture = after;
+  renderCrop();
+});
+
+function releaseCropPointer(event) {
+  cropPointers.delete(event.pointerId);
+  if (cropPreview.hasPointerCapture(event.pointerId)) {
+    cropPreview.releasePointerCapture(event.pointerId);
+  }
+  cropGesture = cropMetrics();
+}
+
+cropPreview.addEventListener("pointerup", releaseCropPointer);
+cropPreview.addEventListener("pointercancel", releaseCropPointer);
+
+cropPreview.addEventListener("wheel", (event) => {
+  if (!cropSession) return;
+  event.preventDefault();
+  cropSession.zoom = clamp(cropSession.zoom * (event.deltaY > 0 ? 0.92 : 1.08), 1, 6);
+  clampCropCenter();
+  renderCrop();
+}, { passive: false });
+
+cropZoom.addEventListener("input", () => {
+  if (!cropSession) return;
+  cropSession.zoom = Number(cropZoom.value);
+  clampCropCenter();
+  renderCrop();
+});
+
+cropResetButton.addEventListener("click", resetCrop);
+cropConfirmButton.addEventListener("click", confirmCrop);
+cropCloseButton.addEventListener("click", closeCropEditor);
+
+cropModal.addEventListener("click", (event) => {
+  if (event.target === cropModal) closeCropEditor();
+});
 
 celebration.addEventListener("click", (event) => {
   if (event.target === celebration) hideCelebration();
