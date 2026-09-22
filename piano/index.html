@@ -665,7 +665,10 @@
 
     <div class="status" id="status" aria-live="polite">タップすると おとがでるよ</div>
     <div class="sample-credit">
-      Piano samples: Salamander Grand Piano / Alexander Holm · CC BY 3.0
+      Piano samples:
+      <a href="https://archive.org/details/SalamanderGrandPianoV3" target="_blank" rel="noopener">Salamander Grand Piano</a>
+      / Alexander Holm ·
+      <a href="https://creativecommons.org/licenses/by/3.0/" target="_blank" rel="noopener">CC BY 3.0</a>
     </div>
   </main>
 
@@ -877,7 +880,6 @@
           };
           return true;
         } catch (error) {
-          pendingNotes.delete(token);
           console.warn('Piano sample unavailable; using synth fallback.', error);
           status.textContent = '';
           return false;
