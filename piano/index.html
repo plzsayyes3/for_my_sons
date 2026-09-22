@@ -727,6 +727,38 @@
         return osc;
       }
 
+      function createNoise(destination, level = 0.02, highpass = 1200) {
+        const length = Math.max(1, Math.floor(audioContext.sampleRate * 0.6));
+        const buffer = audioContext.createBuffer(1, length, audioContext.sampleRate);
+        const data = buffer.getChannelData(0);
+        for (let i = 0; i < length; i++) data[i] = Math.random() * 2 - 1;
+
+        const source = audioContext.createBufferSource();
+        const filter = audioContext.createBiquadFilter();
+        const gain = audioContext.createGain();
+        source.buffer = buffer;
+        source.loop = true;
+        filter.type = 'highpass';
+        filter.frequency.value = highpass;
+        gain.gain.value = level;
+        source.connect(filter);
+        filter.connect(gain);
+        gain.connect(destination);
+        return { source, gain, filter };
+      }
+
+      function createVibrato(targetOscillators, now, rate = 5.2, depth = 9, delay = 0.18) {
+        const lfo = audioContext.createOscillator();
+        const lfoGain = audioContext.createGain();
+        lfo.frequency.value = rate;
+        lfoGain.gain.setValueAtTime(0, now);
+        lfoGain.gain.linearRampToValueAtTime(depth, now + delay + 0.18);
+        lfo.connect(lfoGain);
+        targetOscillators.forEach((osc) => lfoGain.connect(osc.detune));
+        lfo.start(now);
+        return lfo;
+      }
+
       function buildVoice(frequency, now) {
         const output = audioContext.createGain();
         output.connect(master);
@@ -808,53 +840,92 @@
         } else if (currentSound === 'recorder') {
           const filter = audioContext.createBiquadFilter();
           filter.type = 'lowpass';
-          filter.frequency.setValueAtTime(Math.min(5200, frequency * 7), now);
-          filter.Q.value = 1.3;
+          filter.frequency.setValueAtTime(Math.min(6200, frequency * 9), now);
+          filter.Q.value = 0.9;
           filter.connect(output);
-          oscillators.push(createOsc('sine', frequency, filter, 0.72));
-          oscillators.push(createOsc('sine', frequency * 2, filter, 0.15));
-          oscillators.push(createOsc('sine', frequency * 3, filter, 0.07));
-          oscillators.push(createOsc('triangle', frequency, filter, 0.08, 2));
+
+          const r1 = createOsc('sine', frequency, filter, 0.64);
+          const r2 = createOsc('sine', frequency * 2, filter, 0.19);
+          const r3 = createOsc('sine', frequency * 3, filter, 0.055);
+          const r4 = createOsc('sine', frequency * 4, filter, 0.018);
+          oscillators.push(r1, r2, r3, r4);
+
+          const breath = createNoise(filter, 0.018, 1800);
+          oscillators.push(breath.source);
+
+          const vibrato = createVibrato([r1, r2, r3], now, 5.4, 5.5, 0.28);
+          oscillators.push(vibrato);
+
           output.gain.setValueAtTime(0.0001, now);
-          output.gain.exponentialRampToValueAtTime(0.25, now + 0.055);
-          output.gain.exponentialRampToValueAtTime(0.21, now + 0.18);
-          release = 0.16;
+          output.gain.exponentialRampToValueAtTime(0.23, now + 0.045);
+          output.gain.exponentialRampToValueAtTime(0.205, now + 0.20);
+          release = 0.18;
         } else if (currentSound === 'violin') {
           const filter = audioContext.createBiquadFilter();
           filter.type = 'lowpass';
-          filter.frequency.setValueAtTime(Math.min(6500, frequency * 9), now);
-          filter.Q.value = 1.8;
+          filter.frequency.setValueAtTime(Math.min(7600, 2600 + frequency * 8), now);
+          filter.Q.value = 1.1;
           filter.connect(output);
-          oscillators.push(createOsc('sawtooth', frequency, filter, 0.24, -5));
-          oscillators.push(createOsc('sawtooth', frequency, filter, 0.24, 5));
-          oscillators.push(createOsc('triangle', frequency * 2, filter, 0.10));
-          oscillators.push(createOsc('sine', frequency * 3, filter, 0.045));
+
+          const v1 = createOsc('sawtooth', frequency, filter, 0.19, -3);
+          const v2 = createOsc('sawtooth', frequency, filter, 0.19, 3);
+          const v3 = createOsc('triangle', frequency * 2, filter, 0.09);
+          const v4 = createOsc('sine', frequency * 3, filter, 0.035);
+          oscillators.push(v1, v2, v3, v4);
+
+          const bow = createNoise(filter, 0.013, 900);
+          oscillators.push(bow.source);
+
+          const vibrato = createVibrato([v1, v2, v3], now, 5.7, 13, 0.16);
+          oscillators.push(vibrato);
+
           output.gain.setValueAtTime(0.0001, now);
-          output.gain.exponentialRampToValueAtTime(0.23, now + 0.11);
-          output.gain.exponentialRampToValueAtTime(0.19, now + 0.34);
-          release = 0.48;
+          output.gain.exponentialRampToValueAtTime(0.205, now + 0.095);
+          output.gain.exponentialRampToValueAtTime(0.185, now + 0.30);
+          release = 0.58;
         } else if (currentSound === 'melodica') {
           const filter = audioContext.createBiquadFilter();
           filter.type = 'lowpass';
-          filter.frequency.setValueAtTime(Math.min(5800, frequency * 8), now);
-          filter.Q.value = 1.1;
+          filter.frequency.setValueAtTime(Math.min(6400, 2100 + frequency * 7.5), now);
+          filter.Q.value = 1.4;
           filter.connect(output);
-          oscillators.push(createOsc('square', frequency, filter, 0.18));
-          oscillators.push(createOsc('triangle', frequency, filter, 0.42));
-          oscillators.push(createOsc('sine', frequency * 2, filter, 0.13));
-          oscillators.push(createOsc('sine', frequency * 3, filter, 0.055));
+
+          const m1 = createOsc('square', frequency, filter, 0.11);
+          const m2 = createOsc('triangle', frequency, filter, 0.39);
+          const m3 = createOsc('sine', frequency * 2, filter, 0.16);
+          const m4 = createOsc('sine', frequency * 3, filter, 0.07);
+          oscillators.push(m1, m2, m3, m4);
+
+          const breath = createNoise(filter, 0.010, 1400);
+          oscillators.push(breath.source);
+
           output.gain.setValueAtTime(0.0001, now);
-          output.gain.exponentialRampToValueAtTime(0.27, now + 0.045);
-          output.gain.exponentialRampToValueAtTime(0.235, now + 0.16);
-          release = 0.20;
+          output.gain.exponentialRampToValueAtTime(0.255, now + 0.035);
+          output.gain.exponentialRampToValueAtTime(0.225, now + 0.14);
+          release = 0.24;
         } else {
-          oscillators.push(createOsc('triangle', frequency, output, 0.78));
-          oscillators.push(createOsc('sine', frequency * 2, output, 0.16));
-          oscillators.push(createOsc('sine', frequency * 3, output, 0.06));
+          const body = audioContext.createBiquadFilter();
+          body.type = 'lowpass';
+          body.frequency.value = Math.min(7200, 2800 + frequency * 5.5);
+          body.Q.value = 0.7;
+          body.connect(output);
+
+          const fundamental = createOsc('triangle', frequency, body, 0.62);
+          const second = createOsc('sine', frequency * 2.003, body, 0.18, 1.5);
+          const third = createOsc('sine', frequency * 3.012, body, 0.075, -1.5);
+          const fourth = createOsc('sine', frequency * 4.025, body, 0.035);
+          oscillators.push(fundamental, second, third, fourth);
+
+          const hammer = createNoise(body, 0.032, Math.min(3000, frequency * 4));
+          hammer.gain.gain.setValueAtTime(0.032, now);
+          hammer.gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.055);
+          oscillators.push(hammer.source);
+
           output.gain.setValueAtTime(0.0001, now);
-          output.gain.exponentialRampToValueAtTime(0.42, now + 0.015);
-          output.gain.exponentialRampToValueAtTime(0.18, now + 0.26);
-          release = 0.26;
+          output.gain.exponentialRampToValueAtTime(0.44, now + 0.006);
+          output.gain.exponentialRampToValueAtTime(0.23, now + 0.11);
+          output.gain.exponentialRampToValueAtTime(0.075, now + 1.45);
+          release = 0.62;
         }
 
         oscillators.forEach((osc) => osc.start(now));
