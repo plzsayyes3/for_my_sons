@@ -1,4 +1,4 @@
-const CACHE_NAME = 'for-my-sons-v25';
+const CACHE_NAME = 'for-my-sons-v26';
 const SHELL = [
   './',
   './index.html',
@@ -31,7 +31,7 @@ const SHELL = [
   './assets/match3.svg',
   './assets/space-survival.svg',
   './assets/split-puzzle.svg',
-  './assets/merge-block.svg',
+  './assets/merge-block.svg?v=2',
   './assets/paint.svg'
 ];
 
