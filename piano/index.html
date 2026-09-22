@@ -53,6 +53,97 @@
     }
     .title {
       min-width: 0;
+      flex: 1 1 auto;
+    }
+    .top-actions {
+      margin-left: auto;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      flex: 0 0 auto;
+    }
+    .utility-button {
+      min-width: 44px;
+      height: 44px;
+      padding: 0 10px;
+      display: grid;
+      place-items: center;
+      border: 1px solid rgba(90,84,75,.14);
+      border-radius: 14px;
+      background: rgba(255,255,255,.62);
+      color: #37332f;
+      font: inherit;
+      font-size: 18px;
+      font-weight: 800;
+      box-shadow: 0 4px 12px rgba(55,50,43,.07);
+      touch-action: manipulation;
+    }
+    .utility-button[aria-pressed="true"] {
+      color: #fff;
+      background: #3c3935;
+      border-color: #3c3935;
+    }
+    .sound-check {
+      position: fixed;
+      left: 50%;
+      bottom: calc(env(safe-area-inset-bottom) + 18px);
+      z-index: 60;
+      width: min(calc(100vw - 28px), 360px);
+      padding: 14px;
+      border-radius: 18px;
+      background: #fffdf8;
+      border: 1px solid rgba(80,72,63,.12);
+      box-shadow: 0 18px 42px rgba(35,30,25,.22);
+      transform: translate(-50%, 130%);
+      opacity: 0;
+      pointer-events: none;
+      transition: transform 180ms ease, opacity 180ms ease;
+    }
+    .app.sound-check-open .sound-check {
+      transform: translate(-50%, 0);
+      opacity: 1;
+      pointer-events: auto;
+    }
+    .sound-check strong {
+      display: block;
+      margin-bottom: 5px;
+      font-size: 15px;
+    }
+    .sound-check p {
+      margin: 0 0 10px;
+      color: #6f6962;
+      font-size: 12px;
+      line-height: 1.45;
+      font-weight: 650;
+    }
+    .sound-check-actions {
+      display: flex;
+      gap: 8px;
+    }
+    .sound-check-actions button {
+      flex: 1 1 0;
+      min-height: 42px;
+      border: 0;
+      border-radius: 12px;
+      font: inherit;
+      font-size: 13px;
+      font-weight: 800;
+    }
+    .sound-check-yes { background: #3c3935; color: #fff; }
+    .sound-check-no { background: #ece6dc; color: #4d4842; }
+
+    body.force-landscape-fallback {
+      overflow: hidden;
+    }
+    body.force-landscape-fallback .app {
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      width: 100svh;
+      height: 100vw;
+      min-height: 0;
+      transform: translate(-50%, -50%) rotate(90deg);
+      transform-origin: center;
     }
     .title h1 {
       margin: 0;
@@ -526,6 +617,10 @@
         <h1>ピアノ</h1>
         <p>けんばんを おしてみよう</p>
       </div>
+      <div class="top-actions">
+        <button class="utility-button" id="sound-test" type="button" aria-label="マナーモードでも音が出るか確認">🔊</button>
+        <button class="utility-button" id="rotate-screen" type="button" aria-label="横向き表示にする" aria-pressed="false">↻</button>
+      </div>
     </header>
 
     <div class="sound-picker" id="sound-picker" aria-label="音色をえらぶ">
@@ -664,6 +759,16 @@
     </section>
 
     <div class="status" id="status" aria-live="polite">タップすると おとがでるよ</div>
+
+    <div class="sound-check" id="sound-check" role="dialog" aria-label="マナーモード確認" aria-hidden="true">
+      <strong>🔊 この音、きこえた？</strong>
+      <p>マナーモードにしてから試すと、この端末で音が出るか確認できます。</p>
+      <div class="sound-check-actions">
+        <button class="sound-check-yes" id="sound-check-yes" type="button">きこえた</button>
+        <button class="sound-check-no" id="sound-check-no" type="button">きこえない</button>
+      </div>
+    </div>
+
     <div class="sample-credit">
       Piano samples:
       <a href="https://archive.org/details/SalamanderGrandPianoV3" target="_blank" rel="noopener">Salamander Grand Piano</a>
@@ -679,6 +784,11 @@
       const status = document.getElementById('status');
       const soundPicker = document.getElementById('sound-picker');
       const synthBack = document.getElementById('synth-back');
+      const soundTestButton = document.getElementById('sound-test');
+      const rotateButton = document.getElementById('rotate-screen');
+      const soundCheck = document.getElementById('sound-check');
+      const soundCheckYes = document.getElementById('sound-check-yes');
+      const soundCheckNo = document.getElementById('sound-check-no');
       const helpOpen = document.getElementById('help-open');
       const helpClose = document.getElementById('help-close');
       const helpBackdrop = document.getElementById('help-backdrop');
@@ -1154,6 +1264,76 @@
         });
       });
 
+      function setSoundCheckOpen(open) {
+        app.classList.toggle('sound-check-open', open);
+        soundCheck.setAttribute('aria-hidden', String(!open));
+      }
+
+      function playSoundTest() {
+        if (!ensureAudio()) return;
+        const now = audioContext.currentTime;
+        const osc = audioContext.createOscillator();
+        const gain = audioContext.createGain();
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(660, now);
+        gain.gain.setValueAtTime(0.0001, now);
+        gain.gain.exponentialRampToValueAtTime(0.24, now + 0.02);
+        gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.42);
+        osc.connect(gain);
+        gain.connect(master);
+        osc.start(now);
+        osc.stop(now + 0.46);
+        setSoundCheckOpen(true);
+      }
+
+      soundTestButton.addEventListener('click', playSoundTest);
+      soundCheckYes.addEventListener('click', () => {
+        setSoundCheckOpen(false);
+        status.textContent = 'マナーモードでも おとが きこえました';
+      });
+      soundCheckNo.addEventListener('click', () => {
+        setSoundCheckOpen(false);
+        status.textContent = 'この端末では マナーモード中は おとが きこえません';
+      });
+
+      let forcedLandscape = false;
+
+      function applyLandscapeFallback() {
+        const portrait = window.innerHeight > window.innerWidth;
+        document.body.classList.toggle('force-landscape-fallback', forcedLandscape && portrait);
+      }
+
+      async function toggleForcedLandscape() {
+        forcedLandscape = !forcedLandscape;
+        rotateButton.setAttribute('aria-pressed', String(forcedLandscape));
+        rotateButton.setAttribute('aria-label', forcedLandscape ? '向きを元にもどす' : '横向き表示にする');
+
+        if (!forcedLandscape) {
+          try { screen.orientation?.unlock?.(); } catch (_) {}
+          document.body.classList.remove('force-landscape-fallback');
+          status.textContent = '画面の向きを もとにもどしました';
+          return;
+        }
+
+        let locked = false;
+        try {
+          if (screen.orientation?.lock) {
+            await screen.orientation.lock('landscape');
+            locked = true;
+          }
+        } catch (_) {}
+
+        if (!locked) applyLandscapeFallback();
+        status.textContent = locked
+          ? '横向きに しました'
+          : 'アプリを 横向き表示に しました';
+      }
+
+      rotateButton.addEventListener('click', toggleForcedLandscape);
+      window.addEventListener('resize', () => {
+        if (forcedLandscape) applyLandscapeFallback();
+      });
+
       function setHelpOpen(open) {
         app.classList.toggle('help-open', open);
         helpOpen.setAttribute('aria-expanded', String(open));
@@ -1228,6 +1408,9 @@
         if (event.key === 'Escape' && app.classList.contains('help-open')) {
           event.preventDefault();
           setHelpOpen(false);
+        } else if (event.key === 'Escape' && app.classList.contains('sound-check-open')) {
+          event.preventDefault();
+          setSoundCheckOpen(false);
         }
       });
 
