@@ -1,4 +1,4 @@
-const CACHE_NAME = 'for-my-sons-v12';
+const CACHE_NAME = 'for-my-sons-v13';
 const SHELL = [
   './',
   './index.html',
@@ -8,6 +8,10 @@ const SHELL = [
   './manifest.webmanifest',
   './piano/?v=9',
   './piano/index.html?v=9',
+  './split-puzzle/?v=1',
+  './split-puzzle/index.html',
+  './split-puzzle/styles.css',
+  './split-puzzle/app.js',
   './assets/for-my-sons-icon.svg',
   './assets/kids-3d.svg',
   './assets/minecraft-english.svg',
@@ -17,7 +21,8 @@ const SHELL = [
   './assets/roulette.svg',
   './assets/step-up.svg',
   './assets/match3.svg',
-  './assets/space-survival.svg'
+  './assets/space-survival.svg',
+  './assets/split-puzzle.svg'
 ];
 
 self.addEventListener('install', (event) => {
