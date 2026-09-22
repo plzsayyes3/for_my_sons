@@ -224,6 +224,160 @@
       color: #fff;
       white-space: nowrap;
     }
+    .help-button {
+      width: 40px;
+      min-width: 40px;
+      height: 38px;
+      display: grid;
+      place-items: center;
+      border: 1px solid rgba(255,255,255,.18);
+      border-radius: 12px;
+      background: rgba(255,255,255,.10);
+      color: #fff;
+      font: inherit;
+      font-size: 18px;
+      font-weight: 900;
+    }
+    .synth-head-actions {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      min-width: 0;
+    }
+    .help-backdrop {
+      position: fixed;
+      inset: 0;
+      z-index: 40;
+      border: 0;
+      padding: 0;
+      background: rgba(18,18,18,.34);
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 180ms ease;
+    }
+    .help-drawer {
+      position: fixed;
+      top: 0;
+      right: 0;
+      z-index: 41;
+      width: min(88vw, 420px);
+      height: 100%;
+      padding:
+        calc(env(safe-area-inset-top) + 18px)
+        18px
+        calc(env(safe-area-inset-bottom) + 20px);
+      overflow-y: auto;
+      background: #f7f2e9;
+      color: #282623;
+      box-shadow: -18px 0 42px rgba(0,0,0,.22);
+      transform: translateX(102%);
+      transition: transform 220ms ease;
+      -webkit-overflow-scrolling: touch;
+    }
+    .app.help-open .help-backdrop {
+      opacity: 1;
+      pointer-events: auto;
+    }
+    .app.help-open .help-drawer {
+      transform: translateX(0);
+    }
+    .help-drawer-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 8px;
+    }
+    .help-drawer h2 {
+      margin: 0;
+      font-size: 24px;
+      line-height: 1.05;
+      letter-spacing: -.03em;
+    }
+    .help-close {
+      width: 44px;
+      height: 44px;
+      border: 0;
+      border-radius: 14px;
+      background: #e6dfd3;
+      color: #2d2a26;
+      font: inherit;
+      font-size: 22px;
+      font-weight: 800;
+    }
+    .help-lead {
+      margin: 0 0 16px;
+      color: #726b62;
+      font-size: 13px;
+      line-height: 1.5;
+      font-weight: 650;
+    }
+    .help-section-title {
+      margin: 18px 0 8px;
+      font-size: 12px;
+      letter-spacing: .08em;
+      color: #8b8175;
+      font-weight: 850;
+    }
+    .help-list {
+      display: grid;
+      gap: 8px;
+    }
+    .help-card {
+      padding: 12px 13px;
+      border-radius: 15px;
+      background: #fff;
+      border: 1px solid #e4ddd2;
+    }
+    .help-card-title {
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      gap: 10px;
+      margin-bottom: 7px;
+    }
+    .help-card-title strong {
+      font-size: 15px;
+    }
+    .help-card-title small {
+      color: #978d81;
+      font-size: 10px;
+      font-weight: 800;
+      letter-spacing: .04em;
+    }
+    .help-updown {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 7px;
+    }
+    .help-updown span {
+      min-width: 0;
+      padding: 8px 9px;
+      border-radius: 10px;
+      background: #f3eee6;
+      font-size: 12px;
+      line-height: 1.35;
+      font-weight: 700;
+    }
+    .wave-help {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0,1fr));
+      gap: 8px;
+    }
+    .wave-help div {
+      padding: 10px 11px;
+      border-radius: 12px;
+      background: #fff;
+      border: 1px solid #e4ddd2;
+      font-size: 12px;
+      line-height: 1.4;
+      font-weight: 700;
+    }
+    .wave-help strong {
+      display: block;
+      margin-bottom: 2px;
+      font-size: 13px;
+    }
     .app.is-custom .piano-shell {
       flex: 0 0 auto;
       height: clamp(145px, 28vh, 230px);
@@ -380,11 +534,14 @@
     <section class="synth-panel" id="synth-panel" aria-label="シンセカスタム">
       <div class="synth-head">
         <button class="synth-back" id="synth-back" type="button">← 音色にもどる</button>
-        <div class="wave-picker" aria-label="波形">
-          <button class="wave-button" type="button" data-wave="sine" aria-pressed="false">SIN</button>
-          <button class="wave-button" type="button" data-wave="triangle" aria-pressed="false">TRI</button>
-          <button class="wave-button" type="button" data-wave="sawtooth" aria-pressed="true">SAW</button>
-          <button class="wave-button" type="button" data-wave="square" aria-pressed="false">SQR</button>
+        <div class="synth-head-actions">
+          <div class="wave-picker" aria-label="波形">
+            <button class="wave-button" type="button" data-wave="sine" aria-pressed="false">SIN</button>
+            <button class="wave-button" type="button" data-wave="triangle" aria-pressed="false">TRI</button>
+            <button class="wave-button" type="button" data-wave="sawtooth" aria-pressed="true">SAW</button>
+            <button class="wave-button" type="button" data-wave="square" aria-pressed="false">SQR</button>
+          </div>
+          <button class="help-button" id="help-open" type="button" aria-label="音づくりの説明をひらく" aria-expanded="false">?</button>
         </div>
       </div>
       <div class="fader-grid">
@@ -420,6 +577,51 @@
         </label>
       </div>
     </section>
+
+    <button class="help-backdrop" id="help-backdrop" type="button" aria-label="説明をとじる"></button>
+    <aside class="help-drawer" id="help-drawer" aria-label="シンセの音づくり説明" aria-hidden="true">
+      <div class="help-drawer-head">
+        <h2>おとの つくりかた</h2>
+        <button class="help-close" id="help-close" type="button" aria-label="説明をとじる">×</button>
+      </div>
+      <p class="help-lead">スライダーを うえ・したに うごかして、どんな おとに なるか ためしてみよう。</p>
+
+      <p class="help-section-title">スライダー</p>
+      <div class="help-list">
+        <div class="help-card">
+          <div class="help-card-title"><strong>☀️ おとの あかるさ</strong><small>CUTOFF</small></div>
+          <div class="help-updown"><span>↑ キラキラ・はっきり</span><span>↓ こもる・やわらかい</span></div>
+        </div>
+        <div class="help-card">
+          <div class="help-card-title"><strong>〰️ クセの つよさ</strong><small>RESONANCE</small></div>
+          <div class="help-updown"><span>↑ ビヨーン・クセつよ</span><span>↓ すなおな おと</span></div>
+        </div>
+        <div class="help-card">
+          <div class="help-card-title"><strong>🚀 おとの はじまり</strong><small>ATTACK</small></div>
+          <div class="help-updown"><span>↑ ゆっくり「ふわ〜」</span><span>↓ すぐ「パン！」</span></div>
+        </div>
+        <div class="help-card">
+          <div class="help-card-title"><strong>🌙 おとの のこりかた</strong><small>RELEASE</small></div>
+          <div class="help-updown"><span>↑ はなしても のび〜る</span><span>↓ すぐ とまる</span></div>
+        </div>
+        <div class="help-card">
+          <div class="help-card-title"><strong>🌊 おとの ゆらぎ</strong><small>DETUNE</small></div>
+          <div class="help-updown"><span>↑ ゆれて ひろがる</span><span>↓ まっすぐな おと</span></div>
+        </div>
+        <div class="help-card">
+          <div class="help-card-title"><strong>💪 おとの あつみ</strong><small>THICKNESS</small></div>
+          <div class="help-updown"><span>↑ ぶあつい おと</span><span>↓ ほそく すっきり</span></div>
+        </div>
+      </div>
+
+      <p class="help-section-title">おとの かたち</p>
+      <div class="wave-help">
+        <div><strong>SIN</strong>まるくて やさしい</div>
+        <div><strong>TRI</strong>すっきり やわらか</div>
+        <div><strong>SAW</strong>ジャーッと はで</div>
+        <div><strong>SQR</strong>ピコピコ ゲームっぽい</div>
+      </div>
+    </aside>
 
     <section class="piano-shell" aria-label="ピアノ">
       <div class="keyboard" id="keyboard">
@@ -462,6 +664,10 @@
       const status = document.getElementById('status');
       const soundPicker = document.getElementById('sound-picker');
       const synthBack = document.getElementById('synth-back');
+      const helpOpen = document.getElementById('help-open');
+      const helpClose = document.getElementById('help-close');
+      const helpBackdrop = document.getElementById('help-backdrop');
+      const helpDrawer = document.getElementById('help-drawer');
       const waveButtons = [...document.querySelectorAll('[data-wave]')];
       const faderControls = [...document.querySelectorAll('.fader-range')];
       const soundButtons = [...soundPicker.querySelectorAll('[data-sound]')];
@@ -740,8 +946,21 @@
         });
       });
 
+      function setHelpOpen(open) {
+        app.classList.toggle('help-open', open);
+        helpOpen.setAttribute('aria-expanded', String(open));
+        helpDrawer.setAttribute('aria-hidden', String(!open));
+        if (open) helpClose.focus();
+        else helpOpen.focus();
+      }
+
+      helpOpen.addEventListener('click', () => setHelpOpen(true));
+      helpClose.addEventListener('click', () => setHelpOpen(false));
+      helpBackdrop.addEventListener('click', () => setHelpOpen(false));
+
       function selectSound(sound) {
         stopAllNotes();
+        if (app.classList.contains('help-open')) setHelpOpen(false);
         currentSound = sound;
         app.classList.toggle('is-custom', sound === 'custom');
         soundButtons.forEach((item) => item.setAttribute('aria-pressed', String(item.dataset.sound === sound)));
@@ -795,6 +1014,13 @@
         if (!token) return;
         stopNote(token);
         computerNotes.delete(name);
+      });
+
+      window.addEventListener('keydown', (event) => {
+        if (event.key === 'Escape' && app.classList.contains('help-open')) {
+          event.preventDefault();
+          setHelpOpen(false);
+        }
       });
 
       window.addEventListener('blur', stopAllNotes);
