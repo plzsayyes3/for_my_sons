@@ -723,6 +723,141 @@ main { padding-top: 16px; }
   transform: translate(-50%, 0);
 }
 
+
+.time-attack-panel {
+  width: min(100%, 560px);
+  margin: 0 auto 10px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.time-attack-toggle {
+  min-height: 42px;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 0 12px;
+  border: 0;
+  border-radius: 14px;
+  background: rgba(255,255,255,.76);
+  box-shadow: 0 5px 16px rgba(75,59,42,.07);
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 900;
+}
+
+.time-attack-toggle.is-active {
+  background: var(--ink);
+  color: #fff;
+}
+
+.time-attack-toggle > span:first-child {
+  font-size: 16px;
+}
+
+.time-readout {
+  min-width: 0;
+  flex: 1;
+  height: 42px;
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: center;
+  gap: 10px;
+  padding: 0 11px;
+  border-radius: 14px;
+  background: rgba(255,255,255,.76);
+  box-shadow: inset 0 0 0 1px rgba(68,58,48,.05);
+}
+
+.time-readout[hidden] {
+  display: none;
+}
+
+.time-readout strong {
+  font-variant-numeric: tabular-nums;
+  font-size: 18px;
+  letter-spacing: -.02em;
+}
+
+.time-readout span {
+  color: var(--muted);
+  font-size: 9px;
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+.time-readout b {
+  color: var(--ink);
+  font-variant-numeric: tabular-nums;
+}
+
+.puzzle-area {
+  position: relative;
+}
+
+.board.is-locked {
+  pointer-events: none;
+  filter: saturate(.78) brightness(.98);
+}
+
+.countdown {
+  position: absolute;
+  inset: 0;
+  z-index: 50;
+  display: grid;
+  place-items: center;
+  pointer-events: none;
+}
+
+.countdown[hidden] {
+  display: none;
+}
+
+.countdown span {
+  width: 104px;
+  height: 104px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: rgba(47,43,39,.92);
+  color: #fff;
+  box-shadow: 0 18px 44px rgba(47,43,39,.24);
+  font-size: 48px;
+  line-height: 1;
+  font-weight: 950;
+  font-variant-numeric: tabular-nums;
+  animation: countdown-pop 360ms ease both;
+}
+
+@keyframes countdown-pop {
+  0% { transform: scale(.72); opacity: 0; }
+  55% { transform: scale(1.06); opacity: 1; }
+  100% { transform: scale(1); opacity: 1; }
+}
+
+.clear-time-row {
+  margin-top: -12px !important;
+  font-size: 14px;
+}
+
+.clear-time-row strong {
+  color: var(--ink);
+  font-size: 22px;
+  font-variant-numeric: tabular-nums;
+}
+
+.clear-best {
+  margin-top: -12px !important;
+  color: #c86f1a !important;
+  font-size: 14px;
+  font-weight: 900 !important;
+}
+
+.time-attack-toggle:active {
+  transform: scale(.95);
+}
+
 @media (min-width: 700px) {
   .app-shell { padding-top: calc(env(safe-area-inset-top) + 20px); }
   main { padding-top: 22px; }
