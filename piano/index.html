@@ -471,6 +471,15 @@
     .k-fs5 { left: 73.3333%; }
     .k-gs5 { left: 80%; }
     .k-as5 { left: 86.6667%; }
+    .sample-credit {
+      padding: 2px 4px 0;
+      text-align: center;
+      color: #918a80;
+      font-size: 9px;
+      line-height: 1.25;
+      flex: 0 0 auto;
+    }
+    .sample-credit a { color: inherit; }
     .status {
       min-height: 26px;
       padding: 8px 2px 0;
@@ -655,6 +664,9 @@
     </section>
 
     <div class="status" id="status" aria-live="polite">タップすると おとがでるよ</div>
+    <div class="sample-credit">
+      Piano samples: Salamander Grand Piano / Alexander Holm · CC BY 3.0
+    </div>
   </main>
 
   <script>
@@ -674,6 +686,22 @@
       const keys = [...root.querySelectorAll('[data-note]')];
       const byKeyboardKey = new Map(keys.filter((el) => el.dataset.key).map((el) => [el.dataset.key, el]));
       const noteIndex = { C: 0, 'C#': 1, D: 2, 'D#': 3, E: 4, F: 5, 'F#': 6, G: 7, 'G#': 8, A: 9, 'A#': 10, B: 11 };
+      const PIANO_SAMPLE_BASE = 'https://raw.githubusercontent.com/Tonejs/audio/master/salamander/';
+      const pianoSampleDefs = [
+        { note: 'C4', midi: 60, file: 'C4.mp3' },
+        { note: 'D#4', midi: 63, file: 'Ds4.mp3' },
+        { note: 'F#4', midi: 66, file: 'Fs4.mp3' },
+        { note: 'A4', midi: 69, file: 'A4.mp3' },
+        { note: 'C5', midi: 72, file: 'C5.mp3' },
+        { note: 'D#5', midi: 75, file: 'Ds5.mp3' },
+        { note: 'F#5', midi: 78, file: 'Fs5.mp3' },
+        { note: 'A5', midi: 81, file: 'A5.mp3' },
+        { note: 'C6', midi: 84, file: 'C6.mp3' }
+      ];
+      const pianoSampleBytes = new Map();
+      const pianoSampleBuffers = new Map();
+      const pianoSampleFetches = new Map();
+      const pendingNotes = new Set();
 
       let audioContext = null;
       let master = null;
@@ -691,11 +719,58 @@
       const pointerNotes = new Map();
       const computerNotes = new Map();
 
-      function frequencyFor(note) {
+      function midiFor(note) {
         const match = note.match(/^([A-G]#?)(\d)$/);
-        if (!match) return 440;
-        const midi = (Number(match[2]) + 1) * 12 + noteIndex[match[1]];
-        return 440 * Math.pow(2, (midi - 69) / 12);
+        if (!match) return 69;
+        return (Number(match[2]) + 1) * 12 + noteIndex[match[1]];
+      }
+
+      function frequencyFor(note) {
+        return 440 * Math.pow(2, (midiFor(note) - 69) / 12);
+      }
+
+      function nearestPianoSample(note) {
+        const targetMidi = midiFor(note);
+        return pianoSampleDefs.reduce((best, sample) =>
+          Math.abs(sample.midi - targetMidi) < Math.abs(best.midi - targetMidi) ? sample : best
+        );
+      }
+
+      async function fetchPianoSampleBytes(sample) {
+        if (pianoSampleBytes.has(sample.note)) return pianoSampleBytes.get(sample.note);
+        if (pianoSampleFetches.has(sample.note)) return pianoSampleFetches.get(sample.note);
+
+        const request = fetch(PIANO_SAMPLE_BASE + sample.file, { mode: 'cors', cache: 'force-cache' })
+          .then((response) => {
+            if (!response.ok) throw new Error('sample fetch failed: ' + response.status);
+            return response.arrayBuffer();
+          })
+          .then((bytes) => {
+            pianoSampleBytes.set(sample.note, bytes);
+            pianoSampleFetches.delete(sample.note);
+            return bytes;
+          })
+          .catch((error) => {
+            pianoSampleFetches.delete(sample.note);
+            throw error;
+          });
+
+        pianoSampleFetches.set(sample.note, request);
+        return request;
+      }
+
+      async function loadPianoSample(sample) {
+        if (pianoSampleBuffers.has(sample.note)) return pianoSampleBuffers.get(sample.note);
+        const bytes = await fetchPianoSampleBytes(sample);
+        const buffer = await audioContext.decodeAudioData(bytes.slice(0));
+        pianoSampleBuffers.set(sample.note, buffer);
+        return buffer;
+      }
+
+      function warmPianoSamples() {
+        pianoSampleDefs.forEach((sample) => {
+          fetchPianoSampleBytes(sample).catch(() => {});
+        });
       }
 
       function ensureAudio() {
@@ -756,6 +831,57 @@
         lfo.connect(lfoGain);
         targetOscillators.forEach((osc) => lfoGain.connect(osc.detune));
         return lfo;
+      }
+
+      async function startSampledPiano(note, token) {
+        const sample = nearestPianoSample(note);
+        const targetMidi = midiFor(note);
+        const wasReady = pianoSampleBuffers.has(sample.note);
+
+        try {
+          if (!wasReady) status.textContent = 'ピアノの おとを よみこみちゅう…';
+          const buffer = await loadPianoSample(sample);
+          if (!pendingNotes.has(token) || currentSound !== 'piano') return true;
+
+          const now = audioContext.currentTime;
+          const source = audioContext.createBufferSource();
+          const gain = audioContext.createGain();
+          source.buffer = buffer;
+          source.playbackRate.value = Math.pow(2, (targetMidi - sample.midi) / 12);
+          gain.gain.setValueAtTime(0.0001, now);
+          gain.gain.exponentialRampToValueAtTime(0.86, now + 0.008);
+
+          source.connect(gain);
+          gain.connect(master);
+          source.start(now);
+
+          const voice = {
+            note,
+            output: gain,
+            oscillators: [source],
+            release: 0.42,
+            sound: 'piano-sample',
+            customNodes: null
+          };
+          activeVoices.set(token, voice);
+          pendingNotes.delete(token);
+          setKeyActive(note, true);
+          status.textContent = '';
+
+          source.onended = () => {
+            if (activeVoices.get(token) === voice) {
+              activeVoices.delete(token);
+              const stillPlaying = [...activeVoices.values()].some((v) => v.note === note);
+              if (!stillPlaying) setKeyActive(note, false);
+            }
+          };
+          return true;
+        } catch (error) {
+          pendingNotes.delete(token);
+          console.warn('Piano sample unavailable; using synth fallback.', error);
+          status.textContent = '';
+          return false;
+        }
       }
 
       function buildVoice(frequency, now) {
@@ -931,8 +1057,16 @@
         return { output, oscillators, release, sound: currentSound, customNodes };
       }
 
-      function startNote(note, token) {
-        if (!ensureAudio() || activeVoices.has(token)) return;
+      async function startNote(note, token) {
+        if (!ensureAudio() || activeVoices.has(token) || pendingNotes.has(token)) return;
+
+        if (currentSound === 'piano') {
+          pendingNotes.add(token);
+          const played = await startSampledPiano(note, token);
+          if (played || !pendingNotes.has(token)) return;
+        }
+
+        pendingNotes.delete(token);
         const now = audioContext.currentTime;
         const voice = buildVoice(frequencyFor(note), now);
         activeVoices.set(token, { note, ...voice });
@@ -940,6 +1074,7 @@
       }
 
       function stopNote(token) {
+        pendingNotes.delete(token);
         const voice = activeVoices.get(token);
         if (!voice || !audioContext) return;
         const now = audioContext.currentTime;
@@ -958,6 +1093,7 @@
       }
 
       function stopAllNotes() {
+        pendingNotes.clear();
         [...activeVoices.keys()].forEach(stopNote);
         pointerNotes.clear();
         computerNotes.clear();
@@ -1093,6 +1229,7 @@
         }
       });
 
+      warmPianoSamples();
       window.addEventListener('blur', stopAllNotes);
     })();
   </script>
