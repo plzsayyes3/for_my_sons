@@ -781,8 +781,9 @@ moveRightButton.addEventListener("click", () => {
   updateLanding();
 });
 
-boardLeftButton.addEventListener("click", () => rotateBoard(false));
-boardRightButton.addEventListener("click", () => rotateBoard(true));
+// アイコンが示す回転方向と実際の盤面回転を一致させる。
+boardLeftButton.addEventListener("click", () => rotateBoard(true));
+boardRightButton.addEventListener("click", () => rotateBoard(false));
 dropButton.addEventListener("click", dropCurrent);
 newGameButton.addEventListener("click", openSetup);
 setupCancelButton.addEventListener("click", closeSetup);
