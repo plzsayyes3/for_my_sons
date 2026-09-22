@@ -5,6 +5,15 @@ const difficultyButtons = [...document.querySelectorAll("[data-size]")];
 const celebration = document.querySelector("#celebration");
 const clearMoves = document.querySelector("#clear-moves");
 const playAgain = document.querySelector("#play-again");
+const timeAttackToggle = document.querySelector("#time-attack-toggle");
+const timeReadout = document.querySelector("#time-readout");
+const timerDisplay = document.querySelector("#timer");
+const bestTimeDisplay = document.querySelector("#best-time");
+const countdown = document.querySelector("#countdown");
+const countdownText = document.querySelector("#countdown-text");
+const clearTimeRow = document.querySelector("#clear-time-row");
+const clearTime = document.querySelector("#clear-time");
+const clearBest = document.querySelector("#clear-best");
 
 const importButton = document.querySelector("#import-button");
 const importModal = document.querySelector("#import-modal");
@@ -29,6 +38,7 @@ const cropZoom = document.querySelector("#crop-zoom");
 
 const DB_NAME = "for-my-sons-art";
 const STORE_NAME = "drawings";
+const BEST_TIME_KEY = "split-puzzle-best-times-v1";
 
 const EMOJI_ART = [
   "🐶","🐱","🐰","🦊","🐻","🐼","🐸","🐵","🦁","🐯",
@@ -56,8 +66,160 @@ let cropSession = null;
 const cropPointers = new Map();
 let cropGesture = null;
 
+let timeAttackEnabled = false;
+let timerRunning = false;
+let timerStart = 0;
+let elapsedMs = 0;
+let timerFrame = null;
+let countdownToken = 0;
+let playLocked = false;
+let lastFinishTime = null;
+let lastWasBest = false;
+
 function clamp(value, min, max) {
   return Math.min(max, Math.max(min, value));
+}
+
+function formatTime(ms) {
+  const totalTenths = Math.max(0, Math.floor(ms / 100));
+  const minutes = Math.floor(totalTenths / 600);
+  const seconds = Math.floor((totalTenths % 600) / 10);
+  const tenths = totalTenths % 10;
+  return String(minutes).padStart(2, "0") + ":" + String(seconds).padStart(2, "0") + "." + tenths;
+}
+
+function readBestTimes() {
+  try {
+    const saved = JSON.parse(localStorage.getItem(BEST_TIME_KEY) || "{}");
+    return saved && typeof saved === "object" ? saved : {};
+  } catch (error) {
+    return {};
+  }
+}
+
+function bestKey() {
+  return String(size);
+}
+
+function getBestTime() {
+  const value = Number(readBestTimes()[bestKey()]);
+  return Number.isFinite(value) && value > 0 ? value : null;
+}
+
+function saveBestTime(ms) {
+  const times = readBestTimes();
+  const key = bestKey();
+  const previous = Number(times[key]);
+  const isBest = !Number.isFinite(previous) || previous <= 0 || ms < previous;
+
+  if (isBest) {
+    times[key] = Math.round(ms);
+    localStorage.setItem(BEST_TIME_KEY, JSON.stringify(times));
+  }
+
+  return isBest;
+}
+
+function updateBestDisplay() {
+  const best = getBestTime();
+  bestTimeDisplay.textContent = best ? formatTime(best) : "--:--.-";
+}
+
+function cancelTimer() {
+  timerRunning = false;
+  if (timerFrame !== null) {
+    cancelAnimationFrame(timerFrame);
+    timerFrame = null;
+  }
+}
+
+function updateTimer(now = performance.now()) {
+  if (!timerRunning) return;
+  elapsedMs = now - timerStart;
+  timerDisplay.textContent = formatTime(elapsedMs);
+  timerFrame = requestAnimationFrame(updateTimer);
+}
+
+function stopTimer() {
+  if (!timerRunning) return elapsedMs;
+  elapsedMs = performance.now() - timerStart;
+  cancelTimer();
+  timerDisplay.textContent = formatTime(elapsedMs);
+  return elapsedMs;
+}
+
+function setPlayLocked(locked) {
+  playLocked = locked;
+  board.classList.toggle("is-locked", locked);
+}
+
+function sleep(ms) {
+  return new Promise((resolve) => window.setTimeout(resolve, ms));
+}
+
+async function prepareTimeAttack() {
+  countdownToken += 1;
+  const token = countdownToken;
+  cancelTimer();
+  elapsedMs = 0;
+  timerDisplay.textContent = formatTime(0);
+  lastFinishTime = null;
+  lastWasBest = false;
+  updateBestDisplay();
+
+  if (!timeAttackEnabled) {
+    countdown.hidden = true;
+    setPlayLocked(false);
+    return;
+  }
+
+  setPlayLocked(true);
+  countdown.hidden = false;
+
+  for (const label of ["3", "2", "1"]) {
+    if (token !== countdownToken || !timeAttackEnabled) return;
+    countdownText.textContent = label;
+    countdownText.style.animation = "none";
+    void countdownText.offsetWidth;
+    countdownText.style.animation = "";
+    await sleep(650);
+  }
+
+  if (token !== countdownToken || !timeAttackEnabled) return;
+  countdownText.textContent = "GO!";
+  countdownText.style.animation = "none";
+  void countdownText.offsetWidth;
+  countdownText.style.animation = "";
+  await sleep(420);
+
+  if (token !== countdownToken || !timeAttackEnabled) return;
+  countdown.hidden = true;
+  setPlayLocked(false);
+  timerStart = performance.now();
+  timerRunning = true;
+  timerFrame = requestAnimationFrame(updateTimer);
+}
+
+function setTimeAttackEnabled(enabled) {
+  timeAttackEnabled = enabled;
+  timeAttackToggle.classList.toggle("is-active", enabled);
+  timeAttackToggle.setAttribute("aria-pressed", String(enabled));
+  timeReadout.hidden = !enabled;
+
+  if (!enabled) {
+    countdownToken += 1;
+    cancelTimer();
+    countdown.hidden = true;
+    setPlayLocked(false);
+    elapsedMs = 0;
+    timerDisplay.textContent = formatTime(0);
+    lastFinishTime = null;
+    lastWasBest = false;
+    showToast("タイムアタック OFF");
+  } else {
+    showToast("タイムアタック START");
+    startNewPuzzle(size);
+  }
 }
 
 function shuffled(list) {
@@ -225,6 +387,15 @@ function swapPieces(a, b) {
   render();
 
   if (isSolved()) {
+    if (timeAttackEnabled) {
+      lastFinishTime = stopTimer();
+      lastWasBest = saveBestTime(lastFinishTime);
+      updateBestDisplay();
+    } else {
+      lastFinishTime = null;
+      lastWasBest = false;
+    }
+    setPlayLocked(true);
     window.setTimeout(showCelebration, 180);
   }
 }
@@ -246,6 +417,8 @@ function handleTileTap(index) {
 }
 
 function startNewPuzzle(nextSize = size) {
+  countdownToken += 1;
+  cancelTimer();
   size = nextSize;
   moves = 0;
   selectedIndex = null;
@@ -257,10 +430,22 @@ function startNewPuzzle(nextSize = size) {
   });
 
   render();
+  updateBestDisplay();
+  prepareTimeAttack();
 }
 
 function showCelebration() {
   clearMoves.textContent = String(moves);
+
+  if (timeAttackEnabled && lastFinishTime !== null) {
+    clearTime.textContent = formatTime(lastFinishTime);
+    clearTimeRow.hidden = false;
+    clearBest.hidden = !lastWasBest;
+  } else {
+    clearTimeRow.hidden = true;
+    clearBest.hidden = true;
+  }
+
   celebration.classList.add("is-open");
   celebration.setAttribute("aria-hidden", "false");
   playAgain.focus();
@@ -614,6 +799,7 @@ async function confirmCrop() {
 }
 
 board.addEventListener("pointerdown", (event) => {
+  if (playLocked) return;
   const tile = event.target.closest(".tile");
   if (!tile || !board.contains(tile)) return;
   event.preventDefault();
@@ -639,6 +825,7 @@ board.addEventListener("pointercancel", (event) => {
 });
 
 board.addEventListener("keydown", (event) => {
+  if (playLocked) return;
   if (event.key !== "Enter" && event.key !== " ") return;
   const tile = event.target.closest(".tile");
   if (!tile) return;
@@ -652,6 +839,9 @@ difficultyButtons.forEach((button) => {
 
 newPuzzleButton.addEventListener("click", () => startNewPuzzle());
 playAgain.addEventListener("click", () => startNewPuzzle());
+timeAttackToggle.addEventListener("click", () => {
+  setTimeAttackEnabled(!timeAttackEnabled);
+});
 
 celebration.addEventListener("click", (event) => {
   if (event.target === celebration) hideCelebration();
@@ -761,8 +951,11 @@ cropModal.addEventListener("click", (event) => {
 
 window.addEventListener("resize", updateEmojiScale);
 window.addEventListener("beforeunload", () => {
+  cancelTimer();
+  countdownToken += 1;
   if (customArtUrl) URL.revokeObjectURL(customArtUrl);
   cleanupGalleryUrls();
 });
 
+updateBestDisplay();
 startNewPuzzle(3);
