@@ -1122,3 +1122,33 @@ button:active:not(:disabled),
     justify-items: center;
   }
 }
+
+
+/* v6: shallow-V movement cluster */
+@media (max-width: 759px) {
+  .move-controls {
+    height: 70px;
+    align-items: start;
+  }
+
+  #move-left,
+  #move-right {
+    align-self: start;
+  }
+
+  #drop {
+    position: relative;
+    top: 11px;
+    align-self: start;
+  }
+}
+
+@media (max-width: 380px), (max-height: 720px) and (max-width: 759px) {
+  .move-controls {
+    height: 61px;
+  }
+
+  #drop {
+    top: 8px;
+  }
+}
