@@ -39,6 +39,8 @@ const gameOver = document.querySelector("#game-over");
 const finalScore = document.querySelector("#final-score");
 const playAgainButton = document.querySelector("#play-again");
 const toast = document.querySelector("#toast");
+const setupOverlay = document.querySelector("#setup-overlay");
+const setupCancelButton = document.querySelector("#setup-cancel");
 
 let board = [];
 let currentPiece = null;
@@ -726,6 +728,17 @@ function updateDifficultyButtons() {
   });
 }
 
+function openSetup() {
+  updateDifficultyButtons();
+  setupOverlay.classList.add("is-open");
+  setupOverlay.setAttribute("aria-hidden", "false");
+}
+
+function closeSetup() {
+  setupOverlay.classList.remove("is-open");
+  setupOverlay.setAttribute("aria-hidden", "true");
+}
+
 function newGame(nextDifficulty) {
   if (nextDifficulty && DIFFICULTIES[nextDifficulty]) difficulty = nextDifficulty;
 
@@ -750,7 +763,10 @@ function newGame(nextDifficulty) {
 }
 
 difficultyButtons.forEach((button) => {
-  button.addEventListener("click", () => newGame(button.dataset.level));
+  button.addEventListener("click", () => {
+    closeSetup();
+    newGame(button.dataset.level);
+  });
 });
 
 moveLeftButton.addEventListener("click", () => {
@@ -768,7 +784,11 @@ moveRightButton.addEventListener("click", () => {
 boardLeftButton.addEventListener("click", () => rotateBoard(false));
 boardRightButton.addEventListener("click", () => rotateBoard(true));
 dropButton.addEventListener("click", dropCurrent);
-newGameButton.addEventListener("click", () => newGame());
+newGameButton.addEventListener("click", openSetup);
+setupCancelButton.addEventListener("click", closeSetup);
+setupOverlay.addEventListener("click", (event) => {
+  if (event.target === setupOverlay) closeSetup();
+});
 playAgainButton.addEventListener("click", () => newGame());
 
 boardWrap.addEventListener("pointerdown", (event) => {
