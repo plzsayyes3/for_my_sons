@@ -72,9 +72,9 @@
   {
     "id": "merge-block",
     "name": "Merge Block",
-    "url": "./merge-block/?v=1",
+    "url": "./merge-block/?v=2",
     "icon": "./assets/merge-block.svg",
-    "description": "4つの面から中心へブロックを送り、同じ色をつなげるパズル"
+    "description": "盤面を回して、2〜3個の色ブロックを中心へ積むマージパズル"
   },
   {
     "id": "paint",
