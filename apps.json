@@ -61,5 +61,12 @@
     "url": "https://arafo-aragai.com/learning/games/space-survival/index.html",
     "icon": "./assets/space-survival.svg",
     "description": "Space"
+  },
+  {
+    "id": "split-puzzle",
+    "name": "Split Puzzle",
+    "url": "./split-puzzle/?v=1",
+    "icon": "./assets/split-puzzle.svg",
+    "description": "えもじの半分どうしをつなげる絵あわせパズル"
   }
 ]
