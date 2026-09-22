@@ -1,47 +1,40 @@
 const SIZE = 9;
 const CENTER = (SIZE - 1) / 2;
-const BEST_KEY = "merge-block-best-v1";
+const CLEAR_COUNT = 4;
 
-const COLORS = [
-  "#f26b5b",
-  "#f3b64a",
-  "#62b982",
-  "#5f91df",
-  "#9a76d9"
-];
-
-const SHAPES = [
-  { name: "dot", cells: [[0, 0]], weight: 34 },
-  { name: "domino", cells: [[0, 0], [1, 0]], weight: 27 },
-  { name: "line3", cells: [[0, 0], [1, 0], [2, 0]], weight: 13 },
-  { name: "l3", cells: [[0, 0], [0, 1], [1, 1]], weight: 16 },
-  { name: "square", cells: [[0, 0], [1, 0], [0, 1], [1, 1]], weight: 10 }
-];
-
-const SIDE_LABELS = {
-  top: "上から",
-  right: "右から",
-  bottom: "下から",
-  left: "左から"
+const DIFFICULTIES = {
+  easy: { label: "やさしい", colors: 3 },
+  normal: { label: "ふつう", colors: 4 },
+  hard: { label: "むずかしい", colors: 5 },
+  extreme: { label: "超むずかしい", colors: 6 }
 };
 
+const PALETTE = [
+  "#ef6b5c",
+  "#f3b449",
+  "#58b47b",
+  "#5e8fdd",
+  "#9b74d7",
+  "#e576a7"
+];
+
 const boardElement = document.querySelector("#board");
+const boardFrame = document.querySelector("#board-frame");
 const boardWrap = document.querySelector("#board-wrap");
-const scoreElement = document.querySelector("#score");
-const bestScoreElement = document.querySelector("#best-score");
-const mergeReadout = document.querySelector("#merge-readout");
-const gameStatus = document.querySelector("#game-status");
+const incomingPiece = document.querySelector("#incoming-piece");
 const currentPreview = document.querySelector("#current-preview");
 const nextPreview = document.querySelector("#next-preview");
-const rotateLeftButton = document.querySelector("#rotate-left");
-const rotateRightButton = document.querySelector("#rotate-right");
-const directionButtons = [...document.querySelectorAll("[data-direction]")];
-const edgeZones = [...document.querySelectorAll("[data-side]")];
-const sideLabel = document.querySelector("#side-label");
-const laneInput = document.querySelector("#lane");
-const laneValue = document.querySelector("#lane-value");
-const placeButton = document.querySelector("#place");
+const scoreElement = document.querySelector("#score");
+const bestScoreElement = document.querySelector("#best-score");
+const chainElement = document.querySelector("#chain");
+const gameStatus = document.querySelector("#game-status");
+const dropButton = document.querySelector("#drop");
+const moveLeftButton = document.querySelector("#move-left");
+const moveRightButton = document.querySelector("#move-right");
+const boardLeftButton = document.querySelector("#board-left");
+const boardRightButton = document.querySelector("#board-right");
 const newGameButton = document.querySelector("#new-game");
+const difficultyButtons = [...document.querySelectorAll("[data-level]")];
 const gameOver = document.querySelector("#game-over");
 const finalScore = document.querySelector("#final-score");
 const playAgainButton = document.querySelector("#play-again");
@@ -50,233 +43,115 @@ const toast = document.querySelector("#toast");
 let board = [];
 let currentPiece = null;
 let nextPiece = null;
-let direction = "top";
-let lane = 0;
+let dropStart = 3;
 let landing = null;
 let score = 0;
-let bestScore = readBestScore();
-let mergeFlash = new Set();
-let mergeFlashTimer = null;
-let toastTimer = null;
-let edgePointerSide = null;
+let difficulty = "easy";
+let locked = false;
+let clearing = new Set();
+let toastTimer = 0;
+let pointerActive = false;
 
-function readBestScore() {
-  try {
-    const value = Number(localStorage.getItem(BEST_KEY));
-    return Number.isFinite(value) && value > 0 ? value : 0;
-  } catch (error) {
-    return 0;
-  }
-}
-
-function saveBestScore() {
-  if (score <= bestScore) return;
-  bestScore = score;
-  try {
-    localStorage.setItem(BEST_KEY, String(bestScore));
-  } catch (error) {
-    console.warn("Best score save failed", error);
-  }
-}
-
-function randomInt(max) {
-  return Math.floor(Math.random() * max);
-}
-
-function chooseShape() {
-  const total = SHAPES.reduce((sum, shape) => sum + shape.weight, 0);
-  let roll = Math.random() * total;
-
-  for (const shape of SHAPES) {
-    roll -= shape.weight;
-    if (roll <= 0) return shape;
-  }
-
-  return SHAPES[0];
-}
-
-function cloneCells(cells) {
-  return cells.map((cell) => [cell[0], cell[1]]);
-}
-
-function normalizeCells(cells) {
-  const minX = Math.min(...cells.map((cell) => cell[0]));
-  const minY = Math.min(...cells.map((cell) => cell[1]));
-  return cells
-    .map((cell) => [cell[0] - minX, cell[1] - minY])
-    .sort((a, b) => a[1] - b[1] || a[0] - b[0]);
-}
-
-function rotateCells(cells, clockwise) {
-  const rotated = cells.map((cell) => {
-    const x = cell[0];
-    const y = cell[1];
-    return clockwise ? [-y, x] : [y, -x];
-  });
-  return normalizeCells(rotated);
-}
-
-function cellsKey(cells) {
-  return normalizeCells(cells)
-    .map((cell) => cell[0] + "," + cell[1])
-    .join("|");
-}
-
-function makePiece() {
-  const shape = chooseShape();
-  let cells = cloneCells(shape.cells);
-  const turns = randomInt(4);
-  for (let i = 0; i < turns; i += 1) cells = rotateCells(cells, true);
-
-  return {
-    name: shape.name,
-    cells: normalizeCells(cells),
-    color: COLORS[randomInt(COLORS.length)]
-  };
-}
-
-function boundsFor(cells) {
-  const maxX = Math.max(...cells.map((cell) => cell[0]));
-  const maxY = Math.max(...cells.map((cell) => cell[1]));
-  return { width: maxX + 1, height: maxY + 1 };
+function wait(ms) {
+  return new Promise((resolve) => window.setTimeout(resolve, ms));
 }
 
 function indexFor(x, y) {
   return y * SIZE + x;
 }
 
+function coordsFor(index) {
+  return { x: index % SIZE, y: Math.floor(index / SIZE) };
+}
+
 function inside(x, y) {
   return x >= 0 && x < SIZE && y >= 0 && y < SIZE;
 }
 
-function boardColor(x, y) {
+function isCore(x, y) {
+  return x === CENTER && y === CENTER;
+}
+
+function cellAt(x, y, source) {
   if (!inside(x, y)) return null;
-  return board[indexFor(x, y)];
+  return (source || board)[indexFor(x, y)];
 }
 
-function cellsAt(cells, x, y) {
-  return cells.map((cell) => ({
-    x: x + cell[0],
-    y: y + cell[1]
-  }));
+function bestKey() {
+  return "merge-block-best-v2-" + difficulty;
 }
 
-function fits(cells, x, y) {
-  for (const cell of cells) {
-    const px = x + cell[0];
-    const py = y + cell[1];
-    if (!inside(px, py)) return false;
-    if (board[indexFor(px, py)] !== null) return false;
+function readBest() {
+  try {
+    const value = Number(localStorage.getItem(bestKey()));
+    return Number.isFinite(value) && value > 0 ? value : 0;
+  } catch (_) {
+    return 0;
   }
-  return true;
 }
 
-function laneMax(side, cells) {
-  const bounds = boundsFor(cells);
-  return side === "top" || side === "bottom"
-    ? SIZE - bounds.width
-    : SIZE - bounds.height;
+function saveBest() {
+  const currentBest = readBest();
+  if (score <= currentBest) return currentBest;
+  try {
+    localStorage.setItem(bestKey(), String(score));
+  } catch (_) {}
+  return score;
 }
 
-function startPosition(side, cells, laneIndex) {
-  const bounds = boundsFor(cells);
-  if (side === "top") return { x: laneIndex, y: 0 };
-  if (side === "bottom") return { x: laneIndex, y: SIZE - bounds.height };
-  if (side === "left") return { x: 0, y: laneIndex };
-  return { x: SIZE - bounds.width, y: laneIndex };
+function activeColors() {
+  return PALETTE.slice(0, DIFFICULTIES[difficulty].colors);
 }
 
-function stepFor(side) {
-  if (side === "top") return { x: 0, y: 1 };
-  if (side === "bottom") return { x: 0, y: -1 };
-  if (side === "left") return { x: 1, y: 0 };
-  return { x: -1, y: 0 };
+function randomColor() {
+  const colors = activeColors();
+  return colors[Math.floor(Math.random() * colors.length)];
 }
 
-function distanceToCenter(cells, x, y) {
-  const bounds = boundsFor(cells);
-  const cx = x + (bounds.width - 1) / 2;
-  const cy = y + (bounds.height - 1) / 2;
-  const dx = cx - CENTER;
-  const dy = cy - CENTER;
-  return dx * dx + dy * dy;
-}
-
-function findLanding(side, laneIndex, cells) {
-  const maxLane = laneMax(side, cells);
-  if (laneIndex < 0 || laneIndex > maxLane) return null;
-
-  let position = startPosition(side, cells, laneIndex);
-  if (!fits(cells, position.x, position.y)) return null;
-
-  const step = stepFor(side);
-  let currentDistance = distanceToCenter(cells, position.x, position.y);
-
-  while (true) {
-    const next = {
-      x: position.x + step.x,
-      y: position.y + step.y
-    };
-
-    if (!fits(cells, next.x, next.y)) break;
-
-    const nextDistance = distanceToCenter(cells, next.x, next.y);
-    if (nextDistance >= currentDistance - 0.0001) break;
-
-    position = next;
-    currentDistance = nextDistance;
-  }
-
+function makePiece() {
+  const length = Math.random() < 0.55 ? 2 : 3;
   return {
-    side,
-    lane: laneIndex,
-    x: position.x,
-    y: position.y,
-    cells: cellsAt(cells, position.x, position.y)
+    colors: Array.from({ length }, () => randomColor())
   };
 }
 
-function sideHasMove(side, cells) {
-  const maxLane = laneMax(side, cells);
-  for (let candidate = 0; candidate <= maxLane; candidate += 1) {
-    if (findLanding(side, candidate, cells)) return true;
-  }
-  return false;
+function renderPiecePreview(element, piece) {
+  element.replaceChildren();
+  if (!piece) return;
+
+  piece.colors.forEach((color) => {
+    const block = document.createElement("div");
+    block.className = "preview-block";
+    block.style.setProperty("--block-color", color);
+    element.appendChild(block);
+  });
 }
 
-function uniqueRotations(cells) {
-  const result = [];
-  const seen = new Set();
-  let rotated = normalizeCells(cells);
+function renderIncoming() {
+  incomingPiece.replaceChildren();
+  if (!currentPiece) return;
 
-  for (let i = 0; i < 4; i += 1) {
-    const key = cellsKey(rotated);
-    if (!seen.has(key)) {
-      seen.add(key);
-      result.push(rotated);
-    }
-    rotated = rotateCells(rotated, true);
-  }
+  incomingPiece.style.left = (dropStart / SIZE * 100) + "%";
+  incomingPiece.style.width = (currentPiece.colors.length / SIZE * 100) + "%";
+  incomingPiece.style.gridTemplateColumns = "repeat(" + currentPiece.colors.length + ", 1fr)";
+  incomingPiece.classList.toggle("is-invalid", !landing);
 
-  return result;
+  currentPiece.colors.forEach((color) => {
+    const block = document.createElement("div");
+    block.className = "incoming-block";
+    block.style.setProperty("--block-color", color);
+    incomingPiece.appendChild(block);
+  });
 }
 
-function canPlacePieceAnywhere(piece) {
-  for (const rotation of uniqueRotations(piece.cells)) {
-    for (const side of ["top", "right", "bottom", "left"]) {
-      if (sideHasMove(side, rotation)) return true;
-    }
-  }
-  return false;
-}
-
-function joinedClass(x, y, color, source) {
+function joinedClasses(x, y, color, previewMap) {
   const classes = [];
   const colorAt = (px, py) => {
     if (!inside(px, py)) return null;
     const key = px + "," + py;
-    if (source && source.has(key)) return source.get(key);
-    return boardColor(px, py);
+    if (previewMap && previewMap.has(key)) return previewMap.get(key);
+    const cell = cellAt(px, py);
+    return cell ? cell.color : null;
   };
 
   if (colorAt(x, y - 1) === color) classes.push("join-top");
@@ -288,273 +163,471 @@ function joinedClass(x, y, color, source) {
 
 function renderBoard() {
   const previewMap = new Map();
-  if (landing && currentPiece) {
-    for (const cell of landing.cells) {
-      previewMap.set(cell.x + "," + cell.y, currentPiece.color);
-    }
+  const pathSet = new Set();
+
+  if (landing && currentPiece && !locked) {
+    landing.cells.forEach((cell, i) => {
+      previewMap.set(cell.x + "," + cell.y, currentPiece.colors[i]);
+      for (let y = 0; y <= cell.y; y += 1) {
+        pathSet.add(cell.x + "," + y);
+      }
+    });
   }
 
   boardElement.replaceChildren();
 
   for (let y = 0; y < SIZE; y += 1) {
     for (let x = 0; x < SIZE; x += 1) {
+      const index = indexFor(x, y);
       const cell = document.createElement("div");
       cell.className = "board-cell";
       cell.setAttribute("role", "gridcell");
-      cell.setAttribute("aria-rowindex", String(y + 1));
-      cell.setAttribute("aria-colindex", String(x + 1));
 
-      const color = boardColor(x, y);
-      if (color) {
+      if (pathSet.has(x + "," + y)) cell.classList.add("is-path");
+
+      if (isCore(x, y)) {
+        cell.classList.add("is-core");
+        boardElement.appendChild(cell);
+        continue;
+      }
+
+      const data = board[index];
+      if (data) {
         const face = document.createElement("div");
         face.className = "block-face";
-        face.style.setProperty("--block-color", color);
-
-        for (const join of joinedClass(x, y, color, null)) {
-          face.classList.add(join);
-        }
-
-        if (mergeFlash.has(indexFor(x, y))) {
-          face.classList.add("is-merged");
-        }
-
+        face.style.setProperty("--block-color", data.color);
+        joinedClasses(x, y, data.color, null).forEach((name) => face.classList.add(name));
+        if (clearing.has(index)) face.classList.add("is-clearing");
         cell.appendChild(face);
       }
 
-      const previewColor = previewMap.get(x + "," + y);
-      if (previewColor) {
+      const ghostColor = previewMap.get(x + "," + y);
+      if (ghostColor) {
         const ghost = document.createElement("div");
         ghost.className = "ghost-face";
-        ghost.style.setProperty("--block-color", previewColor);
-
-        for (const join of joinedClass(x, y, previewColor, previewMap)) {
-          ghost.classList.add(join);
-        }
-
+        ghost.style.setProperty("--block-color", ghostColor);
+        joinedClasses(x, y, ghostColor, previewMap).forEach((name) => ghost.classList.add(name));
         cell.appendChild(ghost);
       }
 
       boardElement.appendChild(cell);
     }
   }
+
+  renderIncoming();
 }
 
-function renderPiecePreview(element, piece) {
-  element.replaceChildren();
-  if (!piece) return;
+function canOccupyPiece(startX, y, piece, source) {
+  for (let i = 0; i < piece.colors.length; i += 1) {
+    const x = startX + i;
+    if (!inside(x, y) || isCore(x, y)) return false;
+    if (cellAt(x, y, source)) return false;
+  }
+  return true;
+}
 
-  const bounds = boundsFor(piece.cells);
-  const size = Math.max(3, Math.min(4, Math.max(bounds.width, bounds.height) + 1));
-  element.style.setProperty("--preview-size", String(size));
+function hasSupportBelow(startX, y, piece, source) {
+  const nextY = y + 1;
+  for (let i = 0; i < piece.colors.length; i += 1) {
+    const x = startX + i;
+    if (isCore(x, nextY)) return true;
+    if (inside(x, nextY) && cellAt(x, nextY, source)) return true;
+  }
+  return false;
+}
 
-  const offsetX = Math.floor((size - bounds.width) / 2);
-  const offsetY = Math.floor((size - bounds.height) / 2);
-  const filled = new Set(
-    piece.cells.map((cell) => (cell[0] + offsetX) + "," + (cell[1] + offsetY))
-  );
+function findLanding(startX, piece, source) {
+  if (startX < 0 || startX + piece.colors.length > SIZE) return null;
+  if (!canOccupyPiece(startX, 0, piece, source)) return null;
 
-  for (let y = 0; y < size; y += 1) {
-    for (let x = 0; x < size; x += 1) {
-      const cell = document.createElement("div");
-      cell.className = "preview-cell";
-      if (filled.has(x + "," + y)) {
-        cell.classList.add("is-block");
-        cell.style.setProperty("--block-color", piece.color);
-      }
-      element.appendChild(cell);
+  for (let y = 0; y < CENTER; y += 1) {
+    if (!canOccupyPiece(startX, y, piece, source)) return null;
+
+    if (hasSupportBelow(startX, y, piece, source)) {
+      return {
+        x: startX,
+        y,
+        cells: piece.colors.map((color, i) => ({ x: startX + i, y, color }))
+      };
     }
+
+    if (y + 1 >= CENTER) break;
+    if (!canOccupyPiece(startX, y + 1, piece, source)) return null;
   }
+
+  return null;
 }
 
-function clampLane() {
-  const maxLane = laneMax(direction, currentPiece.cells);
-  lane = Math.max(0, Math.min(maxLane, lane));
-  laneInput.min = "1";
-  laneInput.max = String(maxLane + 1);
-  laneInput.value = String(lane + 1);
-  laneValue.textContent = String(lane + 1);
-}
+function updateLanding() {
+  if (!currentPiece) return;
+  const maxStart = SIZE - currentPiece.colors.length;
+  dropStart = Math.max(0, Math.min(maxStart, dropStart));
+  landing = findLanding(dropStart, currentPiece, board);
+  dropButton.disabled = locked || !landing;
+  moveLeftButton.disabled = locked || dropStart <= 0;
+  moveRightButton.disabled = locked || dropStart >= maxStart;
+  boardLeftButton.disabled = locked;
+  boardRightButton.disabled = locked;
 
-function findClosestValidLane(side, requestedLane) {
-  const maxLane = laneMax(side, currentPiece.cells);
-  const candidates = [];
-
-  for (let offset = 0; offset <= maxLane; offset += 1) {
-    const left = requestedLane - offset;
-    const right = requestedLane + offset;
-    if (left >= 0) candidates.push(left);
-    if (offset > 0 && right <= maxLane) candidates.push(right);
-  }
-
-  for (const candidate of candidates) {
-    if (findLanding(side, candidate, currentPiece.cells)) return candidate;
-  }
-
-  return Math.max(0, Math.min(maxLane, requestedLane));
-}
-
-function updatePreview() {
-  clampLane();
-  landing = findLanding(direction, lane, currentPiece.cells);
-  placeButton.disabled = !landing;
-
-  const hasMoves = {};
-  for (const side of ["top", "right", "bottom", "left"]) {
-    hasMoves[side] = sideHasMove(side, currentPiece.cells);
-  }
-
-  directionButtons.forEach((button) => {
-    const side = button.dataset.direction;
-    button.classList.toggle("is-active", side === direction);
-    button.disabled = !hasMoves[side];
-  });
-
-  edgeZones.forEach((zone) => {
-    const side = zone.dataset.side;
-    zone.classList.toggle("is-active", side === direction);
-    zone.disabled = !hasMoves[side];
-  });
-
-  sideLabel.textContent = SIDE_LABELS[direction];
   gameStatus.textContent = landing
-    ? SIDE_LABELS[direction] + "、" + (lane + 1) + "ばんから中心へ"
-    : SIDE_LABELS[direction] + "は、この位置から入れられない";
+    ? "ここなら土台に当たる。DROPで落とす。"
+    : "この場所は土台がない。左右へ動かすか、盤面を回そう。";
 
   renderBoard();
 }
 
-function setDirection(side, requestedLane) {
-  if (!currentPiece) return;
-  direction = side;
-
-  const maxLane = laneMax(direction, currentPiece.cells);
-  const centerLane = Math.floor(maxLane / 2);
-  lane = Number.isFinite(requestedLane) ? requestedLane : centerLane;
-  lane = findClosestValidLane(direction, lane);
-  updatePreview();
+function setDropFromPointer(event) {
+  if (locked || !currentPiece) return;
+  const rect = boardElement.getBoundingClientRect();
+  const ratio = Math.max(0, Math.min(0.9999, (event.clientX - rect.left) / rect.width));
+  const cellX = Math.floor(ratio * SIZE);
+  const centered = Math.round(cellX - (currentPiece.colors.length - 1) / 2);
+  dropStart = Math.max(0, Math.min(SIZE - currentPiece.colors.length, centered));
+  updateLanding();
 }
 
-function rotateCurrent(clockwise) {
-  if (!currentPiece) return;
-  currentPiece.cells = rotateCells(currentPiece.cells, clockwise);
-  lane = Math.floor(laneMax(direction, currentPiece.cells) / 2);
-  lane = findClosestValidLane(direction, lane);
-  renderPiecePreview(currentPreview, currentPiece);
-  updatePreview();
+function rotateBoardData(source, clockwise) {
+  const next = Array(SIZE * SIZE).fill(null);
+
+  for (let y = 0; y < SIZE; y += 1) {
+    for (let x = 0; x < SIZE; x += 1) {
+      const value = source[indexFor(x, y)];
+      if (!value) continue;
+
+      const nx = clockwise ? SIZE - 1 - y : y;
+      const ny = clockwise ? x : SIZE - 1 - x;
+      next[indexFor(nx, ny)] = value;
+    }
+  }
+
+  return next;
+}
+
+async function rotateBoard(clockwise) {
+  if (locked) return;
+  locked = true;
+  landing = null;
+  renderBoard();
+
+  const angle = clockwise ? 90 : -90;
+  try {
+    const animation = boardFrame.animate(
+      [{ transform: "rotate(0deg)" }, { transform: "rotate(" + angle + "deg)" }],
+      { duration: 190, easing: "cubic-bezier(.2,.7,.2,1)" }
+    );
+    await animation.finished;
+  } catch (_) {}
+
+  board = rotateBoardData(board, clockwise);
+  boardFrame.style.transform = "rotate(0deg)";
+  locked = false;
+  updateLanding();
 }
 
 function neighbors(index) {
-  const x = index % SIZE;
-  const y = Math.floor(index / SIZE);
+  const { x, y } = coordsFor(index);
   const result = [];
-
   if (y > 0) result.push(indexFor(x, y - 1));
   if (x < SIZE - 1) result.push(indexFor(x + 1, y));
   if (y < SIZE - 1) result.push(indexFor(x, y + 1));
   if (x > 0) result.push(indexFor(x - 1, y));
-
   return result;
 }
 
-function groupFrom(startIndex) {
-  const color = board[startIndex];
-  if (!color) return [];
+function colorGroups() {
+  const seen = new Set();
+  const groups = [];
 
-  const queue = [startIndex];
-  const seen = new Set([startIndex]);
+  for (let index = 0; index < board.length; index += 1) {
+    if (seen.has(index) || !board[index]) continue;
+
+    const color = board[index].color;
+    const queue = [index];
+    const group = [];
+    seen.add(index);
+
+    while (queue.length) {
+      const current = queue.shift();
+      group.push(current);
+
+      neighbors(current).forEach((next) => {
+        if (seen.has(next) || !board[next] || board[next].color !== color) return;
+        seen.add(next);
+        queue.push(next);
+      });
+    }
+
+    groups.push(group);
+  }
+
+  return groups;
+}
+
+function anchoredSet() {
+  const anchored = new Set();
+  const queue = [];
+
+  const starts = [
+    [CENTER, CENTER - 1],
+    [CENTER + 1, CENTER],
+    [CENTER, CENTER + 1],
+    [CENTER - 1, CENTER]
+  ];
+
+  starts.forEach(([x, y]) => {
+    if (!inside(x, y)) return;
+    const index = indexFor(x, y);
+    if (board[index] && !anchored.has(index)) {
+      anchored.add(index);
+      queue.push(index);
+    }
+  });
 
   while (queue.length) {
     const current = queue.shift();
-    for (const next of neighbors(current)) {
-      if (seen.has(next)) continue;
-      if (board[next] !== color) continue;
-      seen.add(next);
+    neighbors(current).forEach((next) => {
+      if (!board[next] || anchored.has(next)) return;
+      anchored.add(next);
       queue.push(next);
+    });
+  }
+
+  return anchored;
+}
+
+function detachedComponents() {
+  const anchored = anchoredSet();
+  const seen = new Set(anchored);
+  const components = [];
+
+  for (let index = 0; index < board.length; index += 1) {
+    if (!board[index] || seen.has(index)) continue;
+
+    const queue = [index];
+    const component = [];
+    seen.add(index);
+
+    while (queue.length) {
+      const current = queue.shift();
+      component.push(current);
+      neighbors(current).forEach((next) => {
+        if (!board[next] || seen.has(next)) return;
+        seen.add(next);
+        queue.push(next);
+      });
     }
+
+    components.push(component);
   }
 
-  return [...seen];
+  return components;
 }
 
-function scorePlacement(placedIndices) {
-  const groupKeys = new Set();
-  const flashing = new Set();
-  let mergeBonus = 0;
-  let largest = 1;
+function componentBounds(component) {
+  const coords = component.map(coordsFor);
+  return {
+    minX: Math.min(...coords.map((cell) => cell.x)),
+    maxX: Math.max(...coords.map((cell) => cell.x)),
+    minY: Math.min(...coords.map((cell) => cell.y)),
+    maxY: Math.max(...coords.map((cell) => cell.y)),
+    avgX: coords.reduce((sum, cell) => sum + cell.x, 0) / coords.length
+  };
+}
 
-  for (const index of placedIndices) {
-    const group = groupFrom(index);
-    if (!group.length) continue;
+function canShift(component, dx, dy) {
+  const own = new Set(component);
+  for (const index of component) {
+    const { x, y } = coordsFor(index);
+    const nx = x + dx;
+    const ny = y + dy;
+    if (!inside(nx, ny) || isCore(nx, ny)) return false;
+    const nextIndex = indexFor(nx, ny);
+    if (board[nextIndex] && !own.has(nextIndex)) return false;
+  }
+  return true;
+}
 
-    const key = String(Math.min(...group));
-    if (groupKeys.has(key)) continue;
-    groupKeys.add(key);
+function shiftComponent(component, dx, dy) {
+  const moving = component.map((index) => {
+    const { x, y } = coordsFor(index);
+    return {
+      value: board[index],
+      from: index,
+      to: indexFor(x + dx, y + dy)
+    };
+  });
 
-    largest = Math.max(largest, group.length);
-    if (group.length > 1) {
-      mergeBonus += group.length * group.length * 3;
-      group.forEach((member) => flashing.add(member));
+  moving.forEach((item) => {
+    board[item.from] = null;
+  });
+  moving.forEach((item) => {
+    board[item.to] = item.value;
+  });
+}
+
+async function settleDetached() {
+  let safety = 120;
+
+  while (safety-- > 0) {
+    const components = detachedComponents()
+      .sort((a, b) => componentBounds(b).maxY - componentBounds(a).maxY);
+
+    let moved = false;
+
+    for (const component of components) {
+      const bounds = componentBounds(component);
+      if (bounds.maxY >= CENTER) continue;
+      if (!canShift(component, 0, 1)) continue;
+      shiftComponent(component, 0, 1);
+      moved = true;
     }
+
+    if (!moved) break;
+    renderBoard();
+    await wait(62);
   }
 
-  score += placedIndices.length * 5 + mergeBonus;
-  saveBestScore();
+  safety = 120;
 
-  mergeReadout.textContent = largest > 1 ? "×" + largest : "—";
-  scoreElement.textContent = String(score);
-  bestScoreElement.textContent = String(bestScore);
+  while (safety-- > 0) {
+    const components = detachedComponents();
+    let moved = false;
 
-  if (flashing.size) {
-    mergeFlash = flashing;
-    window.clearTimeout(mergeFlashTimer);
-    mergeFlashTimer = window.setTimeout(() => {
-      mergeFlash = new Set();
-      renderBoard();
-    }, 320);
+    for (const component of components) {
+      const bounds = componentBounds(component);
+      const dx = bounds.avgX < CENTER - 0.01 ? 1 : bounds.avgX > CENTER + 0.01 ? -1 : 0;
+      if (!dx || !canShift(component, dx, 0)) continue;
+      shiftComponent(component, dx, 0);
+      moved = true;
+    }
+
+    if (!moved) break;
+    renderBoard();
+    await wait(62);
   }
 }
 
-function showToast(message) {
-  toast.textContent = message;
-  toast.classList.add("is-open");
-  window.clearTimeout(toastTimer);
-  toastTimer = window.setTimeout(() => toast.classList.remove("is-open"), 1500);
+async function resolveBoard() {
+  let chain = 0;
+
+  while (true) {
+    const groups = colorGroups().filter((group) => group.length >= CLEAR_COUNT);
+    if (!groups.length) break;
+
+    chain += 1;
+    chainElement.textContent = "×" + chain;
+
+    clearing = new Set(groups.flat());
+    renderBoard();
+    await wait(235);
+
+    let removed = 0;
+    clearing.forEach((index) => {
+      if (board[index]) {
+        board[index] = null;
+        removed += 1;
+      }
+    });
+    clearing = new Set();
+
+    score += removed * 25 * chain;
+    scoreElement.textContent = String(score);
+    bestScoreElement.textContent = String(saveBest());
+    renderBoard();
+
+    await wait(80);
+    await settleDetached();
+  }
+
+  if (!chain) chainElement.textContent = "—";
 }
 
-function placeCurrent() {
-  if (!landing || !currentPiece) {
-    showToast("ここからは入れられない");
+function boardHasMoveForPiece(source, piece) {
+  for (let x = 0; x <= SIZE - piece.colors.length; x += 1) {
+    if (findLanding(x, piece, source)) return true;
+  }
+  return false;
+}
+
+function hasAnyMove(piece) {
+  let simulated = board.slice();
+
+  for (let turn = 0; turn < 4; turn += 1) {
+    if (boardHasMoveForPiece(simulated, piece)) return true;
+    simulated = rotateBoardData(simulated, true);
+  }
+
+  return false;
+}
+
+async function animateDrop(target) {
+  const boardRect = boardElement.getBoundingClientRect();
+  const incomingRect = incomingPiece.getBoundingClientRect();
+  const cellSize = boardRect.height / SIZE;
+  const targetTop = boardRect.top + target.y * cellSize + 1;
+  const delta = targetTop - incomingRect.top;
+
+  try {
+    const animation = incomingPiece.animate(
+      [
+        { transform: "translateY(0)" },
+        { transform: "translateY(" + delta + "px)" }
+      ],
+      { duration: Math.max(120, 65 + target.y * 30), easing: "cubic-bezier(.18,.72,.22,1)" }
+    );
+    await animation.finished;
+  } catch (_) {}
+}
+
+async function dropCurrent() {
+  if (locked || !landing || !currentPiece) {
+    if (!locked) showToast("ここには土台がない");
     return;
   }
 
-  const placedIndices = [];
-  for (const cell of landing.cells) {
-    const index = indexFor(cell.x, cell.y);
-    board[index] = currentPiece.color;
-    placedIndices.push(index);
-  }
+  locked = true;
+  const target = landing;
+  dropButton.disabled = true;
+  moveLeftButton.disabled = true;
+  moveRightButton.disabled = true;
+  boardLeftButton.disabled = true;
+  boardRightButton.disabled = true;
 
-  scorePlacement(placedIndices);
+  await animateDrop(target);
+
+  target.cells.forEach((cell) => {
+    board[indexFor(cell.x, cell.y)] = {
+      color: cell.color
+    };
+  });
+
+  score += currentPiece.colors.length * 5;
+  scoreElement.textContent = String(score);
+  bestScoreElement.textContent = String(saveBest());
+  landing = null;
+  renderBoard();
+
+  await resolveBoard();
 
   currentPiece = nextPiece;
   nextPiece = makePiece();
   renderPiecePreview(currentPreview, currentPiece);
   renderPiecePreview(nextPreview, nextPiece);
 
-  if (!canPlacePieceAnywhere(currentPiece)) {
-    landing = null;
+  dropStart = Math.floor((SIZE - currentPiece.colors.length) / 2);
+
+  if (!hasAnyMove(currentPiece)) {
+    locked = false;
     renderBoard();
     finishGame();
     return;
   }
 
-  const maxLane = laneMax(direction, currentPiece.cells);
-  lane = findClosestValidLane(direction, Math.floor(maxLane / 2));
-  updatePreview();
+  locked = false;
+  updateLanding();
 }
 
 function finishGame() {
-  saveBestScore();
   finalScore.textContent = String(score);
   gameOver.classList.add("is-open");
   gameOver.setAttribute("aria-hidden", "false");
@@ -566,97 +639,84 @@ function hideGameOver() {
   gameOver.setAttribute("aria-hidden", "true");
 }
 
-function newGame() {
+function showToast(message) {
+  toast.textContent = message;
+  toast.classList.add("is-open");
+  window.clearTimeout(toastTimer);
+  toastTimer = window.setTimeout(() => toast.classList.remove("is-open"), 1350);
+}
+
+function updateDifficultyButtons() {
+  difficultyButtons.forEach((button) => {
+    button.classList.toggle("is-active", button.dataset.level === difficulty);
+  });
+}
+
+function newGame(nextDifficulty) {
+  if (nextDifficulty && DIFFICULTIES[nextDifficulty]) difficulty = nextDifficulty;
+
   board = Array(SIZE * SIZE).fill(null);
   score = 0;
-  mergeFlash = new Set();
-  mergeReadout.textContent = "—";
+  locked = false;
+  clearing = new Set();
+  chainElement.textContent = "—";
   scoreElement.textContent = "0";
-  bestScoreElement.textContent = String(bestScore);
+  bestScoreElement.textContent = String(readBest());
 
   currentPiece = makePiece();
   nextPiece = makePiece();
-  direction = "top";
+  dropStart = Math.floor((SIZE - currentPiece.colors.length) / 2);
 
   renderPiecePreview(currentPreview, currentPiece);
   renderPiecePreview(nextPreview, nextPiece);
+  updateDifficultyButtons();
   hideGameOver();
-
-  const maxLane = laneMax(direction, currentPiece.cells);
-  lane = Math.floor(maxLane / 2);
-  lane = findClosestValidLane(direction, lane);
-  updatePreview();
+  updateLanding();
 }
 
-function laneFromPointer(zone, event) {
-  if (!currentPiece) return 0;
+difficultyButtons.forEach((button) => {
+  button.addEventListener("click", () => newGame(button.dataset.level));
+});
 
-  const side = zone.dataset.side;
-  const rect = zone.getBoundingClientRect();
-  const maxLane = laneMax(side, currentPiece.cells);
+moveLeftButton.addEventListener("click", () => {
+  if (locked) return;
+  dropStart -= 1;
+  updateLanding();
+});
 
-  let ratio;
-  if (side === "top" || side === "bottom") {
-    ratio = (event.clientX - rect.left) / rect.width;
-  } else {
-    ratio = (event.clientY - rect.top) / rect.height;
-  }
+moveRightButton.addEventListener("click", () => {
+  if (locked) return;
+  dropStart += 1;
+  updateLanding();
+});
 
-  ratio = Math.max(0, Math.min(1, ratio));
-  return Math.round(ratio * maxLane);
+boardLeftButton.addEventListener("click", () => rotateBoard(false));
+boardRightButton.addEventListener("click", () => rotateBoard(true));
+dropButton.addEventListener("click", dropCurrent);
+newGameButton.addEventListener("click", () => newGame());
+playAgainButton.addEventListener("click", () => newGame());
+
+boardWrap.addEventListener("pointerdown", (event) => {
+  if (locked) return;
+  pointerActive = true;
+  setDropFromPointer(event);
+  boardWrap.setPointerCapture?.(event.pointerId);
+});
+
+boardWrap.addEventListener("pointermove", (event) => {
+  if (!pointerActive || locked) return;
+  setDropFromPointer(event);
+});
+
+function endPointer(event) {
+  pointerActive = false;
+  try {
+    if (boardWrap.hasPointerCapture?.(event.pointerId)) boardWrap.releasePointerCapture(event.pointerId);
+  } catch (_) {}
 }
 
-directionButtons.forEach((button) => {
-  button.addEventListener("click", () => {
-    setDirection(button.dataset.direction);
-  });
-});
-
-edgeZones.forEach((zone) => {
-  zone.addEventListener("pointerdown", (event) => {
-    if (zone.disabled) return;
-    event.preventDefault();
-    edgePointerSide = zone.dataset.side;
-    const requested = laneFromPointer(zone, event);
-    setDirection(edgePointerSide, requested);
-    zone.setPointerCapture?.(event.pointerId);
-  });
-
-  zone.addEventListener("pointermove", (event) => {
-    if (edgePointerSide !== zone.dataset.side) return;
-    if (!(event.buttons & 1) && event.pointerType === "mouse") return;
-    event.preventDefault();
-    const requested = laneFromPointer(zone, event);
-    lane = findClosestValidLane(direction, requested);
-    updatePreview();
-  });
-
-  const finish = (event) => {
-    if (edgePointerSide !== zone.dataset.side) return;
-    edgePointerSide = null;
-    try {
-      if (zone.hasPointerCapture?.(event.pointerId)) zone.releasePointerCapture(event.pointerId);
-    } catch (_) {}
-  };
-
-  zone.addEventListener("pointerup", finish);
-  zone.addEventListener("pointercancel", finish);
-});
-
-laneInput.addEventListener("input", () => {
-  lane = Number(laneInput.value) - 1;
-  updatePreview();
-});
-
-rotateLeftButton.addEventListener("click", () => rotateCurrent(false));
-rotateRightButton.addEventListener("click", () => rotateCurrent(true));
-placeButton.addEventListener("click", placeCurrent);
-newGameButton.addEventListener("click", newGame);
-playAgainButton.addEventListener("click", newGame);
-
-gameOver.addEventListener("click", (event) => {
-  if (event.target === gameOver) newGame();
-});
+boardWrap.addEventListener("pointerup", endPointer);
+boardWrap.addEventListener("pointercancel", endPointer);
 
 window.addEventListener("keydown", (event) => {
   if (gameOver.classList.contains("is-open")) {
@@ -667,29 +727,26 @@ window.addEventListener("keydown", (event) => {
     return;
   }
 
-  if (event.key === "ArrowUp") {
+  if (locked) return;
+
+  if (event.key === "ArrowLeft") {
     event.preventDefault();
-    setDirection("top");
+    dropStart -= 1;
+    updateLanding();
   } else if (event.key === "ArrowRight") {
     event.preventDefault();
-    setDirection("right");
-  } else if (event.key === "ArrowDown") {
-    event.preventDefault();
-    setDirection("bottom");
-  } else if (event.key === "ArrowLeft") {
-    event.preventDefault();
-    setDirection("left");
+    dropStart += 1;
+    updateLanding();
   } else if (event.key === "q") {
     event.preventDefault();
-    rotateCurrent(false);
+    rotateBoard(false);
   } else if (event.key === "e") {
     event.preventDefault();
-    rotateCurrent(true);
-  } else if (event.key === "Enter" || event.key === " ") {
+    rotateBoard(true);
+  } else if (event.key === "ArrowDown" || event.key === "Enter" || event.key === " ") {
     event.preventDefault();
-    placeCurrent();
+    dropCurrent();
   }
 });
 
-bestScoreElement.textContent = String(bestScore);
-newGame();
+newGame("easy");
