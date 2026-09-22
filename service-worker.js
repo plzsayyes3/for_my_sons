@@ -1,4 +1,4 @@
-const CACHE_NAME = 'for-my-sons-v21';
+const CACHE_NAME = 'for-my-sons-v22';
 const SHELL = [
   './',
   './index.html',
@@ -12,10 +12,10 @@ const SHELL = [
   './split-puzzle/index.html',
   './split-puzzle/styles.css?v=6',
   './split-puzzle/app.js?v=6',
-  './merge-block/?v=2',
+  './merge-block/?v=3',
   './merge-block/index.html',
-  './merge-block/styles.css?v=2',
-  './merge-block/app.js?v=2',
+  './merge-block/styles.css?v=3',
+  './merge-block/app.js?v=3',
   './paint/?v=3',
   './paint/index.html',
   './paint/styles.css?v=3',
