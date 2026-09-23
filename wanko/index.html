@@ -1,0 +1,122 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<meta name="theme-color" content="#f6efe3">
+<title>わんこ</title>
+<style>
+:root{--ink:#2b2722;--line:#342f29;--paper:#f7f0e4;--gold:#ffe58f;--sky:#c9e7ef;--grass:#c9d99a}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;min-height:100%;background:linear-gradient(#fff8ec,#f4ead9);color:var(--ink);font-family:-apple-system,BlinkMacSystemFont,"Hiragino Sans","Yu Gothic",system-ui,sans-serif;-webkit-text-size-adjust:100%;user-select:none}
+body{min-height:100svh}
+button,a{font:inherit;color:inherit}
+header{display:flex;align-items:center;gap:10px;padding:calc(env(safe-area-inset-top) + 10px) 12px 10px}
+.home{width:42px;height:42px;display:grid;place-items:center;border:2px solid var(--line);border-radius:13px;background:#fff;text-decoration:none;box-shadow:0 3px 0 var(--line);font-size:22px;font-weight:1000}
+header h1{margin:0;font-size:22px}
+main{width:min(100%,700px);margin:auto;padding:2px 14px calc(env(safe-area-inset-bottom) + 28px)}
+.hero{position:relative;overflow:hidden;min-height:250px;border:3px solid var(--line);border-radius:28px;background:linear-gradient(var(--sky) 0 62%,#dde8b5 62% 70%,var(--grass) 70%);box-shadow:0 7px 0 var(--line);padding:18px}
+.cloud{position:absolute;font-size:52px;opacity:.6;filter:grayscale(1) brightness(2)}.c1{left:18px;top:22px}.c2{right:26px;top:52px;transform:scale(.75)}
+.title{position:relative;z-index:2;text-align:center}.title .small{font-size:11px;font-weight:1000;letter-spacing:.2em}.title h2{margin:3px 0 0;font-size:34px;letter-spacing:.04em}
+.wankoMark{position:absolute;left:50%;bottom:20px;transform:translateX(-50%);font-size:96px;filter:drop-shadow(0 5px 0 rgba(0,0,0,.15))}
+.profileCard{margin-top:16px;border:2.5px solid var(--line);border-radius:20px;background:#fffaf2;box-shadow:0 4px 0 var(--line);padding:13px 14px;display:flex;align-items:center;gap:12px}
+.avatar{width:50px;height:50px;display:grid;place-items:center;border:2px solid var(--line);border-radius:16px;background:#f5d86d;font-size:26px}
+.profileText{min-width:0;flex:1}.profileLabel{font-size:10px;font-weight:1000;color:#827668;letter-spacing:.1em}.profileName{font-size:20px;font-weight:1000;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.progressText{font-size:11px;font-weight:800;color:#766b5f;margin-top:2px}
+.profileButton{border:2px solid var(--line);border-radius:12px;background:#fff;padding:8px 10px;font-size:11px;font-weight:1000;box-shadow:0 3px 0 var(--line)}
+.actions{display:grid;gap:12px;margin-top:16px}
+.action{display:grid;grid-template-columns:58px 1fr auto;align-items:center;gap:12px;border:3px solid var(--line);border-radius:22px;padding:13px 14px;text-decoration:none;box-shadow:0 5px 0 var(--line);background:#fff;min-height:90px}
+.action:active{transform:translateY(3px);box-shadow:0 2px 0 var(--line)}
+.action.start{background:var(--gold)}
+.action.gacha{background:#fff7dd}
+.action .icon{font-size:40px;text-align:center}.action .name{font-size:20px;font-weight:1000}.action .desc{font-size:11px;font-weight:800;color:#6e645a;margin-top:3px}.arrow{font-size:25px;font-weight:1000}
+.utility{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:14px}
+.utility a{display:block;text-align:center;text-decoration:none;border:2px solid var(--line);border-radius:15px;background:#fff;padding:11px;font-size:13px;font-weight:1000;box-shadow:0 3px 0 var(--line)}
+#settingsHost{position:relative;z-index:100}
+@media(min-width:620px){.actions{grid-template-columns:1.25fr .75fr}.action{min-height:112px}.utility{width:60%;margin-left:auto;margin-right:auto}}
+</style>
+<link rel="stylesheet" href="../shared/for-my-sons.css?v=3">
+</head>
+<body>
+<header><a class="home" href="../" aria-label="For My Sonsへ">‹</a><h1>わんこ</h1></header>
+<main>
+  <section class="hero">
+    <div class="cloud c1">☁</div><div class="cloud c2">☁</div>
+    <div class="title"><div class="small">WANKO WORLD</div><h2>わんこのせかい</h2></div>
+    <div class="wankoMark">🐶</div>
+  </section>
+
+  <section class="profileCard">
+    <div class="avatar">🐾</div>
+    <div class="profileText">
+      <div class="profileLabel">PLAYER</div>
+      <div class="profileName" id="profileName">読み込み中…</div>
+      <div class="progressText" id="progressText">進行状況を確認しています</div>
+    </div>
+    <button class="profileButton" id="profileButton" type="button">プロフィール</button>
+  </section>
+
+  <section class="actions">
+    <a class="action start" href="../wanko-war/?v=18">
+      <div class="icon">⚔️</div>
+      <div><div class="name">ゲームスタート</div><div class="desc" id="stageText">元素ステージへ</div></div>
+      <div class="arrow">›</div>
+    </a>
+    <a class="action gacha" href="../wanko-gacha/?v=1">
+      <div class="icon">⭐</div>
+      <div><div class="name">ガチャ</div><div class="desc">自分のわんこを仲間にする</div></div>
+      <div class="arrow">›</div>
+    </a>
+  </section>
+
+  <section class="utility">
+    <a href="../wanko-library/?v=13">📖 わんこ大図鑑</a>
+    <a href="../paint/?wanko=1">🎨 わんこをつくる</a>
+  </section>
+</main>
+<div id="settingsHost"></div>
+
+<script src="../shared/for-my-sons-db.js?v=2"></script>
+<script src="../shared/profile-manager.js?v=2"></script>
+<script src="../shared/parent-lock.js?v=3"></script>
+<script src="../shared/save-store.js?v=2"></script>
+<script src="../shared/github-sync.js?v=7"></script>
+<script src="../shared/character-requests.js?v=1"></script>
+<script src="../shared/for-my-sons.js?v=7"></script>
+<script src="../shared/settings-view.js?v=6"></script>
+<script src="../shared/wanko-game-data.js?v=2"></script>
+<script src="../shared/wanko-game-progress.js?v=4"></script>
+<script>
+(async()=>{
+  const nameEl=document.getElementById('profileName');
+  const progressEl=document.getElementById('progressText');
+  const stageEl=document.getElementById('stageText');
+  const button=document.getElementById('profileButton');
+  const host=document.getElementById('settingsHost');
+  try{
+    if(!window.ForMySonsShared?.createForMySons)throw new Error('shared api unavailable');
+    const api=await window.ForMySonsShared.createForMySons();
+    const profile=await api.profile.current();
+    const unset=profile.id==='profile-1'&&profile.label==='profile-1';
+    nameEl.textContent=unset?'プレイヤー未設定':profile.label;
+    const progress=window.WankoGameProgress.createProfileStore(profile.id,api.save,window.WankoGameData);
+    const state=await progress.getState();
+    const cleared=state.clearedStageIds.length;
+    const selected=window.WankoGameData.getStage(state.selectedStageId)||window.WankoGameData.stages[0];
+    const next=state.clearedStageIds.includes(selected.id)?window.WankoGameData.stages[selected.sequence]||selected:selected;
+    const element=window.WankoGameData.getElementById(next.elementId);
+    progressEl.textContent=cleared+' / '+window.WankoGameData.stages.length+' クリア';
+    stageEl.textContent='つぎ: '+next.id+'  '+element.symbol+' '+element.nameJa;
+    if(window.ForMySonsSettingsView?.renderSettings){
+      const view=window.ForMySonsSettingsView.renderSettings(host,api);
+      button.addEventListener('click',()=>view.open());
+    }
+  }catch(error){
+    console.warn('Wanko home profile load failed',error);
+    nameEl.textContent='端末';
+    progressEl.textContent='プロフィールを確認できませんでした';
+    button.disabled=true;
+  }
+})();
+</script>
+</body>
+</html>
