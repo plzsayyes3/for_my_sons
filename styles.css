@@ -116,6 +116,29 @@ a {
   padding-top: 30px;
 }
 
+.parent-settings:not([hidden]) {
+  display: grid;
+  gap: 10px;
+  margin-top: 14px;
+  padding: 14px;
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.7);
+}
+
+.parent-settings h2,
+.parent-settings p { margin: 0; }
+.parent-settings input,
+.parent-settings select,
+.parent-settings button {
+  min-height: 42px;
+  padding: 9px 12px;
+  border: 1px solid rgba(15, 23, 42, 0.14);
+  border-radius: 12px;
+  background: white;
+  color: #0f172a;
+  font: inherit;
+}
+
 .app-grid {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
