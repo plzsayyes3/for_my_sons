@@ -3,7 +3,7 @@
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
   if (root) root.ForMySonsProfile = api;
 })(typeof globalThis !== 'undefined' ? globalThis : this, () => {
-  const PROFILE_ID_PATTERN = /^profile-[a-z0-9-]+$/;
+  const PROFILE_ID_PATTERN = /^[A-Za-z0-9][A-Za-z0-9_-]{0,63}$/;
   const CURRENT_PROFILE_KEY = 'currentProfile';
 
   function assertProfileId(profileId) {
