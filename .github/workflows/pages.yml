@@ -25,6 +25,9 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v5
 
+      - name: Test profile and Wanko saves
+        run: node --test tests/save-store.test.js tests/github-sync.test.js tests/wanko-game-progress.test.js tests/wanko-profile-sync.test.js
+
       - name: Configure Pages
         uses: actions/configure-pages@v6
         with:
