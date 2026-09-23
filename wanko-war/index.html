@@ -136,6 +136,7 @@
 
 <script src="../shared/wanko-cloud-config.js"></script>
 <script src="../shared/wanko-cloud.js"></script>
+<script src="../shared/official-wankos.js"></script>
 <script src="../shared/wanko-library.js"></script>
 <script>
 (() => {
@@ -295,14 +296,36 @@
   async function loadCustomDog(){
     if(!window.WankoLibrary)return;
     try{
-      const w=await WankoLibrary.getActiveWanko();
-      if(customDogUrl){URL.revokeObjectURL(customDogUrl);customDogUrl=null;}
+      if(customDogUrl && customDogUrl.startsWith('blob:')) URL.revokeObjectURL(customDogUrl);
+      customDogUrl=null;
+
+      const officialId=localStorage.getItem('wankoOfficialActiveId');
+      let w=null;
+      if(officialId && window.OfficialWankos){
+        w=await OfficialWankos.load(officialId);
+        if(w) customDogUrl=w.image;
+      }
+
+      if(!w){
+        w=await WankoLibrary.getActiveWanko();
+        if(w) customDogUrl=WankoLibrary.blobUrl(w);
+      }
+
+      if(!w){
+        const fallback=window.OfficialWankos?.catalog?.[0];
+        if(fallback){
+          localStorage.setItem('wankoOfficialActiveId',fallback.id);
+          w=await OfficialWankos.load(fallback.id);
+          customDogUrl=w?.image||null;
+        }
+      }
+
       if(!w){
         delete DOGS.custom;
         customDogCard.hidden=true;
         return;
       }
-      customDogUrl=WankoLibrary.blobUrl(w);
+
       const stats=w.stats||{};
       DOGS.custom={
         cost:Number(stats.cost)||180,
@@ -393,6 +416,7 @@
   window.addEventListener('resize',()=>entities.forEach(renderEntity));
   window.addEventListener('wanko-active-changed',loadCustomDog);
   window.addEventListener('wanko-library-changed',loadCustomDog);
+  window.addEventListener('wanko-official-active-changed',loadCustomDog);
   updateBaseUI();updateUI();loadCustomDog();setTimeout(()=>flash('右の基地から出撃！'),450);
   requestAnimationFrame(step);
 })();
