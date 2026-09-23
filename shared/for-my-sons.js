@@ -108,6 +108,7 @@
           return remote;
         },
         readPath: path => sync.readPath(path),
+        listDirectory: path => sync.listDirectory(path),
         writePath: (path, value, options) => sync.writePath(path, value, options),
         readProfileApp: (profileId, appId) => sync.readProfileApp(profileId, appId),
         writeProfileApp: (profileId, appId, data, options) => sync.writeProfileApp(profileId, appId, data, options),
