@@ -67,7 +67,9 @@
         setPin: pin => parent.setPin(pin),
         verify: pin => parent.verify(pin),
         lock: () => parent.lock(),
-        isUnlocked: () => parent.isUnlocked()
+        isUnlocked: () => parent.isUnlocked(),
+        importRecord: value => parent.importRecord(value),
+        exportRecord: () => parent.exportRecord()
       },
       save: {
         async json(appId, saveKey, value) { return emitSave(await save.writeJson(appId, saveKey, value)); },
@@ -98,6 +100,15 @@
           const remote = await sync.listProfiles();
           await api.profile.importRemote(remote);
           return remote;
+        },
+        async installHousehold() {
+          const connection = await sync.testConnection();
+          const household = await sync.readHouseholdSettings();
+          const profiles = await sync.listProfiles();
+          await api.profile.importRemote(profiles);
+          await api.parent.importRecord(household.parentLock);
+          dispatch('for-my-sons-sync-changed', connection);
+          return { connection, profiles, householdVersion: household.version };
         },
         async push() {
           const records = await save.listPending(undefined, { includeValues: true });
