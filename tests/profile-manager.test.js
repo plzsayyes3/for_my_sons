@@ -5,7 +5,7 @@ const { PROFILE_ID_PATTERN, createProfileManager } = require('../shared/profile-
 
 test('accepts only generic profile IDs', () => {
   assert.ok(PROFILE_ID_PATTERN.test('profile-1'));
-  assert.ok(PROFILE_ID_PATTERN.test('profile-2')); 
+  assert.ok(PROFILE_ID_PATTERN.test('profile-2'));
   assert.equal(PROFILE_ID_PATTERN.test('../profile-2'), false);
   assert.equal(PROFILE_ID_PATTERN.test('Profile-1'), false);
   assert.equal(PROFILE_ID_PATTERN.test('profile 1'), false);

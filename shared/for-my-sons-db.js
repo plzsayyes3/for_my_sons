@@ -4,8 +4,8 @@
   if (root) root.ForMySonsDB = api;
 })(typeof globalThis !== 'undefined' ? globalThis : this, () => {
   const DB_NAME = 'for-my-sons-shared-v1';
-  const DB_VERSION = 1;
-  const STORE_NAMES = ['settings', 'profiles', 'avatars', 'saves', 'snapshots'];
+  const DB_VERSION = 2;
+  const STORE_NAMES = ['settings', 'profiles', 'avatars', 'saves', 'snapshots', 'characterRequests'];
 
   function encodeKey(key) {
     return Array.isArray(key)

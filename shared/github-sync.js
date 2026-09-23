@@ -79,6 +79,46 @@
       };
     }
 
+    async function writePath(path, value, options = {}) {
+      const remote = await readRemote(path);
+      if (options.sha && remote.exists && options.sha !== remote.sha) {
+        return { status: 'conflict', remoteSha: remote.sha };
+      }
+      const payload = {
+        message: options.message || `Sync ${path}`,
+        content: encodeBase64(value),
+        branch: settings.branch
+      };
+      if (remote.exists) payload.sha = remote.sha;
+      const response = await request(path, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+      if (response.status === 401 || response.status === 403) return { status: 'auth-error' };
+      if (response.status === 409) return { status: 'conflict', remoteSha: remote.sha };
+      if (!response.ok) return { status: 'pending', reason: 'remote-unavailable' };
+      const body = await response.json();
+      return {
+        status: remote.exists ? 'synced' : 'created',
+        sha: body.content?.sha || body.sha || null
+      };
+    }
+
+    async function deletePath(path) {
+      const remote = await readRemote(path);
+      if (!remote.exists) return { status: 'absent' };
+      const response = await request(path, {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ message: `Complete ${path}`, sha: remote.sha, branch: settings.branch })
+      });
+      if (response.status === 401 || response.status === 403) return { status: 'auth-error' };
+      if (response.status === 409) return { status: 'conflict', remoteSha: remote.sha };
+      if (!response.ok) return { status: 'pending', reason: 'remote-unavailable' };
+      return { status: 'deleted' };
+    }
+
     function contentForRecord(record) {
       return record.kind === 'binary' ? toBytes(record.value) : new TextEncoder().encode(JSON.stringify(record.value));
     }
@@ -139,7 +179,18 @@
       return { owner: settings.owner, repo: settings.repo, branch: settings.branch };
     }
 
-    return { readRemote, pushRecord, pullRecord, status, configure, encodeBase64, decodeBase64 };
+    return {
+      readRemote,
+      readPath: readRemote,
+      writePath,
+      deletePath,
+      pushRecord,
+      pullRecord,
+      status,
+      configure,
+      encodeBase64,
+      decodeBase64
+    };
   }
 
   return { createGithubSync, encodeBase64, decodeBase64 };
