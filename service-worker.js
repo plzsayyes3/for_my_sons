@@ -1,4 +1,4 @@
-const CACHE_NAME = 'for-my-sons-v35';
+const CACHE_NAME = 'for-my-sons-v37';
 const SHELL = [
   './',
   './index.html',
@@ -20,7 +20,10 @@ const SHELL = [
   './wanko-war/index.html',
   './wanko-library/?v=1',
   './wanko-library/index.html',
+  './wanko-cloud/?v=1',
+  './wanko-cloud/index.html',
   './shared/wanko-cloud-config.js',
+  './shared/wanko-cloud.js',
   './shared/wanko-library.js',
   './paint/?v=4',
   './paint/index.html',
