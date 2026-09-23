@@ -186,9 +186,55 @@
     }
 
     async function testConnection() {
+      const pat = await token();
+      if (!pat) {
+        const error = new Error('Token is not configured');
+        error.code = 'AUTH_REQUIRED';
+        throw error;
+      }
+
+      const userResponse = await fetcher(settings.apiBase + '/user', {
+        method: 'GET',
+        headers: {
+          Accept: 'application/vnd.github+json',
+          Authorization: 'Bearer ' + pat,
+          'X-GitHub-Api-Version': API_VERSION
+        }
+      });
+
+      if (userResponse.status === 401) {
+        const error = new Error('Token is invalid or expired');
+        error.code = 'TOKEN_INVALID';
+        error.status = 401;
+        throw error;
+      }
+      if (userResponse.status === 403) {
+        const error = new Error('GitHub authentication is temporarily blocked or forbidden');
+        error.code = 'TOKEN_FORBIDDEN';
+        error.status = 403;
+        throw error;
+      }
+      if (!userResponse.ok) {
+        const error = new Error('GitHub user check failed (' + userResponse.status + ')');
+        error.code = 'USER_CHECK_FAILED';
+        error.status = userResponse.status;
+        throw error;
+      }
+
+      const user = await userResponse.json();
       const schema = await readRemote('schema.json');
-      if (!schema.exists) throw new Error('Save repository schema was not found');
-      return { ok: true, repo: settings.owner + '/' + settings.repo, branch: settings.branch };
+      if (!schema.exists) {
+        const error = new Error('Save repository is not visible to this token');
+        error.code = 'REPO_NOT_VISIBLE';
+        error.status = 404;
+        throw error;
+      }
+      return {
+        ok: true,
+        login: user.login || '',
+        repo: settings.owner + '/' + settings.repo,
+        branch: settings.branch
+      };
     }
 
     async function readHouseholdSettings() {
