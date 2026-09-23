@@ -48,6 +48,11 @@
         current: () => profile.current(),
         list: () => profile.list(),
         setCurrent: profileId => profile.setCurrent(profileId),
+        async importRemote(items = []) {
+          const imported = [];
+          for (const item of items) imported.push(await profile.upsert({ id: item.id, label: item.label }));
+          return imported;
+        },
         async setAvatar(profileId, blob, contentType) {
           const current = await profile.current();
           if (current.id !== profileId) throw new Error('Profile must be selected before changing its avatar');
@@ -80,6 +85,19 @@
           const result = sync.configure(next);
           dispatch('for-my-sons-sync-changed', result);
           return result;
+        },
+        async hasToken() {
+          return Boolean((await db.get('settings', 'githubToken'))?.value);
+        },
+        async testConnection() {
+          const result = await sync.testConnection();
+          dispatch('for-my-sons-sync-changed', result);
+          return result;
+        },
+        async listProfiles() {
+          const remote = await sync.listProfiles();
+          await api.profile.importRemote(remote);
+          return remote;
         },
         async push() {
           const records = await save.listPending(undefined, { includeValues: true });
