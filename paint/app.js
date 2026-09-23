@@ -14,7 +14,17 @@ const redoButton = document.querySelector("#redo");
 const clearButton = document.querySelector("#clear");
 const puzzleSaveButton = document.querySelector("#puzzle-save");
 const phoneSaveButton = document.querySelector("#phone-save");
+const wankoSaveButton = document.querySelector("#wanko-save");
 const toast = document.querySelector("#toast");
+
+const wankoModal = document.querySelector("#wanko-modal");
+const wankoCloseButton = document.querySelector("#wanko-close");
+const wankoConfirmButton = document.querySelector("#wanko-confirm");
+const wankoLibraryOpenButton = document.querySelector("#wanko-library-open");
+const wankoNameInput = document.querySelector("#wanko-name");
+const wankoPreviewImg = document.querySelector("#wanko-preview-img");
+let pendingWankoBlob = null;
+let pendingWankoUrl = null;
 
 const cropModal = document.querySelector("#crop-modal");
 const cropPreview = document.querySelector("#crop-preview");
@@ -517,6 +527,102 @@ async function saveForPuzzle() {
   });
 }
 
+function makeWankoCanvas() {
+  const output = document.createElement("canvas");
+  output.width = 512;
+  output.height = 512;
+  const out = output.getContext("2d", { alpha: true });
+  out.clearRect(0, 0, 512, 512);
+
+  const sourceRatio = canvas.width / canvas.height;
+  let drawW = 448;
+  let drawH = 448;
+  if (sourceRatio > 1) drawH = drawW / sourceRatio;
+  else drawW = drawH * sourceRatio;
+  const ox = (512 - drawW) / 2;
+  const oy = (512 - drawH) / 2;
+  const sizeScale = Math.min(drawW / canvas.width, drawH / canvas.height);
+
+  function drawTransparentStroke(stroke) {
+    if (!stroke.points?.length) return;
+    out.save();
+    out.globalCompositeOperation = stroke.tool === "eraser" ? "destination-out" : "source-over";
+    out.strokeStyle = stroke.color;
+    out.fillStyle = stroke.color;
+    out.lineWidth = Math.max(1, stroke.size * sizeScale);
+    out.lineCap = "round";
+    out.lineJoin = "round";
+    const px = (p) => ({ x: ox + p.x * drawW, y: oy + p.y * drawH });
+    const first = px(stroke.points[0]);
+    if (stroke.points.length === 1) {
+      out.beginPath();
+      out.arc(first.x, first.y, out.lineWidth / 2, 0, Math.PI * 2);
+      out.fill();
+    } else {
+      out.beginPath();
+      out.moveTo(first.x, first.y);
+      for (let i = 1; i < stroke.points.length; i += 1) {
+        const p = px(stroke.points[i]);
+        out.lineTo(p.x, p.y);
+      }
+      out.stroke();
+    }
+    out.restore();
+  }
+
+  for (const action of currentDraft().actions) {
+    if (action.type === "clear") out.clearRect(0, 0, 512, 512);
+    if (action.type === "stroke") drawTransparentStroke(action);
+  }
+  return output;
+}
+
+function closeWankoModal() {
+  wankoModal.classList.remove("is-open");
+  wankoModal.setAttribute("aria-hidden", "true");
+  document.body.classList.remove("modal-open");
+  if (pendingWankoUrl) URL.revokeObjectURL(pendingWankoUrl);
+  pendingWankoUrl = null;
+  pendingWankoBlob = null;
+}
+
+function openWankoModal() {
+  const hasDrawing = currentDraft().actions.some((action) => action.type === "stroke");
+  if (!hasDrawing) {
+    showToast("まず、わんこを描いてね");
+    return;
+  }
+  const output = makeWankoCanvas();
+  pendingWankoBlob = canvasBlobSync(output);
+  if (pendingWankoUrl) URL.revokeObjectURL(pendingWankoUrl);
+  pendingWankoUrl = URL.createObjectURL(pendingWankoBlob);
+  wankoPreviewImg.src = pendingWankoUrl;
+  wankoNameInput.value = "";
+  wankoModal.classList.add("is-open");
+  wankoModal.setAttribute("aria-hidden", "false");
+  document.body.classList.add("modal-open");
+  setTimeout(() => wankoNameInput.focus(), 80);
+}
+
+async function confirmWankoRegistration() {
+  if (!pendingWankoBlob || !window.WankoLibrary) return;
+  wankoConfirmButton.disabled = true;
+  try {
+    const record = await WankoLibrary.registerWanko({
+      name: wankoNameInput.value || "うちのわんこ",
+      blob: pendingWankoBlob,
+      creator: "paint"
+    });
+    closeWankoModal();
+    showToast(record.name + " を図鑑に登録したよ ✓");
+  } catch (error) {
+    console.error(error);
+    showToast("わんこの登録に失敗しました");
+  } finally {
+    wankoConfirmButton.disabled = false;
+  }
+}
+
 async function saveToPhone() {
   const blob = canvasBlobSync(canvas);
   const stamp = new Date().toISOString().replace(/[:.]/g, "-");
@@ -574,6 +680,11 @@ redoButton.addEventListener("click", redo);
 clearButton.addEventListener("click", clearCanvas);
 puzzleSaveButton.addEventListener("click", saveForPuzzle);
 phoneSaveButton.addEventListener("click", saveToPhone);
+wankoSaveButton.addEventListener("click", openWankoModal);
+wankoCloseButton.addEventListener("click", closeWankoModal);
+wankoConfirmButton.addEventListener("click", confirmWankoRegistration);
+wankoLibraryOpenButton.addEventListener("click", () => { window.location.href = "../wanko-library/"; });
+wankoModal.addEventListener("click", (event) => { if (event.target === wankoModal) closeWankoModal(); });
 
 cropPreview.addEventListener("pointerdown", (event) => {
   if (!cropSession) return;
