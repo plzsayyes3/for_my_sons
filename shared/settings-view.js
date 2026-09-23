@@ -119,37 +119,46 @@
       return configured;
     }
 
+    async function populateProfiles(profiles) {
+      profileSelect.replaceChildren();
+      if (!profiles.length) {
+        const option = make(documentRef, 'option', 'ユーザーが見つかりません');
+        option.value = '';
+        profileSelect.append(option);
+        profileSelect.disabled = true;
+        chooseProfile.disabled = true;
+        return;
+      }
+
+      const current = await refreshCurrent();
+      for (const item of profiles) {
+        const option = make(documentRef, 'option', item.label);
+        option.value = item.id;
+        option.selected = item.id === current.id;
+        profileSelect.append(option);
+      }
+      if (!profiles.some(item => item.id === current.id)) profileSelect.selectedIndex = 0;
+      profileSelect.disabled = false;
+      chooseProfile.disabled = false;
+    }
+
     async function loadProfiles() {
       connectionState.textContent = '接続: 確認中…';
       profileMessage.textContent = '';
       try {
-        const connection = await api.sync.testConnection();
-        const profiles = await api.sync.listProfiles();
-        connectionState.textContent = '✓ ' + connection.repo + ' に接続しました';
-
-        profileSelect.replaceChildren();
-        if (!profiles.length) {
-          const option = make(documentRef, 'option', 'ユーザーが見つかりません');
-          option.value = '';
-          profileSelect.append(option);
-          profileSelect.disabled = true;
-          chooseProfile.disabled = true;
+        if (!(await api.parent.hasPin())) {
+          const setup = await api.sync.installHousehold();
+          connectionState.textContent = '✓ 家庭設定とPINをこの端末に反映しました';
+          await populateProfiles(setup.profiles);
           return;
         }
 
-        const current = await refreshCurrent();
-        for (const item of profiles) {
-          const option = make(documentRef, 'option', item.label);
-          option.value = item.id;
-          option.selected = item.id === current.id;
-          profileSelect.append(option);
-        }
-
-        if (!profiles.some(item => item.id === current.id)) profileSelect.selectedIndex = 0;
-        profileSelect.disabled = false;
-        chooseProfile.disabled = false;
+        const connection = await api.sync.testConnection();
+        const profiles = await api.sync.listProfiles();
+        connectionState.textContent = '✓ ' + connection.repo + ' に接続しました';
+        await populateProfiles(profiles);
       } catch {
-        connectionState.textContent = '接続できませんでした。Tokenを確認してください。';
+        connectionState.textContent = '接続できませんでした。Tokenや家庭設定を確認してください。';
         profileSelect.disabled = true;
         chooseProfile.disabled = true;
       }
@@ -166,13 +175,24 @@
     async function open() {
       previousFocus = documentRef.activeElement;
       api.parent.lock();
-      controls.hidden = true;
-      locked.hidden = false;
       pinInput.value = '';
       lockMessage.textContent = '';
       container.hidden = false;
       container.setAttribute('aria-hidden', 'false');
-      requestAnimationFrame(() => pinInput.focus());
+
+      if (await api.parent.hasPin()) {
+        controls.hidden = true;
+        locked.hidden = false;
+        requestAnimationFrame(() => pinInput.focus());
+        return;
+      }
+
+      locked.hidden = true;
+      controls.hidden = false;
+      await Promise.all([refreshCurrent(), refreshTokenState()]);
+      connectionState.textContent = '初回設定: Tokenを保存すると家庭設定とPINを読み込みます。';
+      if (await api.sync.hasToken()) await loadProfiles();
+      else requestAnimationFrame(() => tokenInput.focus());
     }
 
     function closePanel() {
