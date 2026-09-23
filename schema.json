@@ -1,0 +1,20 @@
+{
+  "schemaVersion": 1,
+  "profileIdPattern": "^profile-[a-z0-9-]+$",
+  "paths": {
+    "profile": "profiles/{profileId}/profile.json",
+    "avatar": "profiles/{profileId}/avatar.webp",
+    "appJson": "profiles/{profileId}/apps/{appId}/{saveKey}.json",
+    "binary": "profiles/{profileId}/files/{appId}/{saveKey}.{extension}"
+  },
+  "dataRoles": {
+    "model-project-json": "editable canonical project/model data",
+    "stl": "optional printable mesh companion",
+    "thumbnail": "optional preview image companion",
+    "save-json": "app-scoped structured save data"
+  },
+  "privacy": {
+    "personalIdentityFields": false,
+    "tokenStorage": "device-local-only"
+  }
+}

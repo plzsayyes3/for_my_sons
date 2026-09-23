@@ -60,7 +60,17 @@ test('wanko app entries and service-worker shell point to current versioned page
   for (const script of [
     './shared/wanko-game-data.js?v=2',
     './shared/wanko-game-progress.js?v=2',
-    './shared/wanko-library-view.js?v=2'
+    './shared/wanko-library-view.js?v=2',
+    './shared/for-my-sons-db.js?v=1',
+    './shared/profile-manager.js?v=1',
+    './shared/parent-lock.js?v=1',
+    './shared/save-store.js?v=1',
+    './shared/github-sync.js?v=1',
+    './shared/for-my-sons.js?v=1',
+    './shared/settings-view.js?v=1',
+    './shared/for-my-sons.css?v=1'
   ]) assert.ok(shell.urls.includes(script), `${script} must be cached`);
   assert.match(shell.cacheName, /v\d+$/);
+  assert.equal(shell.urls.some(url => url.includes('api.github.com')), false);
+  assert.equal(shell.cacheName, 'for-my-sons-v44');
 });
