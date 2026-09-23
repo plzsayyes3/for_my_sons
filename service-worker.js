@@ -12,6 +12,7 @@ const SHELL = [
   './shared/github-sync.js?v=1',
   './shared/profile-manager.js?v=1',
   './shared/index.js?v=1',
+  './shared/auto-sync.js?v=1',
   './shared/parent-settings-view.js?v=1',
   './shared/wanko-profile-migration.js?v=1',
   './index.html',

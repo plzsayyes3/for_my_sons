@@ -1,8 +1,8 @@
 (function (root, factory) {
-  const api = factory();
+  const api = factory(root);
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
   if (root) root.ForMySonsSettingsView = api;
-})(typeof globalThis !== 'undefined' ? globalThis : this, () => {
+})(typeof globalThis !== 'undefined' ? globalThis : this, root => {
   function renderSettings(container, api) {
     if (!container || !api?.lock || !api?.profile) throw new TypeError('Settings view dependencies are required');
     const make = (tag, attrs = {}, text = '') => {
@@ -30,6 +30,17 @@
     const close = make('button', { type: 'button' }, '閉じる');
     panel.append(title, status, pin, pinButton, token, tokenButton, profileSelect, migrationButton, syncButton, close);
     container.replaceChildren(panel);
+    const autoSync = root.ForMySonsAutoSync?.createAutoSync({
+      sync: api.sync,
+      profile: api.profile,
+      isUnlocked: () => api.lock.isUnlocked(),
+      target: root,
+      onResult: ({ results, failed }) => {
+        if (failed) status.textContent = '自動同期できませんでした。ローカル保存は保持されています。';
+        else if (results.some(result => result.status === 'conflict')) status.textContent = '同期に競合があります。ローカルの内容は保持されています。';
+        else if (results.some(result => result.status === 'synced')) status.textContent = '自動同期が完了しました。';
+      }
+    });
 
     async function unlockOrSetup() {
       try {
@@ -45,6 +56,8 @@
         syncButton.hidden = false;
         status.textContent = 'ロック解除中。プロフィールを読み込みます。';
         await refreshProfiles();
+        autoSync?.resetBackoff();
+        await autoSync?.trigger({ force: true });
       } catch {
         status.textContent = 'PINを確認してください。';
       }
@@ -76,6 +89,9 @@
         await api.lock.storeToken(token.value);
         token.value = '';
         status.textContent = 'tokenを暗号化して端末に保存しました。';
+        await refreshProfiles();
+        autoSync?.resetBackoff();
+        await autoSync?.trigger({ force: true });
       } catch (error) {
         token.value = '';
         status.textContent = error.message.includes('origin') ? '専用ドメインが未設定のため、tokenは保存できません。' : 'tokenを保存できませんでした。';
@@ -88,6 +104,8 @@
         migrationButton.disabled = !api.migration;
         syncButton.disabled = false;
         status.textContent = 'プロフィールを切り替えました。';
+        autoSync?.resetBackoff();
+        await autoSync?.trigger({ force: true });
       }
       catch { status.textContent = 'プロフィールを切り替えられませんでした。'; }
     });

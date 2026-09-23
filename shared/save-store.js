@@ -23,6 +23,9 @@
 
   function createSaveStore(adapter) {
     if (!adapter?.get || !adapter?.put || !adapter?.list) throw new TypeError('Save adapter is incomplete');
+    const channel = typeof BroadcastChannel === 'function' && typeof window !== 'undefined'
+      ? new BroadcastChannel('for-my-sons-save-events-v1')
+      : null;
 
     async function getRecord(profileId, appId, key) {
       return adapter.get(composite(profileId, appId, key));
@@ -37,9 +40,13 @@
         syncState: 'pending',
         ...(existing?.remoteSha ? { remoteSha: existing.remoteSha } : {})
       });
-      if (adapter.update) return adapter.update(storageKey, create);
-      const record = create(await adapter.get(storageKey));
-      await adapter.put(storageKey, record);
+      let record;
+      if (adapter.update) record = await adapter.update(storageKey, create);
+      else {
+        record = create(await adapter.get(storageKey));
+        await adapter.put(storageKey, record);
+      }
+      channel?.postMessage({ type: 'save-pending', profileId });
       return record;
     }
 
