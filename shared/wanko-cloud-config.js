@@ -1,11 +1,10 @@
-// Supabase connection settings for Wanko Library.
-// Keep service-role keys OUT of browser code. Only a publishable/anon key belongs here.
-// accessToken is intentionally blank until family authentication is connected.
+// Supabase project connection for Wanko Cloud.
+// Safe to expose: project URL + publishable/anon key.
+// NEVER put a service-role/secret key in this browser file.
 window.WANKO_CLOUD_CONFIG = {
   url: "",
-  anonKey: "",
-  accessToken: "",
-  familyId: "",
+  publishableKey: "",
   bucket: "wanko-images",
-  table: "wankos"
+  table: "wankos",
+  profileTable: "wanko_profiles"
 };
