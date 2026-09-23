@@ -21,21 +21,56 @@ main{width:min(100%,900px);margin:auto;padding:18px 14px calc(env(safe-area-inse
 </style>
 </head>
 <body>
-<header><a class="back" href="../">‹</a><h1>わんこ大図鑑</h1><a class="status" id="status" href="../wanko-cloud/">📱 保存中</a></header>
+<header><a class="back" href="../">‹</a><h1>わんこ大図鑑</h1><span class="status" id="profileLabel">端末</span><a class="status" id="status" href="../wanko-cloud/">📱 保存中</a></header>
 <main><a class="new" href="../paint/?wanko=1">＋ 新しいわんこを描く</a><nav class="tabs" role="tablist" aria-label="図鑑の種類"><button class="tab" data-tab="allies" role="tab">なかま</button><button class="tab" data-tab="enemies" role="tab">てき</button><button class="tab" data-tab="elements" role="tab">元素</button></nav><div id="content"></div></main>
+<script src="../shared/for-my-sons-db.js?v=2"></script>
+<script src="../shared/profile-manager.js?v=2"></script>
+<script src="../shared/parent-lock.js?v=3"></script>
+<script src="../shared/save-store.js?v=2"></script>
+<script src="../shared/github-sync.js?v=7"></script>
+<script src="../shared/character-requests.js?v=1"></script>
+<script src="../shared/for-my-sons.js?v=6"></script>
 <script src="../shared/wanko-cloud-config.js"></script>
 <script src="../shared/wanko-cloud.js"></script>
 <script src="../shared/official-wankos.js?v=7"></script>
 <script src="../shared/wanko-library.js"></script>
 <script src="../shared/wanko-game-data.js?v=2"></script>
-<script src="../shared/wanko-game-progress.js?v=2"></script>
+<script src="../shared/wanko-game-progress.js?v=3"></script>
+<script src="../shared/wanko-profile-sync.js?v=1"></script>
 <script src="../shared/wanko-library-view.js?v=2"></script>
 <script>
 (async()=>{
- const content=document.getElementById('content'), status=document.getElementById('status');
+ const content=document.getElementById('content'), status=document.getElementById('status'), profileLabel=document.getElementById('profileLabel');
  const tabs=[...document.querySelectorAll('.tab')];
+ let Progress=window.WankoGameProgress, profileSync=null;
  const validTabs=new Set(['allies','enemies','elements']);
  let activeTab=validTabs.has(location.hash.slice(1))?location.hash.slice(1):'allies';
+ async function setupProfileProgress(){
+  if(!window.ForMySonsShared?.createForMySons||!window.WankoProfileSync?.createWankoProfileSync)return;
+  try{
+   const api=await window.ForMySonsShared.createForMySons();
+   const profile=await api.profile.current();
+   const label=profile?.label&&profile.label!=='profile-1'?profile.label:'未設定';
+   profileLabel.textContent=label;
+   const scoped=window.WankoGameProgress.createProfileStore(profile.id,api.save,window.WankoGameData);
+   const sync=window.WankoProfileSync.createWankoProfileSync({
+    api,
+    profileId:profile.id,
+    definitions:window.WankoGameData,
+    progressStore:scoped,
+    legacyStorage:window.WankoLibrary,
+    confirmLegacy:async preview=>{
+     const count=preview.clearedStageCount+preview.discoveredElementCount+preview.discoveredEnemyCount;
+     return Boolean(count&&window.confirm&&window.confirm(label+' に、この端末のこれまでのワンコ進行を引き継ぎますか？'));
+    }
+   });
+   await sync.initialize();
+   Progress=scoped;profileSync=sync;
+  }catch(error){
+   console.warn('Profile progress load failed; using legacy local progress.',error);
+   profileLabel.textContent='端末保存';
+  }
+ }
  function element(tag,className,text){const node=document.createElement(tag);if(className)node.className=className;if(text!==undefined)node.textContent=text;return node;}
  function makeCard({name,image,placeholder,subtitle,badge,active=false,disabled=false,onUse=null,elementCard=false,undiscovered=false}){
   const card=element('article','card'+(active?' active':'')+(undiscovered?' undiscovered':''));
@@ -57,7 +92,7 @@ main{width:min(100%,900px);margin:auto;padding:18px 14px calc(env(safe-area-inse
     WankoLibrary.getActiveWanko(),
     WankoLibrary.syncState(),
     window.OfficialWankos?OfficialWankos.list():[],
-    WankoGameProgress.getState()
+    Progress.getState()
   ]);
   status.textContent=!state.configured?'📱 この端末に保存':(!state.authenticated?'☁️ ログイン':(state.pending?'☁️ 同期待ち '+state.pending:'☁️ 保存済み'));
   let officialActiveId=localStorage.getItem('wankoOfficialActiveId');
@@ -102,7 +137,7 @@ main{width:min(100%,900px);margin:auto;padding:18px 14px calc(env(safe-area-inse
   content.replaceChildren(grid);
  }
  window.addEventListener('wanko-library-changed',render);window.addEventListener('wanko-active-changed',render);
- selectTab(activeTab);await WankoLibrary.syncNow().catch(()=>{});render();
+ selectTab(activeTab);await setupProfileProgress();await WankoLibrary.syncNow().catch(()=>{});render();
  window.addEventListener('wanko-cloud-auth-changed',async()=>{await WankoLibrary.syncNow().catch(()=>{});render();});
 })();
 </script>
