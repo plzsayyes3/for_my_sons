@@ -1,0 +1,277 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="theme-color" content="#f6efe3">
+  <title>わんこ大戦争</title>
+  <style>
+    :root{--ink:#20201e;--paper:#f7f0e4;--line:#332f29;--bone:#fff7dd;--grass:#b9d28b;--sky:#bfe5f2;--red:#e36a5d;--blue:#5c91c9}
+    *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+    html,body{margin:0;width:100%;height:100%;overflow:hidden;background:var(--paper);font-family:"Hiragino Kaku Gothic ProN","Yu Gothic",system-ui,sans-serif;color:var(--ink);user-select:none}
+    button,a{font:inherit}
+    #app{height:100dvh;display:grid;grid-template-rows:auto 1fr auto;min-height:0}
+    header{display:flex;align-items:center;gap:10px;padding:max(8px,env(safe-area-inset-top)) 12px 7px;background:#fff9ee;border-bottom:3px solid var(--line);z-index:5}
+    .home{display:grid;place-items:center;width:42px;height:42px;border:2px solid var(--line);border-radius:13px;background:white;color:var(--ink);text-decoration:none;font-size:21px;box-shadow:0 3px 0 var(--line)}
+    h1{margin:0;font-size:clamp(18px,3vw,28px);letter-spacing:.04em;white-space:nowrap}
+    .spacer{flex:1}
+    .boneBox{display:flex;align-items:center;gap:6px;padding:7px 11px;border:2px solid var(--line);border-radius:999px;background:var(--bone);font-weight:900;min-width:106px;justify-content:center}
+    .boneBox b{font-variant-numeric:tabular-nums}
+    #field{position:relative;overflow:hidden;min-height:0;background:linear-gradient(var(--sky) 0 67%,#d9e5a8 67% 75%,var(--grass) 75%);touch-action:manipulation}
+    #field:before{content:"";position:absolute;left:0;right:0;bottom:0;height:24%;background:repeating-linear-gradient(0deg,rgba(77,99,46,.05) 0 2px,transparent 2px 9px)}
+    .cloud{position:absolute;font-size:clamp(28px,6vw,54px);opacity:.75;filter:grayscale(1) brightness(2)}
+    .c1{top:6%;left:20%}.c2{top:17%;left:57%;transform:scale(.72)}
+    .base{position:absolute;bottom:15%;width:clamp(72px,12vw,110px);height:clamp(92px,17vw,145px);display:flex;align-items:flex-end;justify-content:center;z-index:2}
+    .base.enemy{left:1.5%}.base.ours{right:1.5%}
+    .tower{position:relative;width:72%;height:70%;border:3px solid var(--line);border-radius:18px 18px 6px 6px;background:#d6c8aa;box-shadow:inset 0 -12px rgba(0,0,0,.05),0 4px 0 rgba(0,0,0,.13)}
+    .ours .tower{background:#f1dd9c}.enemy .tower{background:#c8a8aa}
+    .tower:before{content:"";position:absolute;width:58%;height:42%;left:21%;bottom:0;border:3px solid var(--line);border-bottom:0;border-radius:30px 30px 0 0;background:#3f3933}
+    .tower:after{position:absolute;top:-34px;left:50%;transform:translateX(-50%);font-size:38px;line-height:1}
+    .ours .tower:after{content:"🐶"}.enemy .tower:after{content:"👾"}
+    .hpTrack{position:absolute;left:4%;right:4%;bottom:-23px;height:13px;border:2px solid var(--line);border-radius:8px;background:#fff;overflow:hidden}
+    .hpFill{height:100%;width:100%;background:#78b65b;transition:width .12s linear}
+    .enemy .hpFill{background:#df776b}
+    .hpText{position:absolute;left:50%;bottom:-43px;transform:translateX(-50%);font-size:11px;font-weight:900;white-space:nowrap;text-shadow:0 1px #fff}
+    #units{position:absolute;inset:0;z-index:3;pointer-events:none}
+    .unit{position:absolute;bottom:17%;width:56px;height:64px;transform:translateX(-50%);display:flex;align-items:flex-end;justify-content:center;will-change:left,transform}
+    .unit .sprite{font-size:43px;line-height:1;filter:drop-shadow(0 3px 0 rgba(0,0,0,.16));transform-origin:50% 100%;animation:bob .42s ease-in-out infinite alternate}
+    .unit.enemyUnit .sprite{font-size:40px;animation-duration:.54s}
+    .unit.big .sprite{font-size:56px}.unit.fast .sprite{font-size:39px}
+    .unit .miniHp{position:absolute;top:2px;width:40px;height:7px;background:white;border:1.5px solid var(--line);border-radius:6px;overflow:hidden;opacity:0;transition:opacity .15s}
+    .unit.hurt .miniHp{opacity:1}
+    .unit .miniHp i{display:block;height:100%;width:100%;background:#74b45b}
+    .enemyUnit .miniHp i{background:#df776b}
+    .unit.attack .sprite{animation:attack .16s ease-out}
+    .unit.hit .sprite{animation:hit .15s ease-out}
+    .damage{position:absolute;font-weight:1000;font-size:16px;color:#c33;text-shadow:0 2px white;animation:float .55s ease-out forwards;pointer-events:none;z-index:10}
+    @keyframes bob{to{transform:translateY(-3px) rotate(-2deg)}}
+    @keyframes attack{50%{transform:translateX(-8px) scale(1.12)}}
+    @keyframes hit{50%{transform:translateX(5px) rotate(7deg)}}
+    @keyframes float{to{transform:translateY(-32px) scale(.85);opacity:0}}
+    footer{padding:9px 10px max(10px,env(safe-area-inset-bottom));background:#fff9ee;border-top:3px solid var(--line);z-index:5}
+    .deck{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;max-width:760px;margin:auto}
+    .card{position:relative;min-height:74px;border:2.5px solid var(--line);border-radius:16px;background:white;box-shadow:0 4px 0 var(--line);display:grid;grid-template-columns:auto 1fr;align-items:center;gap:6px;padding:6px 8px;text-align:left;touch-action:manipulation}
+    .card:active:not(:disabled){transform:translateY(3px);box-shadow:0 1px 0 var(--line)}
+    .card:disabled{opacity:.43;filter:grayscale(.4)}
+    .card .dog{font-size:38px}.card .name{font-size:12px;font-weight:1000;line-height:1.1}.card .cost{font-size:12px;font-weight:900;color:#6b532c;margin-top:4px}
+    #message{position:absolute;left:50%;top:11%;transform:translateX(-50%);padding:7px 13px;border:2px solid var(--line);border-radius:999px;background:rgba(255,255,255,.9);font-weight:900;z-index:6;opacity:0;transition:.18s;pointer-events:none;white-space:nowrap}
+    #message.show{opacity:1}
+    #overlay{position:absolute;inset:0;z-index:20;display:none;place-items:center;background:rgba(255,248,234,.78);backdrop-filter:blur(5px)}
+    #overlay.show{display:grid}
+    .result{min-width:min(82vw,360px);text-align:center;background:white;border:3px solid var(--line);border-radius:24px;padding:24px;box-shadow:0 8px 0 var(--line)}
+    .result .emoji{font-size:64px}.result h2{font-size:30px;margin:8px 0}.result p{margin:0 0 16px;font-weight:700}
+    .restart{border:2.5px solid var(--line);border-radius:14px;background:#ffe58f;padding:10px 22px;font-weight:1000;box-shadow:0 4px 0 var(--line)}
+    @media (max-width:560px) and (orientation:portrait){
+      header{padding-bottom:5px}.home{width:36px;height:36px}.boneBox{padding:5px 9px}
+      .base{bottom:17%;width:70px;height:96px}.unit{bottom:19%}
+      footer{padding-top:7px}.card{min-height:67px;padding:5px}.card .dog{font-size:32px}.card .name{font-size:11px}
+    }
+  </style>
+</head>
+<body>
+<div id="app">
+  <header>
+    <a class="home" href="../" aria-label="ホームへ">⌂</a>
+    <h1>わんこ大戦争</h1>
+    <div class="spacer"></div>
+    <div class="boneBox" aria-label="ほね"><span>🦴</span><b id="bones">180</b></div>
+  </header>
+
+  <main id="field" aria-label="バトルフィールド">
+    <div class="cloud c1">☁</div><div class="cloud c2">☁</div>
+    <div id="message">わんこを出そう！</div>
+
+    <div class="base enemy" id="enemyBase">
+      <div class="tower"></div><div class="hpTrack"><div class="hpFill"></div></div><div class="hpText"></div>
+    </div>
+    <div class="base ours" id="ourBase">
+      <div class="tower"></div><div class="hpTrack"><div class="hpFill"></div></div><div class="hpText"></div>
+    </div>
+    <div id="units"></div>
+
+    <div id="overlay">
+      <div class="result">
+        <div class="emoji" id="resultEmoji">🐶</div>
+        <h2 id="resultTitle">しょうり！</h2>
+        <p id="resultText">てきの基地をこわした！</p>
+        <button class="restart" id="restart">もういっかい</button>
+      </div>
+    </div>
+  </main>
+
+  <footer>
+    <div class="deck">
+      <button class="card" data-dog="shiba"><span class="dog">🐕</span><span><div class="name">しばわん</div><div class="cost">🦴 80</div></span></button>
+      <button class="card" data-dog="dash"><span class="dog">🐶</span><span><div class="name">ダッシュわん</div><div class="cost">🦴 150</div></span></button>
+      <button class="card" data-dog="big"><span class="dog">🐩</span><span><div class="name">でかわん</div><div class="cost">🦴 280</div></span></button>
+    </div>
+  </footer>
+</div>
+
+<script>
+(() => {
+  const field = document.getElementById('field');
+  const unitsLayer = document.getElementById('units');
+  const bonesEl = document.getElementById('bones');
+  const message = document.getElementById('message');
+  const overlay = document.getElementById('overlay');
+  const cards = [...document.querySelectorAll('.card')];
+
+  const DOGS = {
+    shiba:{cost:80,hp:115,damage:22,speed:42,range:43,cooldown:.72,sprite:'🐕',className:''},
+    dash:{cost:150,hp:82,damage:31,speed:76,range:42,cooldown:.58,sprite:'🐶',className:'fast'},
+    big:{cost:280,hp:310,damage:58,speed:25,range:50,cooldown:1.18,sprite:'🐩',className:'big'}
+  };
+  const FOES = [
+    {hp:90,damage:17,speed:31,range:39,cooldown:.9,sprite:'👾'},
+    {hp:145,damage:24,speed:23,range:42,cooldown:1.05,sprite:'👹'},
+    {hp:65,damage:13,speed:51,range:35,cooldown:.68,sprite:'🦹'}
+  ];
+
+  let entities=[], bones=180, running=true, last=performance.now(), enemyTimer=1.8, time=0;
+  const ourBase={team:'ours',hp:1500,maxHp:1500};
+  const enemyBase={team:'enemy',hp:1300,maxHp:1300};
+
+  function width(){ return field.clientWidth; }
+  function baseX(team){ return team==='enemy' ? Math.max(56,width()*.075) : Math.min(width()-56,width()*.925); }
+  function spawnX(team){ return team==='enemy' ? baseX('enemy')+58 : baseX('ours')-58; }
+
+  function flash(text){
+    message.textContent=text; message.classList.add('show');
+    clearTimeout(flash.t); flash.t=setTimeout(()=>message.classList.remove('show'),900);
+  }
+
+  function createEntity(data,team){
+    const el=document.createElement('div');
+    el.className='unit '+(team==='enemy'?'enemyUnit ':'')+(data.className||'');
+    el.innerHTML='<div class="miniHp"><i></i></div><div class="sprite">'+data.sprite+'</div>';
+    unitsLayer.appendChild(el);
+    const ent={...data,team,x:spawnX(team),hp:data.hp,maxHp:data.hp,attackClock:Math.random()*.2,el,dead:false};
+    entities.push(ent);
+    renderEntity(ent);
+    return ent;
+  }
+
+  function spawnDog(type){
+    if(!running)return;
+    const d=DOGS[type];
+    if(bones<d.cost){ flash('🦴 がたりない！'); return; }
+    bones-=d.cost; createEntity(d,'ours'); updateUI();
+  }
+
+  function spawnEnemy(){
+    const difficulty=Math.min(2,Math.floor(time/28));
+    const pool=FOES.slice(0,difficulty+1);
+    createEntity(pool[Math.floor(Math.random()*pool.length)],'enemy');
+  }
+
+  function renderEntity(e){
+    e.x=Math.max(0,Math.min(width(),e.x));
+    e.el.style.left=e.x+'px';
+    const hp=e.el.querySelector('.miniHp i');
+    hp.style.width=Math.max(0,e.hp/e.maxHp*100)+'%';
+    if(e.hp<e.maxHp)e.el.classList.add('hurt');
+  }
+
+  function nearestTarget(e){
+    let best=null,bestDist=Infinity;
+    for(const o of entities){
+      if(o.dead||o.team===e.team)continue;
+      const d=Math.abs(o.x-e.x);
+      if(d<bestDist){best=o;bestDist=d;}
+    }
+    const base= e.team==='ours' ? enemyBase : ourBase;
+    const bx=baseX(base.team);
+    const bd=Math.abs(bx-e.x);
+    if(bd<bestDist) return {base,dist:bd,x:bx};
+    return best ? {unit:best,dist:bestDist,x:best.x} : {base,dist:bd,x:bx};
+  }
+
+  function damageTarget(attacker,target,amount){
+    if(target.unit){
+      const u=target.unit;
+      u.hp-=amount;
+      u.el.classList.remove('hit'); void u.el.offsetWidth; u.el.classList.add('hit');
+      popDamage(u.x,amount);
+      if(u.hp<=0){u.dead=true;u.el.style.opacity='0';u.el.style.transform='translateX(-50%) scale(.3)';setTimeout(()=>u.el.remove(),180);}
+    }else{
+      target.base.hp-=amount;
+      popDamage(target.x,amount);
+      updateBaseUI();
+      if(target.base.hp<=0) finish(target.base.team==='enemy');
+    }
+  }
+
+  function popDamage(x,n){
+    const d=document.createElement('div');d.className='damage';d.textContent='-'+n;
+    d.style.left=(x-12)+'px';d.style.bottom='34%';unitsLayer.appendChild(d);setTimeout(()=>d.remove(),600);
+  }
+
+  function updateBaseUI(){
+    const our=document.getElementById('ourBase'), enemy=document.getElementById('enemyBase');
+    our.querySelector('.hpFill').style.width=Math.max(0,ourBase.hp/ourBase.maxHp*100)+'%';
+    enemy.querySelector('.hpFill').style.width=Math.max(0,enemyBase.hp/enemyBase.maxHp*100)+'%';
+    our.querySelector('.hpText').textContent=Math.max(0,Math.ceil(ourBase.hp))+' / '+ourBase.maxHp;
+    enemy.querySelector('.hpText').textContent=Math.max(0,Math.ceil(enemyBase.hp))+' / '+enemyBase.maxHp;
+  }
+
+  function updateUI(){
+    bonesEl.textContent=Math.floor(bones);
+    cards.forEach(c=>{c.disabled=!running||bones<DOGS[c.dataset.dog].cost;});
+  }
+
+  function finish(win){
+    if(!running)return; running=false;
+    document.getElementById('resultEmoji').textContent=win?'🐶🎉':'🏠💥';
+    document.getElementById('resultTitle').textContent=win?'しょうり！':'まけちゃった！';
+    document.getElementById('resultText').textContent=win?'てきの基地をこわした！':'もういちど作戦をかんがえよう';
+    overlay.classList.add('show');updateUI();
+  }
+
+  function reset(){
+    entities.forEach(e=>e.el.remove());entities=[];
+    bones=180;running=true;time=0;enemyTimer=1.7;
+    ourBase.hp=ourBase.maxHp;enemyBase.hp=enemyBase.maxHp;
+    overlay.classList.remove('show');updateBaseUI();updateUI();flash('わんこを出そう！');
+    last=performance.now();
+  }
+
+  function step(now){
+    const dt=Math.min(.045,(now-last)/1000);last=now;
+    if(running){
+      time+=dt;
+      bones=Math.min(999,bones+18*dt);
+      enemyTimer-=dt;
+      if(enemyTimer<=0){spawnEnemy(); enemyTimer=Math.max(1.65,3.35-time*.018)+Math.random()*1.25;}
+
+      for(const e of entities){
+        if(e.dead)continue;
+        const target=nearestTarget(e);
+        e.attackClock-=dt;
+        if(target.dist<=e.range){
+          if(e.attackClock<=0){
+            e.attackClock=e.cooldown;
+            e.el.classList.remove('attack');void e.el.offsetWidth;e.el.classList.add('attack');
+            damageTarget(e,target,e.damage);
+          }
+        }else{
+          const dir=e.team==='ours'?-1:1;
+          e.x+=dir*e.speed*dt;
+        }
+        renderEntity(e);
+      }
+      entities=entities.filter(e=>!e.dead);
+      updateUI();
+    }
+    requestAnimationFrame(step);
+  }
+
+  cards.forEach(c=>c.addEventListener('click',()=>spawnDog(c.dataset.dog)));
+  document.getElementById('restart').addEventListener('click',reset);
+  window.addEventListener('resize',()=>entities.forEach(renderEntity));
+  updateBaseUI();updateUI();setTimeout(()=>flash('右の基地から出撃！'),450);
+  requestAnimationFrame(step);
+})();
+</script>
+</body>
+</html>
