@@ -11,7 +11,7 @@ For My Sons 内で育てる子ども向け3D工作アプリです。
 
 - 作業中はブラウザの LocalStorage に自動保存
 - 明示的な「☁ セーブ」で、現在選択中の For My Sons プロフィールへ保存
-- 保存先は `For-My-Sons-save/saves/{profileId}.json` の `apps.kids-3d-playgrand`
-- 「☁ よみこむ」で別端末から続きを復元
+- 作品本体の保存先は `For-My-Sons-save/profiles/{profileId}/apps/kids-3d-playgrand/project.json`
+- `saves/{profileId}.json` は3D保存では更新しないため、他アプリのセーブと分離される\n- 旧 `saves/{profileId}.json > apps.kids-3d-playgrand` が存在する場合のみ、読み込み時に専用ファイルへ移行\n- 「☁ よみこむ」で別端末から続きを復元
 
 成熟後に必要なタイミングで公開用リポジトリへ同期します。
