@@ -49,7 +49,22 @@
     @keyframes hit{50%{transform:translateX(5px) rotate(7deg)}}
     @keyframes float{to{transform:translateY(-32px) scale(.85);opacity:0}}
     footer{padding:9px 10px max(10px,env(safe-area-inset-bottom));background:#fff9ee;border-top:3px solid var(--line);z-index:5}
-    .deck{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;max-width:760px;margin:auto}
+    .controls{display:flex;gap:8px;max-width:860px;margin:auto;align-items:stretch}
+    .deck{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;flex:1;min-width:0}
+    .cannon{width:94px;flex:0 0 94px;border:2.5px solid var(--line);border-radius:16px;background:#ece8df;box-shadow:0 4px 0 var(--line);padding:7px 6px 6px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;font-weight:1000;touch-action:manipulation}
+    .cannon.ready{background:#ffe36d;animation:cannonReady .7s ease-in-out infinite alternate}
+    .cannon:active:not(:disabled){transform:translateY(3px);box-shadow:0 1px 0 var(--line)}
+    .cannon:disabled{opacity:.62}
+    .cannonIcon{font-size:30px;line-height:1}.cannonLabel{font-size:11px;line-height:1}
+    .chargeTrack{width:74px;height:9px;border:1.5px solid var(--line);border-radius:99px;background:white;overflow:hidden}
+    .chargeFill{height:100%;width:0;background:#f0a93a;transition:width .12s linear}
+    .cannon.ready .chargeFill{background:#e25545}
+    #cannonFx{position:absolute;inset:0;z-index:12;pointer-events:none;overflow:hidden}
+    .beam{position:absolute;right:7.5%;left:7.5%;bottom:30%;height:12px;border:3px solid #fff;border-radius:99px;background:#ffd94a;box-shadow:0 0 14px 5px rgba(255,215,60,.8);transform-origin:right center;animation:beam .34s ease-out forwards}
+    .blast{position:absolute;right:5.5%;bottom:24%;font-size:64px;animation:blast .36s ease-out forwards}
+    @keyframes beam{0%{transform:scaleX(.02);opacity:1}45%{transform:scaleX(1);opacity:1}100%{transform:scaleX(1);opacity:0}}
+    @keyframes blast{0%{transform:scale(.3) rotate(-20deg);opacity:1}100%{transform:scale(1.35) rotate(12deg);opacity:0}}
+    @keyframes cannonReady{to{filter:brightness(1.08);transform:translateY(-1px)}}
     .card{position:relative;min-height:74px;border:2.5px solid var(--line);border-radius:16px;background:white;box-shadow:0 4px 0 var(--line);display:grid;grid-template-columns:auto 1fr;align-items:center;gap:6px;padding:6px 8px;text-align:left;touch-action:manipulation}
     .card:active:not(:disabled){transform:translateY(3px);box-shadow:0 1px 0 var(--line)}
     .card:disabled{opacity:.43;filter:grayscale(.4)}
@@ -65,6 +80,7 @@
       header{padding-bottom:5px}.home{width:36px;height:36px}.boneBox{padding:5px 9px}
       .base{bottom:17%;width:70px;height:96px}.unit{bottom:19%}
       footer{padding-top:7px}.card{min-height:67px;padding:5px}.card .dog{font-size:32px}.card .name{font-size:11px}
+      .controls{gap:6px}.cannon{width:78px;flex-basis:78px;padding:5px 3px}.chargeTrack{width:62px}.cannonIcon{font-size:27px}
     }
   </style>
 </head>
@@ -88,6 +104,7 @@
       <div class="tower"></div><div class="hpTrack"><div class="hpFill"></div></div><div class="hpText"></div>
     </div>
     <div id="units"></div>
+    <div id="cannonFx"></div>
 
     <div id="overlay">
       <div class="result">
@@ -100,10 +117,17 @@
   </main>
 
   <footer>
-    <div class="deck">
-      <button class="card" data-dog="shiba"><span class="dog">🐕</span><span><div class="name">しばわん</div><div class="cost">🦴 80</div></span></button>
-      <button class="card" data-dog="dash"><span class="dog">🐶</span><span><div class="name">ダッシュわん</div><div class="cost">🦴 150</div></span></button>
-      <button class="card" data-dog="big"><span class="dog">🐩</span><span><div class="name">でかわん</div><div class="cost">🦴 280</div></span></button>
+    <div class="controls">
+      <div class="deck">
+        <button class="card" data-dog="shiba"><span class="dog">🐕</span><span><div class="name">しばわん</div><div class="cost">🦴 80</div></span></button>
+        <button class="card" data-dog="dash"><span class="dog">🐶</span><span><div class="name">ダッシュわん</div><div class="cost">🦴 150</div></span></button>
+        <button class="card" data-dog="big"><span class="dog">🐩</span><span><div class="name">でかわん</div><div class="cost">🦴 280</div></span></button>
+      </div>
+      <button class="cannon" id="cannonBtn" disabled aria-label="わんこ砲">
+        <span class="cannonIcon">💥</span>
+        <span class="cannonLabel">わんこ砲</span>
+        <span class="chargeTrack"><span class="chargeFill" id="chargeFill"></span></span>
+      </button>
     </div>
   </footer>
 </div>
@@ -116,6 +140,9 @@
   const message = document.getElementById('message');
   const overlay = document.getElementById('overlay');
   const cards = [...document.querySelectorAll('.card')];
+  const cannonBtn = document.getElementById('cannonBtn');
+  const chargeFill = document.getElementById('chargeFill');
+  const cannonFx = document.getElementById('cannonFx');
 
   const DOGS = {
     shiba:{cost:80,hp:115,damage:22,speed:42,range:43,cooldown:.72,sprite:'🐕',className:''},
@@ -129,6 +156,10 @@
   ];
 
   let entities=[], bones=180, running=true, last=performance.now(), enemyTimer=1.8, time=0;
+  const CANNON_CHARGE_TIME=10;
+  const CANNON_DAMAGE=75;
+  const CANNON_KNOCKBACK=55;
+  let cannonCharge=0;
   const ourBase={team:'ours',hp:1500,maxHp:1500};
   const enemyBase={team:'enemy',hp:1300,maxHp:1300};
 
@@ -211,6 +242,34 @@
     d.style.left=(screenX(x)-12)+'px';d.style.bottom='34%';unitsLayer.appendChild(d);setTimeout(()=>d.remove(),600);
   }
 
+  function fireCannon(){
+    if(!running||cannonCharge<CANNON_CHARGE_TIME)return;
+    cannonCharge=0;
+    const beam=document.createElement('div');beam.className='beam';cannonFx.appendChild(beam);
+    const blast=document.createElement('div');blast.className='blast';blast.textContent='💥';cannonFx.appendChild(blast);
+    setTimeout(()=>{beam.remove();blast.remove();},420);
+
+    let hits=0;
+    for(const e of entities){
+      if(e.dead||e.team!=='enemy')continue;
+      hits++;
+      e.hp-=CANNON_DAMAGE;
+      e.x=Math.max(BASE_X.enemy+SPAWN_OFFSET,e.x-CANNON_KNOCKBACK);
+      e.el.classList.remove('hit');void e.el.offsetWidth;e.el.classList.add('hit');
+      popDamage(e.x,CANNON_DAMAGE);
+      if(e.hp<=0){
+        e.dead=true;
+        e.el.style.opacity='0';
+        e.el.style.transform='translateX(-50%) scale(.3)';
+        setTimeout(()=>e.el.remove(),180);
+      }else{
+        renderEntity(e);
+      }
+    }
+    flash(hits?'わんこ砲 発射！':'わんこ砲 発射！');
+    updateUI();
+  }
+
   function updateBaseUI(){
     const our=document.getElementById('ourBase'), enemy=document.getElementById('enemyBase');
     our.querySelector('.hpFill').style.width=Math.max(0,ourBase.hp/ourBase.maxHp*100)+'%';
@@ -222,6 +281,12 @@
   function updateUI(){
     bonesEl.textContent=Math.floor(bones);
     cards.forEach(c=>{c.disabled=!running||bones<DOGS[c.dataset.dog].cost;});
+    const ratio=Math.min(1,cannonCharge/CANNON_CHARGE_TIME);
+    chargeFill.style.width=(ratio*100)+'%';
+    const ready=running&&ratio>=1;
+    cannonBtn.disabled=!ready;
+    cannonBtn.classList.toggle('ready',ready);
+    cannonBtn.querySelector('.cannonLabel').textContent=ready?'発射！':'わんこ砲';
   }
 
   function finish(win){
@@ -234,7 +299,7 @@
 
   function reset(){
     entities.forEach(e=>e.el.remove());entities=[];
-    bones=180;running=true;time=0;enemyTimer=1.7;
+    bones=180;running=true;time=0;enemyTimer=1.7;cannonCharge=0;
     ourBase.hp=ourBase.maxHp;enemyBase.hp=enemyBase.maxHp;
     overlay.classList.remove('show');updateBaseUI();updateUI();flash('わんこを出そう！');
     last=performance.now();
@@ -245,6 +310,7 @@
     if(running){
       time+=dt;
       bones=Math.min(999,bones+18*dt);
+      cannonCharge=Math.min(CANNON_CHARGE_TIME,cannonCharge+dt);
       enemyTimer-=dt;
       if(enemyTimer<=0){spawnEnemy(); enemyTimer=Math.max(1.65,3.35-time*.018)+Math.random()*1.25;}
 
@@ -274,6 +340,7 @@
   document.addEventListener('gesturestart',(event)=>event.preventDefault(),{passive:false});
 
   cards.forEach(c=>c.addEventListener('click',()=>spawnDog(c.dataset.dog)));
+  cannonBtn.addEventListener('click',fireCannon);
   document.getElementById('restart').addEventListener('click',reset);
   window.addEventListener('resize',()=>entities.forEach(renderEntity));
   updateBaseUI();updateUI();setTimeout(()=>flash('右の基地から出撃！'),450);
