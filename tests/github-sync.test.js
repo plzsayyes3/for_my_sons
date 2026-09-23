@@ -144,3 +144,21 @@ test('merges wanko app data into an existing profile save without dropping legac
   assert.equal(saved.revision, 5);
   assert.equal(saved.apps['wanko-war'].progress.selectedStageId, 'S002');
 });
+
+
+test('writePath refuses to overwrite a file that appeared after an expected-absent read', async () => {
+  const putRequests = [];
+  const { sync } = await setup(async (_url, options) => {
+    if (options.method === 'PUT') putRequests.push(options);
+    return options.method === 'GET'
+      ? response(200, { content: Buffer.from('{}').toString('base64'), sha: 'sha-surprise' })
+      : response(200, { content: { sha: 'unused' } });
+  });
+  const result = await sync.writePath(
+    'profiles/profile-1/apps/kids-3d-playgrand/project.json',
+    { version: 1, project: {} },
+    { sha: '__absent__' }
+  );
+  assert.deepEqual(result, { status: 'conflict', remoteSha: 'sha-surprise' });
+  assert.equal(putRequests.length, 0);
+});
