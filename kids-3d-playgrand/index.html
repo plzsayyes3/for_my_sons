@@ -22,7 +22,7 @@ dialog{border:0;border-radius:20px;padding:0;width:min(430px,calc(100% - 28px));
 #stage{position:relative;min-width:0;min-height:0;overflow:hidden}
 canvas{display:block;width:100%;height:100%;touch-action:none;cursor:pointer;-webkit-user-select:none;user-select:none}
 .hint,.status,.error{position:absolute;z-index:3;max-width:calc(100% - 20px);background:rgba(255,255,255,.93);border-radius:12px;padding:9px 11px;font-size:13px;line-height:1.4;box-shadow:0 3px 16px #0001;pointer-events:none;overflow-wrap:anywhere}
-.hint{left:max(10px,env(safe-area-inset-left));top:10px;max-width:min(365px,calc(100% - 20px))}.status{right:max(10px,env(safe-area-inset-right));top:10px;font-weight:800}.error{display:none;left:max(10px,env(safe-area-inset-left));right:max(10px,env(safe-area-inset-right));bottom:10px;color:#a3212a;border:1px solid #efb6b6}.brand{font-weight:900;flex:0 0 auto;white-space:nowrap}#opHelp{flex:0 0 auto;min-width:max-content;font-size:14px;line-height:1.3;white-space:nowrap}
+.hint{left:max(10px,env(safe-area-inset-left));top:10px;max-width:min(365px,calc(100% - 20px))}.status{right:max(10px,env(safe-area-inset-right));top:10px;max-width:min(320px,45%);font-weight:800}.error{display:none;left:max(10px,env(safe-area-inset-left));right:max(10px,env(safe-area-inset-right));bottom:10px;color:#a3212a;border:1px solid #efb6b6}.brand{font-weight:900;flex:0 0 auto;white-space:nowrap}#opHelp{flex:0 0 auto;min-width:max-content;font-size:14px;line-height:1.3;white-space:nowrap}
 @media(max-width:700px){
   .brand{display:none}
   .bar{gap:6px;padding-left:max(7px,env(safe-area-inset-left));padding-right:max(7px,env(safe-area-inset-right))}
@@ -33,7 +33,7 @@ canvas{display:block;width:100%;height:100%;touch-action:none;cursor:pointer;-we
   .profilePill{font-size:12px}
   .status{top:8px;right:max(8px,env(safe-area-inset-right));max-width:calc(100% - 16px)}
   .hint{top:auto;bottom:8px;left:max(8px,env(safe-area-inset-left));max-width:min(300px,calc(100% - 16px));font-size:11px;padding:7px 9px}
-  .error{left:max(8px,env(safe-area-inset-left));right:max(8px,env(safe-area-inset-right));bottom:56px;font-size:12px}
+  .error{left:max(8px,env(safe-area-inset-left));right:max(8px,env(safe-area-inset-right));bottom:72px;font-size:12px}
   #opHelp{font-size:12px}
   .dialogBody{padding:18px}
   .dialogActions{display:grid;grid-template-columns:1fr 1fr}
@@ -44,10 +44,10 @@ canvas{display:block;width:100%;height:100%;touch-action:none;cursor:pointer;-we
   .topbar{padding-top:max(5px,env(safe-area-inset-top));padding-bottom:5px}
   .modebar{padding-top:4px;padding-bottom:4px}
   .bottom{padding-top:4px;padding-bottom:max(5px,env(safe-area-inset-bottom))}
-  .btn{min-height:40px;padding:7px 10px;font-size:13px;border-radius:11px}
+  .btn{min-height:44px;padding:7px 10px;font-size:13px;border-radius:11px}
   .profilePill{min-height:34px;padding:6px 9px;font-size:11px}
   #opHelp{font-size:11px}
-  .status{top:6px;font-size:11px;padding:6px 8px}
+  .status{top:6px;max-width:48%;font-size:11px;padding:6px 8px}
   .hint{bottom:6px;max-width:min(340px,55vw);font-size:10px;line-height:1.25;padding:6px 8px}
   .error{bottom:50px;font-size:11px;padding:7px 9px}
   dialog{max-height:calc(100dvh - 16px)}
