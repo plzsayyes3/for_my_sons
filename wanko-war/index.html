@@ -145,8 +145,8 @@
 <script src="../shared/wanko-cloud.js"></script>
 <script src="../shared/official-wankos.js?v=3"></script>
 <script src="../shared/wanko-library.js"></script>
-<script src="../shared/wanko-game-data.js?v=1"></script>
-<script src="../shared/wanko-game-progress.js?v=1"></script>
+<script src="../shared/wanko-game-data.js?v=2"></script>
+<script src="../shared/wanko-game-progress.js?v=2"></script>
 <script>
 (() => {
   const field = document.getElementById('field');
@@ -182,7 +182,7 @@
   const CANNON_KNOCKBACK=55;
   let cannonCharge=0;
   const ourBase={team:'ours',hp:1500,maxHp:1500};
-  const enemyBase={team:'enemy',hp:1300,maxHp:1300};
+  const enemyBase={team:'enemy',hp:500,maxHp:500};
 
   // Battle physics use a fixed logical stage so portrait/landscape never changes difficulty.
   const WORLD_WIDTH=800;

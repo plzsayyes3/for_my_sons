@@ -105,7 +105,7 @@
         boneIncomeScale: sequence % 12 === 0 ? 1.2 : 1,
         enemyBaseHpScale: sequence % 10 === 0 ? 1.08 : 1
       },
-      baseHp: Math.round(1300 * (1 + (sequence - 1) * .025)),
+      baseHp: Math.round(500 * (1 + (sequence - 1) * .025)),
       unlocks: sequence < 118 ? `S${String(sequence + 1).padStart(3, '0')}` : null
     };
   });

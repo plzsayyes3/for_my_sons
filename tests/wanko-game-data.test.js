@@ -111,9 +111,9 @@ test('builds a stage spawn plan with scaled stats and no undeclared enemies', ()
   assert.equal(game.buildStagePlan('missing'), null);
 });
 
-test('keeps the opening at legacy difficulty and caps late-stage stat growth', () => {
-  assert.equal(game.getStage('S001').baseHp, 1300);
-  assert.ok(game.getStage('S118').baseHp <= 5200);
+test('keeps the opening accessible and caps late-stage stat growth', () => {
+  assert.equal(game.getStage('S001').baseHp, 500);
+  assert.ok(game.getStage('S118').baseHp <= 2200);
   const finalEvents = game.buildStagePlan('S118');
   const lateEnemy = finalEvents.find(event => event.enemyId === 'E12');
   const finalBoss = finalEvents.find(event => event.enemyId === 'B08');
