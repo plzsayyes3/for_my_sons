@@ -230,6 +230,9 @@
   function spawnEnemy(event){
     const character=GameData.getCharacter(event.enemyId);
     if(!character)return;
+    if(!progressState?.discoveredCharacterIds.includes(event.enemyId)){
+      Progress.discoverCharacter(event.enemyId).then(refreshProgressState).catch(error=>console.warn('Enemy discovery save failed',error));
+    }
     createEntity({...character,stats:event.stats,id:event.enemyId},'enemy');
   }
 

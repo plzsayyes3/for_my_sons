@@ -89,13 +89,13 @@
     const sequence = index + 1;
     const enemyCount = Math.min(12, 2 + Math.floor((sequence - 1) / 10));
     const enemyId = `E${String(((sequence - 1) % enemyCount) + 1).padStart(2, '0')}`;
-    const scale = 1 + (sequence - 1) * .095;
+    const scale = 1 + (sequence - 1) * .02;
     const enemyEvents = [
-      { at: 3, enemyId, count: 2 + Math.floor(sequence / 20), interval: 2.3, hpScale: scale, damageScale: 1 + (sequence - 1) * .035 },
-      { at: 17, enemyId: `E${String(Math.min(12, Math.ceil(sequence / 10))).padStart(2, '0')}`, count: 2 + Math.floor(sequence / 24), interval: 1.8, hpScale: scale * 1.12, damageScale: 1 + (sequence - 1) * .04 }
+      { at: 3, enemyId, count: 2 + Math.floor(sequence / 20), interval: 2.3, hpScale: scale, damageScale: 1 + (sequence - 1) * .008 },
+      { at: 17, enemyId: `E${String(Math.min(12, Math.ceil(sequence / 10))).padStart(2, '0')}`, count: 2 + Math.floor(sequence / 24), interval: 1.8, hpScale: scale * 1.12, damageScale: 1 + (sequence - 1) * .01 }
     ];
     const bossId = bossStageNumbers.get(sequence);
-    if (bossId) enemyEvents.push({ at: 34, enemyId: bossId, count: 1, interval: 0, hpScale: 1 + sequence * .11, damageScale: 1 + sequence * .045 });
+    if (bossId) enemyEvents.push({ at: 34, enemyId: bossId, count: 1, interval: 0, hpScale: 1 + sequence * .01, damageScale: 1 + sequence * .007 });
     return {
       id: `S${String(sequence).padStart(3, '0')}`,
       sequence,
@@ -103,9 +103,9 @@
       enemyEvents,
       traits: {
         boneIncomeScale: sequence % 12 === 0 ? 1.2 : 1,
-        enemyBaseHpScale: sequence % 10 === 0 ? 1.25 : 1
+        enemyBaseHpScale: sequence % 10 === 0 ? 1.08 : 1
       },
-      baseHp: Math.round(1300 * (1 + sequence * .065)),
+      baseHp: Math.round(1300 * (1 + (sequence - 1) * .025)),
       unlocks: sequence < 118 ? `S${String(sequence + 1).padStart(3, '0')}` : null
     };
   });

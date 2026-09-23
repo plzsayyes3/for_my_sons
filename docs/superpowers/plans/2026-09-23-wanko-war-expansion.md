@@ -62,11 +62,11 @@
 - Modify: `shared/wanko-library.js`
 
 **Interfaces:**
-- `WankoGameProgress.getState()` は `{selectedStageId, discoveredElementIds, clearedStageIds}` を返す。
-- `selectStage(stageId)`, `discoverStage(stageId)`, `completeStage(stageId)`, `isStageUnlocked(stageId)`, `isCharacterUnlocked(characterId)` を非同期APIとして公開する。
+- `WankoGameProgress.getState()` は `{selectedStageId, discoveredElementIds, discoveredCharacterIds, clearedStageIds}` を返す。
+- `selectStage(stageId)`, `discoverStage(stageId)`, `discoverCharacter(characterId)`, `completeStage(stageId)`, `isStageUnlocked(stageId)`, `isCharacterUnlocked(characterId)` を非同期APIとして公開する。
 - モジュールは `createProgressStore(storage, definitions)` をNodeテスト向けに公開し、ブラウザーでは同じロジックを `WankoLibrary.getMeta/setMeta` に接続する。
 - 永続化は `WankoLibrary.getMeta(key)` / `setMeta(key,value)` を通し、キーは `wankoGameProgressV1` とする。
-- 初期状態ではS001のみ解放。ステージ開始時に選択と発見を記録し、勝利時にクリアを加算する。次ステージの解放は隣接する直前ステージのクリアで判定する。
+- 初期状態ではS001のみ解放。ステージ開始時に選択と元素発見を記録し、敵の初出現時に敵IDを発見済みにし、勝利時にクリアを加算する。次ステージの解放は隣接する直前ステージのクリアで判定する。
 
 - [ ] **Step 1: 失敗する進行テストを書く。** メモリ保存器を注入できる純粋な状態処理関数を使い、初期状態、S001以外の未解放拒否、発見、勝利後の次面解放、敗北時のクリア非変更、重複クリアの冪等性、不正保存値の既定値復旧をテストする。
 - [ ] **Step 2: テストが仕様どおり失敗することを確認する。** `node --test tests/wanko-game-progress.test.js` を実行する。
@@ -83,7 +83,7 @@
 
 **Interfaces:**
 - バトルはURL `?stage=S001` を読み、なければ進行APIの選択済みステージを使う。
-- ステージ一覧/選択UIから未解放面は開始不可。`WankoGameProgress.discoverStage` は開始時、`completeStage` は勝利時に呼ぶ。
+- ステージ一覧/選択UIから未解放面は開始不可。`WankoGameProgress.startStage` は開始時、`discoverCharacter` は敵の出現時、`completeStage` は勝利時に呼ぶ。
 - 敵出現はイベント定義から時刻順に消費し、倍率を基礎ステータスに適用する。リスタートは同じstageIdを再読込する。
 - 味方8枠は解放状態に応じて表示する。公式/自作の現行カードは既存IDで動作させる。
 

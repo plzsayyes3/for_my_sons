@@ -16,6 +16,7 @@
   const INITIAL_STATE = Object.freeze({
     selectedStageId: 'S001',
     discoveredElementIds: [],
+    discoveredCharacterIds: [],
     clearedStageIds: []
   });
 
@@ -26,6 +27,7 @@
     const stageById = new Map(definitions.stages.map(stage => [stage.id, stage]));
     const elementIds = new Set(definitions.elements.map(element => Number(element.id)));
     const characterById = definitions.characters;
+    let writeQueue = Promise.resolve();
 
     function normalize(raw) {
       const value = raw && typeof raw === 'object' && !Array.isArray(raw) ? raw : {};
@@ -38,8 +40,12 @@
           .map(Number)
           .filter(id => Number.isInteger(id) && elementIds.has(id))
       )].sort((a, b) => a - b);
+      const discoveredCharacterIds = [...new Set(
+        (Array.isArray(value.discoveredCharacterIds) ? value.discoveredCharacterIds : [])
+          .filter(id => characterById[id]?.faction === 'enemy')
+      )].sort();
       const selectedStageId = stageById.has(value.selectedStageId) ? value.selectedStageId : INITIAL_STATE.selectedStageId;
-      return { selectedStageId, discoveredElementIds, clearedStageIds };
+      return { selectedStageId, discoveredElementIds, discoveredCharacterIds, clearedStageIds };
     }
 
     async function readState() {
@@ -49,11 +55,15 @@
       return normalized;
     }
 
-    async function writeState(mutator) {
-      const state = await readState();
-      const next = normalize(mutator(state) || state);
-      await storage.setMeta(META_KEY, next);
-      return next;
+    function writeState(mutator) {
+      const operation = writeQueue.then(async () => {
+        const state = await readState();
+        const next = normalize(await mutator(state) || state);
+        if (JSON.stringify(state) !== JSON.stringify(next)) await storage.setMeta(META_KEY, next);
+        return next;
+      });
+      writeQueue = operation.catch(() => {});
+      return operation;
     }
 
     async function isStageUnlocked(stageId, state = null) {
@@ -68,42 +78,49 @@
     async function selectStage(stageId) {
       const stage = stageById.get(stageId);
       if (!stage) throw new Error(`Unknown stage: ${stageId}`);
-      const state = await readState();
-      if (!await isStageUnlocked(stageId, state)) throw new Error(`Stage is locked: ${stageId}`);
-      return writeState(current => ({ ...current, selectedStageId: stageId }));
+      return writeState(async current => {
+        if (!await isStageUnlocked(stageId, current)) throw new Error(`Stage is locked: ${stageId}`);
+        return { ...current, selectedStageId: stageId };
+      });
     }
 
     async function discoverStage(stageId) {
       const stage = stageById.get(stageId);
       if (!stage) throw new Error(`Unknown stage: ${stageId}`);
-      const state = await readState();
-      if (!await isStageUnlocked(stageId, state)) throw new Error(`Stage is locked: ${stageId}`);
-      return writeState(current => ({
-        ...current,
-        discoveredElementIds: [...current.discoveredElementIds, stage.elementId]
-      }));
+      return writeState(async current => {
+        if (!await isStageUnlocked(stageId, current)) throw new Error(`Stage is locked: ${stageId}`);
+        return { ...current, discoveredElementIds: [...current.discoveredElementIds, stage.elementId] };
+      });
     }
 
     async function startStage(stageId) {
       const stage = stageById.get(stageId);
       if (!stage) throw new Error(`Unknown stage: ${stageId}`);
-      const state = await readState();
-      if (!await isStageUnlocked(stageId, state)) throw new Error(`Stage is locked: ${stageId}`);
-      return writeState(current => ({
-        ...current,
-        selectedStageId: stageId,
-        discoveredElementIds: [...current.discoveredElementIds, stage.elementId]
-      }));
+      return writeState(async current => {
+        if (!await isStageUnlocked(stageId, current)) throw new Error(`Stage is locked: ${stageId}`);
+        return {
+          ...current,
+          selectedStageId: stageId,
+          discoveredElementIds: [...current.discoveredElementIds, stage.elementId]
+        };
+      });
+    }
+
+    async function discoverCharacter(characterId) {
+      const character = characterById[characterId];
+      if (!character) throw new Error(`Unknown character: ${characterId}`);
+      if (character.faction !== 'enemy') throw new Error(`Character is not an enemy: ${characterId}`);
+      return writeState(current => current.discoveredCharacterIds.includes(characterId)
+        ? current
+        : { ...current, discoveredCharacterIds: [...current.discoveredCharacterIds, characterId] });
     }
 
     async function completeStage(stageId) {
       if (!stageById.has(stageId)) throw new Error(`Unknown stage: ${stageId}`);
-      const state = await readState();
-      if (!await isStageUnlocked(stageId, state)) throw new Error(`Stage is locked: ${stageId}`);
-      return writeState(current => ({
-        ...current,
-        clearedStageIds: [...current.clearedStageIds, stageId]
-      }));
+      return writeState(async current => {
+        if (!await isStageUnlocked(stageId, current)) throw new Error(`Stage is locked: ${stageId}`);
+        return { ...current, clearedStageIds: [...current.clearedStageIds, stageId] };
+      });
     }
 
     async function isCharacterUnlocked(characterId) {
@@ -118,6 +135,7 @@
       getState: readState,
       selectStage,
       discoverStage,
+      discoverCharacter,
       startStage,
       completeStage,
       isStageUnlocked,

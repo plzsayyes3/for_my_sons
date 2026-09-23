@@ -17,7 +17,7 @@ function memoryStorage(initialValue = null) {
 test('starts with only S001 playable and unlocked ally slots available', async () => {
   const store = createProgressStore(memoryStorage(), game);
   assert.deepEqual(await store.getState(), {
-    selectedStageId: 'S001', discoveredElementIds: [], clearedStageIds: []
+    selectedStageId: 'S001', discoveredElementIds: [], discoveredCharacterIds: [], clearedStageIds: []
   });
   assert.equal(await store.isStageUnlocked('S001'), true);
   assert.equal(await store.isStageUnlocked('S002'), false);
@@ -31,7 +31,7 @@ test('starting an unlocked stage selects it and discovers its element', async ()
   const store = createProgressStore(storage, game);
   await store.startStage('S001');
   assert.deepEqual(await store.getState(), {
-    selectedStageId: 'S001', discoveredElementIds: [1], clearedStageIds: []
+    selectedStageId: 'S001', discoveredElementIds: [1], discoveredCharacterIds: [], clearedStageIds: []
   });
   assert.equal(storage.key(), 'wankoGameProgressV1');
 });
@@ -42,6 +42,17 @@ test('a locked stage cannot be selected or started', async () => {
   await assert.rejects(store.startStage('S002'), /locked/i);
   await assert.rejects(store.startStage('missing'), /unknown/i);
   assert.deepEqual((await store.getState()).discoveredElementIds, []);
+});
+
+test('records discovered enemy and boss IDs without accepting ally IDs', async () => {
+  const storage = memoryStorage();
+  const store = createProgressStore(storage, game);
+  await store.discoverCharacter('E01');
+  await store.discoverCharacter('B01');
+  await store.discoverCharacter('E01');
+  assert.deepEqual((await store.getState()).discoveredCharacterIds, ['B01', 'E01']);
+  await assert.rejects(store.discoverCharacter('W01'), /not an enemy/i);
+  await assert.rejects(store.discoverCharacter('missing'), /unknown/i);
 });
 
 test('winning unlocks the next stage and its milestone ally without duplicate records', async () => {
@@ -73,10 +84,11 @@ test('repairs malformed saved progress without losing valid IDs', async () => {
   const storage = memoryStorage({
     selectedStageId: 'not-a-stage',
     discoveredElementIds: [1, 1, 'bad', 79],
+    discoveredCharacterIds: ['E01', 'W01', 'E01', 'bad'],
     clearedStageIds: ['S001', 'S999', 'S001']
   });
   const store = createProgressStore(storage, game);
   assert.deepEqual(await store.getState(), {
-    selectedStageId: 'S001', discoveredElementIds: [1, 79], clearedStageIds: ['S001']
+    selectedStageId: 'S001', discoveredElementIds: [1, 79], discoveredCharacterIds: ['E01'], clearedStageIds: ['S001']
   });
 });
