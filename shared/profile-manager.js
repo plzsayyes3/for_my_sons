@@ -1,60 +1,116 @@
-(function (root, factory) {
-  const api = factory(root?.ForMySonsSaveContract);
+((root, factory) => {
+  const api = factory();
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
-  if (root) root.ForMySonsProfileManager = api;
-})(typeof globalThis !== 'undefined' ? globalThis : this, contract => {
-  const CURRENT_KEY = 'forMySons.currentProfileId.v1';
-  const CACHE_KEY = 'forMySons.verifiedProfileSummaries.v1';
-  const validate = id => contract ? contract.validateProfileId(id) : /^[A-Za-z0-9][A-Za-z0-9_-]{0,99}$/.test(id);
+  if (root) root.ForMySonsProfile = api;
+})(typeof globalThis !== 'undefined' ? globalThis : this, () => {
+  const PROFILE_ID_PATTERN = /^profile-[a-z0-9-]+$/;
+  const CURRENT_PROFILE_KEY = 'currentProfile';
 
-  function createProfileManager({ sync, localStorage = globalThis.localStorage, eventTarget = globalThis.window } = {}) {
-    if (!sync?.listProfiles || !localStorage) throw new TypeError('Profile manager dependencies are required');
-    let verified = null;
+  function assertProfileId(profileId) {
+    if (typeof profileId !== 'string' || !PROFILE_ID_PATTERN.test(profileId)) {
+      throw new TypeError('Invalid profile ID');
+    }
+  }
 
-    async function listProfiles({ refresh = false } = {}) {
-      if (!refresh && verified) return verified.map(profile => ({ ...profile }));
-      try {
-        const profiles = await sync.listProfiles();
-        verified = profiles.map(profile => ({ ...profile }));
-        localStorage.setItem(CACHE_KEY, JSON.stringify(verified));
-      } catch (error) {
-        if (verified) return verified.map(profile => ({ ...profile }));
-        try {
-          const cached = JSON.parse(localStorage.getItem(CACHE_KEY) || 'null');
-          if (Array.isArray(cached)) return cached;
-        } catch { /* Ignore malformed local summary cache. */ }
-        throw error;
-      }
-      return verified.map(profile => ({ ...profile }));
+  function timestamp(clock) {
+    return new Date(clock()).toISOString();
+  }
+
+  function normalizeProfile(profile, now) {
+    assertProfileId(profile?.id);
+    const label = typeof profile.label === 'string' && profile.label.trim()
+      ? profile.label.trim()
+      : profile.id;
+    return {
+      id: profile.id,
+      label,
+      createdAt: profile.createdAt || now,
+      updatedAt: profile.updatedAt || now
+    };
+  }
+
+  function createProfileManager(db, options = {}) {
+    if (!db?.get || !db?.put || !db?.list) throw new TypeError('database adapter is required');
+    const clock = options.clock || (() => Date.now());
+    const listeners = new Set();
+
+    function emit(type, profile) {
+      const event = { type, profile: { ...profile } };
+      for (const listener of listeners) listener(event);
+    }
+
+    async function getProfile(profileId) {
+      return db.get('profiles', profileId);
+    }
+
+    async function upsert(profile) {
+      const now = timestamp(clock);
+      const existing = await getProfile(profile?.id);
+      const normalized = normalizeProfile({ ...existing, ...profile }, now);
+      normalized.createdAt = existing?.createdAt || normalized.createdAt;
+      normalized.updatedAt = now;
+      await db.put('profiles', normalized, normalized.id);
+      return { ...normalized };
+    }
+
+    async function ensureProfile(profileId) {
+      const existing = await getProfile(profileId);
+      return existing || upsert({ id: profileId, label: profileId });
     }
 
     async function current() {
-      const profiles = await listProfiles();
-      const id = localStorage.getItem(CURRENT_KEY);
-      return profiles.find(profile => profile.profileId === id) || null;
+      const setting = await db.get('settings', CURRENT_PROFILE_KEY);
+      const profileId = setting?.value || 'profile-1';
+      assertProfileId(profileId);
+      const profile = await ensureProfile(profileId);
+      if (!setting) await db.put('settings', { key: CURRENT_PROFILE_KEY, value: profile.id }, CURRENT_PROFILE_KEY);
+      return { ...profile };
     }
 
-    async function switchProfile(profileId) {
-      if (!validate(profileId)) throw new TypeError('Invalid profile identifier');
-      const profiles = await listProfiles();
-      const selected = profiles.find(profile => profile.profileId === profileId);
-      if (!selected) throw new Error('Profile is not available');
-      localStorage.setItem(CURRENT_KEY, profileId);
-      const event = typeof CustomEvent === 'function'
-        ? new CustomEvent('for-my-sons-profile-changed', { detail: { profileId } })
-        : { type: 'for-my-sons-profile-changed', detail: { profileId } };
-      eventTarget?.dispatchEvent?.(event);
-      return { ...selected };
+    async function list() {
+      return (await db.list('profiles')).filter(profile => {
+        try { assertProfileId(profile?.id); return true; } catch { return false; }
+      }).map(profile => ({ ...profile }));
     }
 
-    async function openSession() {
-      const profile = await current();
-      if (!profile) throw new Error('Select a profile in parent settings first');
-      return Object.freeze({ profileId: profile.profileId });
+    async function setCurrent(profileId) {
+      assertProfileId(profileId);
+      const profile = await ensureProfile(profileId);
+      await db.put('settings', { key: CURRENT_PROFILE_KEY, value: profileId }, CURRENT_PROFILE_KEY);
+      emit('currentProfile', profile);
+      return { ...profile };
     }
 
-    return { listProfiles, current, switchProfile, openSession };
+    async function setAvatar(profileId, blob, contentType = blob?.type || 'application/octet-stream') {
+      assertProfileId(profileId);
+      if (blob == null) throw new TypeError('avatar data is required');
+      const profile = await ensureProfile(profileId);
+      await db.put('avatars', { id: profileId, blob, contentType }, profileId);
+      const updated = await upsert(profile);
+      emit('avatar', updated);
+      return { ...updated };
+    }
+
+    async function getAvatar(profileId) {
+      assertProfileId(profileId);
+      const record = await db.get('avatars', profileId);
+      return record ? { blob: record.blob, contentType: record.contentType } : null;
+    }
+
+    return {
+      list,
+      current,
+      setCurrent,
+      upsert,
+      setAvatar,
+      getAvatar,
+      onChange(listener) {
+        if (typeof listener !== 'function') throw new TypeError('listener must be a function');
+        listeners.add(listener);
+        return () => listeners.delete(listener);
+      }
+    };
   }
 
-  return { createProfileManager };
+  return { PROFILE_ID_PATTERN, createProfileManager };
 });

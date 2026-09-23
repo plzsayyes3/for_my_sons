@@ -62,12 +62,8 @@ async function setupSharedProfile() {
     const api = await window.ForMySonsShared.createForMySons();
     window.ForMySons = api;
     const updateIndicator = async () => {
-      try {
-        const profile = await api.profile.current();
-        indicator.textContent = profile ? `現在: ${profile.label}` : 'プロフィール未設定';
-      } catch {
-        indicator.textContent = 'プロフィール未設定';
-      }
+      const profile = await api.profile.current();
+      indicator.textContent = `現在: ${profile.label}`;
     };
     await updateIndicator();
     window.ForMySonsSettings = window.ForMySonsSettingsView.renderSettings(settingsPanel, api);

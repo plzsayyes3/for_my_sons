@@ -1,79 +1,113 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
-const { createGitHubSync } = require('../shared/github-sync.js');
+const { createMemoryDatabase } = require('../shared/for-my-sons-db.js');
+const { createProfileManager } = require('../shared/profile-manager.js');
+const { createSaveStore } = require('../shared/save-store.js');
+const { createGithubSync } = require('../shared/github-sync.js');
 
-const encoded = value => Buffer.from(JSON.stringify(value)).toString('base64');
-function setup(responses = {}, saveStore = null) {
-  const calls = [];
-  const fetchImpl = async (url, options = {}) => {
-    calls.push({ url: String(url), options });
-    const response = responses[String(url)] || { status: 404, ok: false, json: async () => ({ message: 'not found' }) };
-    return response;
+function response(status, body = {}, headers = {}) {
+  return {
+    status,
+    ok: status >= 200 && status < 300,
+    headers: { get: name => headers[name.toLowerCase()] || null },
+    async json() { return body; }
   };
-  const tokenVault = { withToken: fn => fn('synthetic-token') };
-  const sync = createGitHubSync({ fetchImpl, tokenVault, saveStore, config: { owner: 'example-owner', repo: 'private-save', branch: 'main' } });
-  return { sync, calls };
 }
-const response = (body, sha = 'sha-a') => ({ ok: true, status: 200, json: async () => ({ sha, encoding: 'base64', content: encoded(body) }) });
 
-test('lists profile summaries dynamically in private schema order', async () => {
-  const schemaUrl = 'https://api.github.com/repos/example-owner/private-save/contents/schema.json?ref=main';
-  const listUrl = 'https://api.github.com/repos/example-owner/private-save/contents/saves?ref=main';
-  const fileA = 'https://api.github.com/repos/example-owner/private-save/contents/saves/profile-a.json?ref=main';
-  const fileB = 'https://api.github.com/repos/example-owner/private-save/contents/saves/profile-b.json?ref=main';
-  const { sync } = setup({
-    [schemaUrl]: response({ schemaVersion: 1, profileOrder: ['profile-b', 'profile-a'] }),
-    [listUrl]: { ok: true, status: 200, json: async () => [
-      { path: 'saves/profile-a.json', type: 'file' }, { path: 'saves/profile-b.json', type: 'file' }
-    ] },
-    [fileA]: response({ profileId: 'profile-a', displayName: 'Child A', revision: 1 }),
-    [fileB]: response({ profileId: 'profile-b', displayName: 'Child B', revision: 2 })
+async function setup(fetch) {
+  const db = createMemoryDatabase();
+  const profiles = createProfileManager(db);
+  await profiles.current();
+  const store = createSaveStore(db, profiles);
+  const sync = createGithubSync({
+    fetch,
+    tokenProvider: async () => 'test-pat-never-log',
+    saveStore: store,
+    profileManager: profiles,
+    config: { owner: 'plzsayyes3', repo: 'For-My-Sons-save', branch: 'main' }
   });
-  const profiles = await sync.listProfiles();
-  assert.deepEqual(profiles.map(profile => profile.profileId), ['profile-b', 'profile-a']);
+  return { db, profiles, store, sync };
+}
+
+test('encodes and decodes UTF-8 JSON and binary content', () => {
+  const sync = createGithubSync({ config: {} });
+  const encoded = sync.encodeBase64(new TextEncoder().encode('{"label":"こんにちは"}'));
+  assert.deepEqual(new TextDecoder().decode(sync.decodeBase64(encoded)), '{"label":"こんにちは"}');
+  assert.deepEqual([...sync.decodeBase64(sync.encodeBase64(Uint8Array.from([0, 255])))], [0, 255]);
 });
 
-test('never sends authorization to a non-GitHub API host', async () => {
-  const { sync, calls } = setup();
-  await assert.rejects(sync.requestJson('https://attacker.example/data'));
-  assert.equal(calls.length, 0);
-});
-
-test('uses only the configured GitHub API host and redacts response failures', async () => {
-  const { sync, calls } = setup();
-  await assert.rejects(sync.requestJson('https://api.github.com/repos/example-owner/private-save/contents/schema.json?ref=main'));
-  assert.equal(new URL(calls[0].url).hostname, 'api.github.com');
-  assert.equal(calls[0].options.headers.Authorization, 'Bearer synthetic-token');
-});
-
-test('rejects a private profile path traversal before making an API request', async () => {
-  const { sync, calls } = setup();
-  await assert.rejects(sync.readProfile('../escape'));
-  assert.equal(calls.length, 0);
-});
-
-test('refuses private writes until the additive apps schema is present', async () => {
-  const schemaUrl = 'https://api.github.com/repos/example-owner/private-save/contents/schema.json?ref=main';
-  const { sync, calls } = setup({ [schemaUrl]: response({ schemaVersion: 1, profileOrder: [] }) }, {
-    listPending: async () => [{ profileId: 'profile-a', appId: 'wanko-war', key: 'progress', value: {}, revision: 1 }]
+test('creates a new remote file without leaking the PAT', async () => {
+  const calls = [];
+  const { store, sync } = await setup(async (url, options) => {
+    calls.push({ url, options });
+    return options.method === 'GET'
+      ? response(404, { message: 'Not Found' })
+      : response(201, { content: { sha: 'sha-created' } });
   });
-  await assert.rejects(sync.syncProfile('profile-a'), /schema does not yet support/i);
-  assert.equal(calls.some(call => call.options.method === 'PUT'), false);
+  const record = await store.writeJson('paint', 'progress', { score: 2 });
+  const result = await sync.pushRecord(record);
+  assert.equal(result.status, 'created');
+  assert.equal(calls.length, 2);
+  assert.equal(calls[0].options.method, 'GET');
+  assert.equal(calls[1].options.method, 'PUT');
+  assert.equal(calls[1].options.headers.Authorization, 'Bearer test-pat-never-log');
+  assert.equal(JSON.stringify(result).includes('test-pat-never-log'), false);
+  assert.equal((await store.readRecord(record)).syncState, 'synced');
 });
 
-test('does not overwrite an existing same-app remote value without a matching baseline', async () => {
-  const schemaUrl = 'https://api.github.com/repos/example-owner/private-save/contents/schema.json?ref=main';
-  const profileUrl = 'https://api.github.com/repos/example-owner/private-save/contents/saves/profile-a.json?ref=main';
-  let markedConflict = false;
-  const { sync, calls } = setup({
-    [schemaUrl]: response({ schemaVersion: 2, profileOrder: [], apps: { description: 'profile app-scoped records' } }),
-    [profileUrl]: response({ profileId: 'profile-a', revision: 2, apps: { 'wanko-war': { records: { progress: { clearedStageIds: ['S001'] } } } } })
-  }, {
-    listPending: async () => [{ profileId: 'profile-a', appId: 'wanko-war', key: 'progress', value: { clearedStageIds: [] }, revision: 1 }],
-    markConflict: async () => { markedConflict = true; }
+test('updates a matching SHA and sends the configured branch', async () => {
+  const calls = [];
+  const { store, sync } = await setup(async (url, options) => {
+    calls.push({ url, options });
+    if (options.method === 'GET') return response(200, { content: Buffer.from('{}').toString('base64'), sha: 'sha-old' });
+    return response(200, { content: '', sha: 'sha-new' });
   });
-  const result = await sync.syncProfile('profile-a');
-  assert.equal(result[0].status, 'conflict');
-  assert.equal(markedConflict, true);
-  assert.equal(calls.some(call => call.options.method === 'PUT'), false);
+  const record = await store.writeJson('paint', 'progress', { score: 3 });
+  await store.markSynced(record, 'sha-old');
+  const updated = await store.writeJson('paint', 'progress', { score: 4 });
+  updated.remoteSha = 'sha-old';
+  const result = await sync.pushRecord(updated);
+  assert.equal(result.status, 'synced');
+  const payload = JSON.parse(calls[1].options.body);
+  assert.equal(payload.branch, 'main');
+  assert.equal(payload.sha, 'sha-old');
+});
+
+test('refuses to overwrite a changed remote SHA', async () => {
+  const putRequests = [];
+  const { store, sync } = await setup(async (_url, options) => {
+    if (options.method === 'PUT') putRequests.push(options);
+    return options.method === 'GET'
+      ? response(200, { content: Buffer.from('{}').toString('base64'), sha: 'sha-new' })
+      : response(200, { sha: 'unused' });
+  });
+  const record = await store.writeJson('paint', 'progress', { score: 4 });
+  record.remoteSha = 'sha-old';
+  const result = await sync.pushRecord(record);
+  assert.deepEqual(result, { status: 'conflict', remoteSha: 'sha-new' });
+  assert.equal(putRequests.length, 0);
+  assert.equal((await store.readRecord(record)).syncState, 'conflict');
+});
+
+test('returns safe statuses for missing auth and network failure', async () => {
+  const noAuth = createGithubSync({ fetch: async () => response(200), tokenProvider: async () => '', config: {} });
+  assert.deepEqual(await noAuth.pushRecord({ path: 'profiles/profile-1/apps/paint/progress.json', value: '{}' }), { status: 'auth-error' });
+
+  const { store, sync } = await setup(async () => { throw new Error('offline-secret'); });
+  const record = await store.writeJson('paint', 'progress', { score: 5 });
+  const result = await sync.pushRecord(record);
+  assert.equal(result.status, 'pending');
+  assert.equal(JSON.stringify(result).includes('offline-secret'), false);
+});
+
+test('restores binary records through the binary repository path', async () => {
+  const calls = [];
+  const { store, sync } = await setup(async (url, options) => {
+    calls.push({ url, options });
+    return response(200, { content: Buffer.from([7, 6, 5]).toString('base64'), sha: 'sha-binary' });
+  });
+  await store.writeBinary('kids-3d', 'model-stl', Uint8Array.from([1]), 'model/stl', 'stl');
+  await sync.pullRecord({ profileId: 'profile-1', appId: 'kids-3d', saveKey: 'model-stl' });
+  assert.match(calls[0].url, /\/files\/kids-3d\/model-stl\.stl$/);
+  assert.deepEqual([...((await store.readBinary('kids-3d', 'model-stl')).bytes)], [7, 6, 5]);
 });

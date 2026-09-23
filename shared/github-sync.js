@@ -1,138 +1,197 @@
-(function (root, factory) {
-  const api = factory(root?.ForMySonsSaveContract);
+((root, factory) => {
+  const api = factory();
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
-  if (root) root.ForMySonsGitHubSync = api;
-})(typeof globalThis !== 'undefined' ? globalThis : this, contract => {
-  const encoder = new TextEncoder();
-  const decoder = new TextDecoder();
-  const encode = value => encodeURIComponent(value);
-  const b64encode = text => typeof Buffer !== 'undefined'
-    ? Buffer.from(text, 'utf8').toString('base64')
-    : btoa(Array.from(encoder.encode(text), byte => String.fromCharCode(byte)).join(''));
-  const b64decode = value => {
-    const binary = typeof Buffer !== 'undefined' ? Buffer.from(value, 'base64').toString('binary') : atob(value.replace(/\s/g, ''));
-    if (typeof Buffer !== 'undefined') return Buffer.from(value, 'base64').toString('utf8');
-    return decoder.decode(Uint8Array.from(binary, character => character.charCodeAt(0)));
-  };
+  if (root) root.ForMySonsGithubSync = api;
+})(typeof globalThis !== 'undefined' ? globalThis : this, () => {
+  const API_VERSION = '2022-11-28';
 
-  function createGitHubSync({ fetchImpl = globalThis.fetch, tokenVault, config, saveStore = null } = {}) {
-    if (!fetchImpl || !tokenVault?.withToken || !config?.owner || !config?.repo) throw new TypeError('GitHub sync dependencies are required');
-    const apiBase = config.apiBase || 'https://api.github.com';
-    const base = `${apiBase}/repos/${encode(config.owner)}/${encode(config.repo)}/contents`;
-    const branch = config.branch || 'main';
+  function toBytes(value) {
+    if (value instanceof Uint8Array) return value;
+    if (typeof ArrayBuffer !== 'undefined' && value instanceof ArrayBuffer) return new Uint8Array(value);
+    return new TextEncoder().encode(typeof value === 'string' ? value : JSON.stringify(value));
+  }
 
-    async function requestJson(url, init = {}) {
-      const parsed = new URL(url);
-      if (parsed.origin !== 'https://api.github.com' || !parsed.pathname.startsWith(`/repos/${encode(config.owner)}/${encode(config.repo)}/`)) {
-        throw new Error('GitHub request destination is not allowed');
+  function encodeBase64(value) {
+    const bytes = toBytes(value);
+    if (typeof Buffer !== 'undefined') return Buffer.from(bytes).toString('base64');
+    let binary = '';
+    for (const byte of bytes) binary += String.fromCharCode(byte);
+    return btoa(binary);
+  }
+
+  function decodeBase64(value) {
+    const normalized = String(value || '').replace(/\s/g, '');
+    if (typeof Buffer !== 'undefined') return new Uint8Array(Buffer.from(normalized, 'base64'));
+    const binary = atob(normalized);
+    return Uint8Array.from(binary, character => character.charCodeAt(0));
+  }
+
+  function createGithubSync({ fetch: fetcher = globalThis.fetch, tokenProvider = async () => '', saveStore, profileManager, config = {} } = {}) {
+    const settings = {
+      owner: config.owner || 'plzsayyes3',
+      repo: config.repo || 'For-My-Sons-save',
+      branch: config.branch || 'main',
+      apiBase: (config.apiBase || 'https://api.github.com').replace(/\/$/, '')
+    };
+    if (typeof fetcher !== 'function') throw new TypeError('fetch is required');
+
+    function endpoint(path) {
+      return `${settings.apiBase}/repos/${encodeURIComponent(settings.owner)}/${encodeURIComponent(settings.repo)}/contents/${String(path).split('/').map(encodeURIComponent).join('/')}`;
+    }
+
+    async function token() {
+      return String(await tokenProvider() || '');
+    }
+
+    async function request(path, options = {}) {
+      const pat = await token();
+      if (!pat) {
+        const error = new Error('GitHub authentication is not configured');
+        error.code = 'AUTH_REQUIRED';
+        throw error;
       }
-      return tokenVault.withToken(async token => {
-        let response;
-        try {
-          response = await fetchImpl(parsed.href, {
-            ...init,
-            redirect: 'error',
-            headers: {
-              Accept: 'application/vnd.github+json',
-              'X-GitHub-Api-Version': '2022-11-28',
-              ...(init.headers || {}),
-              Authorization: `Bearer ${token}`
-            }
-          });
-        } catch {
-          throw new Error('GitHub connection failed');
+      return fetcher(endpoint(path), {
+        ...options,
+        headers: {
+          Accept: 'application/vnd.github+json',
+          Authorization: `Bearer ${pat}`,
+          'X-GitHub-Api-Version': API_VERSION,
+          ...(options.headers || {})
         }
-        if (!response.ok) throw Object.assign(new Error(`GitHub request failed (${response.status})`), { status: response.status });
-        return response.json();
       });
     }
 
-    async function contents(path) {
-      const url = `${base}/${path.split('/').map(encode).join('/')}?ref=${encode(branch)}`;
-      const item = await requestJson(url);
-      if (!item.content || item.encoding !== 'base64') throw new Error('Unsupported GitHub content response');
-      return { data: JSON.parse(b64decode(item.content)), sha: item.sha };
-    }
-
-    async function readProfile(profileId) {
-      if (!(contract?.validateProfileId ? safeValidate(profileId) : /^[A-Za-z0-9][A-Za-z0-9_-]{0,99}$/.test(profileId))) throw new TypeError('Invalid profile identifier');
-      return contents(`saves/${profileId}.json`);
-    }
-
-    function safeValidate(value) {
-      try { contract.validateProfileId(value); return true; } catch { return false; }
-    }
-
-    async function listProfiles() {
-      const schema = (await contents('schema.json')).data;
-      const listing = await requestJson(`${base}/saves?ref=${encode(branch)}`);
-      if (!Array.isArray(listing)) throw new Error('Invalid private save listing');
-      const available = new Set(listing.filter(item => item?.type === 'file').map(item => item.path));
-      const files = [];
-      for (const rawId of schema.profileOrder || []) {
-        let profileId;
-        try { profileId = contract?.validateProfileId ? contract.validateProfileId(rawId) : rawId; }
-        catch { continue; }
-        const path = `saves/${profileId}.json`;
-        if (!available.has(path)) continue;
-        try {
-          const { data } = await contents(path);
-          files.push({ path, content: data });
-        } catch { /* A missing/inaccessible profile is not fabricated into the list. */ }
-      }
-      if (contract?.parseProfileIndex) return contract.parseProfileIndex(schema, files).profiles;
-      return files.map(file => ({ profileId: file.content.profileId, label: file.content.displayName, revision: file.content.revision }));
-    }
-
-    async function syncRecord(profileId, record) {
-      const { data: save, sha } = await readProfile(profileId);
-      if (save.profileId !== profileId) throw new Error('Private save identity mismatch');
-      if (record.remoteSha && record.remoteSha !== sha) {
-        await saveStore?.markConflict(profileId, record.appId, record.key, { remoteSha: sha, localRevision: record.revision });
-        return { status: 'conflict', remoteSha: sha };
-      }
-      if (!record.remoteSha && save.apps?.[record.appId]?.records?.[record.key] !== undefined) {
-        await saveStore?.markConflict(profileId, record.appId, record.key, { remoteSha: sha, localRevision: record.revision });
-        return { status: 'conflict', remoteSha: sha };
-      }
-      const app = save.apps?.[record.appId] || { dataVersion: 1, records: {} };
-      const next = {
-        ...save,
-        apps: { ...(save.apps || {}), [record.appId]: { ...app, records: { ...(app.records || {}), [record.key]: record.value } } },
-        revision: (Number(save.revision) || 0) + 1,
-        updatedAt: new Date().toISOString()
-      };
-      try {
-        const result = await requestJson(`${base}/saves/${encode(profileId)}.json`, {
-          method: 'PUT',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ message: 'Update app save data', content: b64encode(JSON.stringify(next, null, 2)), sha, branch })
-        });
-        await saveStore?.markSynced(profileId, record.appId, record.key, result.content?.sha || null);
-        return { status: 'synced', sha: result.content?.sha || null };
-      } catch (error) {
-        if (error.status === 409 || error.status === 422) {
-          await saveStore?.markConflict(profileId, record.appId, record.key, { remoteSha: sha, localRevision: record.revision });
-          return { status: 'conflict', remoteSha: sha };
-        }
+    async function readRemote(path) {
+      const response = await request(path, { method: 'GET' });
+      if (response.status === 404) return { exists: false, content: null, sha: null, etag: null };
+      if (response.status === 401 || response.status === 403) {
+        const error = new Error('GitHub authentication failed');
+        error.code = 'AUTH_FAILED';
         throw error;
       }
+      if (!response.ok) throw new Error(`GitHub read failed (${response.status})`);
+      const body = await response.json();
+      return {
+        exists: true,
+        content: decodeBase64(body.content),
+        sha: body.sha || null,
+        etag: response.headers?.get('etag') || null
+      };
     }
 
-    async function syncProfile(profileId) {
-      if (!saveStore) throw new Error('Local save store is not configured');
-      const schema = (await contents('schema.json')).data;
-      if (Number(schema.schemaVersion) < 2 || !schema.apps || typeof schema.apps !== 'object' || Array.isArray(schema.apps)) {
-        throw new Error('Private save schema does not yet support app-scoped records');
+    async function writePath(path, value, options = {}) {
+      const remote = await readRemote(path);
+      if (options.sha && remote.exists && options.sha !== remote.sha) {
+        return { status: 'conflict', remoteSha: remote.sha };
       }
-      const pending = await saveStore.listPending(profileId);
-      const results = [];
-      for (const record of pending) results.push({ key: record.key, ...(await syncRecord(profileId, record)) });
-      return results;
+      const payload = {
+        message: options.message || `Sync ${path}`,
+        content: encodeBase64(value),
+        branch: settings.branch
+      };
+      if (remote.exists) payload.sha = remote.sha;
+      const response = await request(path, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+      if (response.status === 401 || response.status === 403) return { status: 'auth-error' };
+      if (response.status === 409) return { status: 'conflict', remoteSha: remote.sha };
+      if (!response.ok) return { status: 'pending', reason: 'remote-unavailable' };
+      const body = await response.json();
+      return {
+        status: remote.exists ? 'synced' : 'created',
+        sha: body.content?.sha || body.sha || null
+      };
     }
 
-    return { requestJson, listProfiles, readProfile, syncProfile, syncRecord };
+    async function deletePath(path) {
+      const remote = await readRemote(path);
+      if (!remote.exists) return { status: 'absent' };
+      const response = await request(path, {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ message: `Complete ${path}`, sha: remote.sha, branch: settings.branch })
+      });
+      if (response.status === 401 || response.status === 403) return { status: 'auth-error' };
+      if (response.status === 409) return { status: 'conflict', remoteSha: remote.sha };
+      if (!response.ok) return { status: 'pending', reason: 'remote-unavailable' };
+      return { status: 'deleted' };
+    }
+
+    function contentForRecord(record) {
+      return record.kind === 'binary' ? toBytes(record.value) : new TextEncoder().encode(JSON.stringify(record.value));
+    }
+
+    async function pushRecord(record) {
+      try {
+        if (!await token()) return { status: 'auth-error' };
+        const path = record.path || saveStore.pathFor(record);
+        const remote = await readRemote(path);
+        if (remote.exists && record.remoteSha !== remote.sha) {
+          if (saveStore?.markConflict) await saveStore.markConflict(record, remote.sha);
+          return { status: 'conflict', remoteSha: remote.sha };
+        }
+        const payload = {
+          message: `Sync ${path}`,
+          content: encodeBase64(contentForRecord(record)),
+          branch: settings.branch
+        };
+        if (remote.exists) payload.sha = remote.sha;
+        const response = await request(path, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+        if (response.status === 401 || response.status === 403) return { status: 'auth-error' };
+        if (response.status === 409) return { status: 'conflict', remoteSha: remote.sha };
+        if (!response.ok) return { status: 'pending', reason: 'remote-unavailable' };
+        const body = await response.json();
+        const sha = body.content?.sha || body.sha;
+        if (saveStore?.markSynced && sha) await saveStore.markSynced(record, sha);
+        return { status: remote.exists ? 'synced' : 'created', sha };
+      } catch (error) {
+        if (error?.code === 'AUTH_REQUIRED' || error?.code === 'AUTH_FAILED') return { status: 'auth-error' };
+        return { status: 'pending', reason: 'offline' };
+      }
+    }
+
+    async function pullRecord(identity) {
+      const current = await saveStore.readRecord(identity);
+      const remote = await readRemote(saveStore.pathFor(current || { ...identity, kind: 'json' }));
+      if (!remote.exists) throw new Error('Remote save not found');
+      const profile = await profileManager.current();
+      if (profile.id !== identity.profileId) throw new Error('Profile must be selected before restore');
+      if (current) await saveStore.createSnapshot(identity);
+      const isBinary = current?.kind === 'binary';
+      if (isBinary) await saveStore.writeBinary(identity.appId, identity.saveKey, remote.content, current.contentType, current.extension);
+      else await saveStore.writeJson(identity.appId, identity.saveKey, JSON.parse(new TextDecoder().decode(remote.content)));
+      const next = await saveStore.readRecord(identity);
+      await saveStore.markSynced(next, remote.sha);
+      return saveStore.readRecord(identity);
+    }
+
+    async function status() {
+      const pending = saveStore?.listPending ? await saveStore.listPending() : [];
+      return { configured: Boolean(settings.owner && settings.repo), pending: pending.length, state: pending.length ? 'pending' : 'idle' };
+    }
+
+    function configure(next = {}) {
+      if (next.owner) settings.owner = String(next.owner);
+      if (next.repo) settings.repo = String(next.repo);
+      if (next.branch) settings.branch = String(next.branch);
+      return { owner: settings.owner, repo: settings.repo, branch: settings.branch };
+    }
+
+    return {
+      readRemote,
+      readPath: readRemote,
+      writePath,
+      deletePath,
+      pushRecord,
+      pullRecord,
+      status,
+      configure,
+      encodeBase64,
+      decodeBase64
+    };
   }
 
-  return { createGitHubSync };
+  return { createGithubSync, encodeBase64, decodeBase64 };
 });

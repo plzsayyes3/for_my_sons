@@ -1,152 +1,181 @@
-(function (root, factory) {
-  const api = factory(root?.ForMySonsSaveContract);
+((root, factory) => {
+  const api = factory();
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
   if (root) root.ForMySonsSaveStore = api;
-})(typeof globalThis !== 'undefined' ? globalThis : this, contract => {
-  const SEGMENT = /^[A-Za-z0-9][A-Za-z0-9_.-]{0,99}$/;
+})(typeof globalThis !== 'undefined' ? globalThis : this, () => {
+  const PROFILE_ID_PATTERN = /^profile-[a-z0-9-]+$/;
 
-  function validateSegment(value, label) {
-    if (typeof value !== 'string' || !SEGMENT.test(value) || value === '.' || value === '..') throw new TypeError(`Invalid ${label}`);
-    return value;
+  function assertSegment(value, name) {
+    if (typeof value !== 'string' || !value || value === '.' || value === '..' || /[\\/\u0000]/.test(value)) {
+      throw new TypeError(`${name} contains an unsafe path segment`);
+    }
   }
 
-  function validateProfile(value) {
-    return contract ? contract.validateProfileId(value) : validateSegment(value, 'profile identifier');
+  function assertIdentity(identity) {
+    if (!PROFILE_ID_PATTERN.test(identity?.profileId)) throw new TypeError('Invalid profile ID');
+    assertSegment(identity.appId, 'appId');
+    assertSegment(identity.saveKey, 'saveKey');
   }
 
-  function composite(profileId, appId, key) {
-    validateProfile(profileId);
-    validateSegment(appId, 'app identifier');
-    validateSegment(key, 'save key');
-    return JSON.stringify([profileId, appId, key]);
+  function keyOf(identity) {
+    assertIdentity(identity);
+    return [identity.profileId, identity.appId, identity.saveKey];
   }
 
-  function createSaveStore(adapter) {
-    if (!adapter?.get || !adapter?.put || !adapter?.list) throw new TypeError('Save adapter is incomplete');
-    const channel = typeof BroadcastChannel === 'function' && typeof window !== 'undefined'
-      ? new BroadcastChannel('for-my-sons-save-events-v1')
-      : null;
+  function cloneJson(value) {
+    const encoded = JSON.stringify(value);
+    if (encoded === undefined) throw new TypeError('Value must be JSON-serializable');
+    return JSON.parse(encoded);
+  }
 
-    async function getRecord(profileId, appId, key) {
-      return adapter.get(composite(profileId, appId, key));
+  async function bytesOf(value) {
+    if (value instanceof Uint8Array) return new Uint8Array(value);
+    if (typeof ArrayBuffer !== 'undefined' && value instanceof ArrayBuffer) return new Uint8Array(value.slice(0));
+    if (ArrayBuffer.isView(value)) return new Uint8Array(value.buffer.slice(value.byteOffset, value.byteOffset + value.byteLength));
+    if (typeof Blob !== 'undefined' && value instanceof Blob) return new Uint8Array(await value.arrayBuffer());
+    throw new TypeError('Binary value must be an ArrayBuffer or typed array');
+  }
+
+  function createSaveStore(db, profileManager, clock = Date) {
+    if (!db?.get || !db?.put || !db?.list) throw new TypeError('database adapter is required');
+    if (!profileManager?.current) throw new TypeError('profile manager is required');
+
+    function now() {
+      return new Date(typeof clock === 'function' ? clock() : clock.now()).toISOString();
     }
 
-    async function putRecord(profileId, appId, key, value, kind = 'json') {
-      const storageKey = composite(profileId, appId, key);
-      const create = existing => ({
-        profileId, appId, key, kind, value,
-        updatedAt: new Date().toISOString(),
-        revision: (existing?.revision || 0) + 1,
+    async function currentIdentity(appId, saveKey) {
+      const profile = await profileManager.current();
+      const identity = { profileId: profile.id, appId, saveKey };
+      assertIdentity(identity);
+      return identity;
+    }
+
+    async function readRecord(identity) {
+      assertIdentity(identity);
+      return db.get('saves', keyOf(identity));
+    }
+
+    async function writeRecord(identity, value, kind, contentType, extension) {
+      const existing = await readRecord(identity);
+      const record = {
+        ...(existing || {}),
+        ...identity,
+        value,
+        kind,
+        contentType: contentType || null,
+        extension: extension || (kind === 'json' ? 'json' : 'bin'),
+        localRevision: (existing?.localRevision || 0) + 1,
+        dirty: true,
         syncState: 'pending',
-        ...(existing?.remoteSha ? { remoteSha: existing.remoteSha } : {})
-      });
-      let record;
-      if (adapter.update) record = await adapter.update(storageKey, create);
-      else {
-        record = create(await adapter.get(storageKey));
-        await adapter.put(storageKey, record);
-      }
-      channel?.postMessage({ type: 'save-pending', profileId });
-      return record;
+        updatedAt: now()
+      };
+      await db.put('saves', record, keyOf(identity));
+      return { ...record };
+    }
+
+    async function writeJson(appId, saveKey, value) {
+      const identity = await currentIdentity(appId, saveKey);
+      return writeRecord(identity, cloneJson(value), 'json', 'application/json', 'json');
+    }
+
+    async function readJson(appId, saveKey) {
+      const identity = await currentIdentity(appId, saveKey);
+      const record = await readRecord(identity);
+      return record?.kind === 'json' ? cloneJson(record.value) : null;
+    }
+
+    async function writeBinary(appId, saveKey, bytes, contentType, extension = 'bin') {
+      const identity = await currentIdentity(appId, saveKey);
+      assertSegment(extension, 'extension');
+      return writeRecord(identity, await bytesOf(bytes), 'binary', contentType, extension);
+    }
+
+    async function readBinary(appId, saveKey) {
+      const identity = await currentIdentity(appId, saveKey);
+      const record = await readRecord(identity);
+      if (!record || record.kind !== 'binary') return null;
+      return { bytes: await bytesOf(record.value), contentType: record.contentType, extension: record.extension };
+    }
+
+    async function markSynced(identity, remoteSha) {
+      const record = await readRecord(identity);
+      if (!record) throw new Error('Save record not found');
+      const next = { ...record, remoteSha: String(remoteSha), dirty: false, syncState: 'synced', updatedAt: now() };
+      await db.put('saves', next, keyOf(identity));
+      return { ...next };
+    }
+
+    async function markConflict(identity, remoteSha) {
+      const record = await readRecord(identity);
+      if (!record) throw new Error('Save record not found');
+      const next = { ...record, remoteSha: String(remoteSha), dirty: true, syncState: 'conflict', updatedAt: now() };
+      await db.put('saves', next, keyOf(identity));
+      return { ...next };
+    }
+
+    async function listPending(profileId, options = {}) {
+      const selectedProfileId = profileId || (await profileManager.current()).id;
+      if (!PROFILE_ID_PATTERN.test(selectedProfileId)) throw new TypeError('Invalid profile ID');
+      return (await db.list('saves'))
+        .filter(record => record.profileId === selectedProfileId && (record.dirty || record.syncState === 'pending'))
+        .map(record => options.includeValues ? { ...record } : (({ value, ...withoutValue }) => withoutValue)(record));
+    }
+
+    async function createSnapshot(identity) {
+      const record = await readRecord(identity);
+      if (!record) throw new Error('Save record not found');
+      const snapshotId = `snapshot-${Date.now()}-${record.localRevision}`;
+      const snapshot = { snapshotId, ...identity, value: record.value, kind: record.kind, contentType: record.contentType, extension: record.extension };
+      await db.put('snapshots', snapshot, [...keyOf(identity), snapshotId]);
+      return { ...snapshot };
+    }
+
+    async function restoreSnapshot(identity, snapshotId) {
+      assertIdentity(identity);
+      assertSegment(snapshotId, 'snapshotId');
+      const snapshot = await db.get('snapshots', [...keyOf(identity), snapshotId]);
+      if (!snapshot) throw new Error('Snapshot not found');
+      if (snapshot.kind === 'json') cloneJson(snapshot.value);
+      const current = await readRecord(identity);
+      const next = {
+        ...(current || {}),
+        ...identity,
+        value: snapshot.kind === 'json' ? cloneJson(snapshot.value) : await bytesOf(snapshot.value),
+        kind: snapshot.kind,
+        contentType: snapshot.contentType,
+        extension: snapshot.extension,
+        localRevision: (current?.localRevision || 0) + 1,
+        dirty: true,
+        syncState: 'pending',
+        updatedAt: now()
+      };
+      await db.put('saves', next, keyOf(identity));
+      return { ...next };
+    }
+
+    function pathFor(record) {
+      assertIdentity(record);
+      const base = `profiles/${record.profileId}`;
+      if (record.kind === 'json') return `${base}/apps/${record.appId}/${record.saveKey}.json`;
+      assertSegment(record.extension || 'bin', 'extension');
+      return `${base}/files/${record.appId}/${record.saveKey}.${record.extension || 'bin'}`;
     }
 
     return {
-      async get(profileId, appId, key) { return getRecord(profileId, appId, key); },
-      put(profileId, appId, key, value) { return putRecord(profileId, appId, key, value); },
-      async getBlob(profileId, appId, key) {
-        const record = await getRecord(profileId, appId, key);
-        return record?.kind === 'blob' ? record.value : null;
-      },
-      putBlob(profileId, appId, key, blob) {
-        if (typeof Blob === 'undefined' || !(blob instanceof Blob)) throw new TypeError('A Blob is required');
-        return putRecord(profileId, appId, key, blob, 'blob');
-      },
-      async listPending(profileId) {
-        validateProfile(profileId);
-        return (await adapter.list()).filter(record => record.profileId === profileId && record.syncState === 'pending');
-      },
-      async markSynced(profileId, appId, key, remoteSha = null) {
-        const storageKey = composite(profileId, appId, key);
-        const record = await adapter.get(storageKey);
-        if (!record) return null;
-        const synced = { ...record, syncState: 'synced', remoteSha };
-        await adapter.put(storageKey, synced);
-        return synced;
-      },
-      async markConflict(profileId, appId, key, conflict) {
-        const storageKey = composite(profileId, appId, key);
-        const record = await adapter.get(storageKey);
-        if (!record) return null;
-        const conflicted = { ...record, syncState: 'conflict', conflict };
-        await adapter.put(storageKey, conflicted);
-        return conflicted;
-      }
+      writeJson,
+      readJson,
+      writeBinary,
+      readBinary,
+      readRecord,
+      markSynced,
+      markConflict,
+      listPending,
+      createSnapshot,
+      restoreSnapshot,
+      pathFor
     };
   }
 
-  function createIndexedDbAdapter(indexedDB = globalThis.indexedDB, databaseName = 'for-my-sons-shared-saves-v1') {
-    if (!indexedDB) throw new Error('IndexedDB is unavailable');
-    let databasePromise;
-    function database() {
-      if (!databasePromise) databasePromise = new Promise((resolve, reject) => {
-        const request = indexedDB.open(databaseName, 2);
-        request.onupgradeneeded = () => {
-          const db = request.result;
-          if (!db.objectStoreNames.contains('records')) db.createObjectStore('records');
-          if (!db.objectStoreNames.contains('settings')) db.createObjectStore('settings');
-        };
-        request.onsuccess = () => resolve(request.result);
-        request.onerror = () => reject(new Error('Could not open local save storage'));
-      });
-      return databasePromise;
-    }
-    async function transaction(mode, operation) {
-      const db = await database();
-      return new Promise((resolve, reject) => {
-        const tx = db.transaction('records', mode);
-        const store = tx.objectStore('records');
-        let result;
-        try { result = operation(store); }
-        catch (error) { reject(error); return; }
-        tx.oncomplete = () => resolve(result?.result ?? result);
-        tx.onerror = () => reject(new Error('Local save transaction failed'));
-        tx.onabort = () => reject(new Error('Local save transaction aborted'));
-      });
-    }
-    return {
-      get(key) {
-        return database().then(db => new Promise((resolve, reject) => {
-          const request = db.transaction('records', 'readonly').objectStore('records').get(key);
-          request.onsuccess = () => resolve(request.result || null);
-          request.onerror = () => reject(new Error('Could not read local save'));
-        }));
-      },
-      put(key, record) { return transaction('readwrite', store => store.put(record, key)); },
-      update(key, updateRecord) {
-        return database().then(db => new Promise((resolve, reject) => {
-          const tx = db.transaction('records', 'readwrite');
-          const store = tx.objectStore('records');
-          let next;
-          const request = store.get(key);
-          request.onsuccess = () => {
-            next = updateRecord(request.result || null);
-            store.put(next, key);
-          };
-          request.onerror = () => reject(new Error('Could not update local save'));
-          tx.oncomplete = () => resolve(next);
-          tx.onerror = () => reject(new Error('Local save transaction failed'));
-          tx.onabort = () => reject(new Error('Local save transaction aborted'));
-        }));
-      },
-      list() {
-        return database().then(db => new Promise((resolve, reject) => {
-          const request = db.transaction('records', 'readonly').objectStore('records').getAll();
-          request.onsuccess = () => resolve(request.result || []);
-          request.onerror = () => reject(new Error('Could not list local saves'));
-        }));
-      }
-    };
-  }
-
-  return { createSaveStore, createIndexedDbAdapter };
+  return { createSaveStore };
 });

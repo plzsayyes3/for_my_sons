@@ -1,39 +1,44 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const { webcrypto } = require('node:crypto');
+const { createMemoryDatabase } = require('../shared/for-my-sons-db.js');
 const { createParentLock } = require('../shared/parent-lock.js');
 
-function fixture() {
-  const data = new Map();
-  const storage = { get: async key => data.get(key), set: async (key, value) => data.set(key, value), delete: async key => data.delete(key) };
-  return { lock: createParentLock(storage, webcrypto), data };
-}
+test('starts without a PIN and rejects invalid PIN formats', async () => {
+  const lock = createParentLock(createMemoryDatabase(), webcrypto);
+  assert.equal(await lock.hasPin(), false);
+  await assert.rejects(() => lock.setPin('123'), /PIN/i);
+  await assert.rejects(() => lock.setPin('1234567890123'), /PIN/i);
+  await assert.rejects(() => lock.setPin('12ab'), /PIN/i);
+});
 
-test('requires a six-digit PIN to unlock settings and persists the token only in local settings storage', async () => {
-  const { lock, data } = fixture();
-  assert.equal(await lock.isConfigured(), false);
-  await assert.rejects(lock.setupPin('4826'), /six digits/i);
-  await lock.setupPin('048261');
-  assert.equal(await lock.isConfigured(), true);
-  await lock.storeToken('ghp-example-secret');
-  assert.equal(data.get('parentLock').token, 'ghp-example-secret');
-  assert.equal(await lock.withToken(token => token), 'ghp-example-secret');
+test('stores only a salted hash and verifies the parent PIN', async () => {
+  const db = createMemoryDatabase();
+  const lock = createParentLock(db, webcrypto);
+  await lock.setPin('1234');
+  assert.equal(await lock.hasPin(), true);
+  assert.equal(await lock.verify('0000'), false);
+  assert.equal(lock.isUnlocked(), false);
+  assert.equal(await lock.verify('1234'), true);
+  assert.equal(lock.isUnlocked(), true);
+
+  const record = await lock.exportRecordForTest();
+  assert.equal(record.pin, undefined);
+  assert.equal(record.hash.length > 0, true);
+  assert.equal(record.salt.length > 0, true);
+});
+
+test('changing the PIN rotates the salt and lock clears unlock state', async () => {
+  const db = createMemoryDatabase();
+  const lock = createParentLock(db, webcrypto);
+  await lock.setPin('1234');
+  const before = await lock.exportRecordForTest();
+  assert.equal(await lock.verify('1234'), true);
+  await lock.setPin('5678');
+  const after = await lock.exportRecordForTest();
+  assert.notEqual(after.salt, before.salt);
+  assert.equal(await lock.verify('1234'), false);
+  assert.equal(await lock.verify('5678'), true);
   lock.lock();
-  await assert.rejects(lock.withToken(token => token), /locked/i);
-  await lock.unlock('048261');
-  assert.equal(await lock.withToken(token => token), 'ghp-example-secret');
-});
-
-test('rejects a wrong PIN and limits repeated guesses temporarily', async () => {
-  const { lock } = fixture();
-  await lock.setupPin('482610');
-  for (let attempt = 0; attempt < 5; attempt++) await assert.rejects(lock.unlock('000000'));
-  await assert.rejects(lock.unlock('482610'), /temporarily locked/i);
-});
-
-test('does not require a dedicated origin because PIN is a child-facing UI lock', async () => {
-  const { lock } = fixture();
-  await lock.setupPin('482610');
-  await lock.storeToken('local-only-token');
-  assert.equal(await lock.withToken(token => token), 'local-only-token');
+  assert.equal(lock.isUnlocked(), false);
 });
