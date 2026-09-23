@@ -1,4 +1,4 @@
-const CACHE_NAME = 'for-my-sons-v57';
+const CACHE_NAME = 'for-my-sons-v58';
 const SHELL = [
   './',
   './index.html',
@@ -28,8 +28,10 @@ const SHELL = [
   './merge-block/index.html',
   './merge-block/styles.css?v=10',
   './merge-block/app.js?v=11',
-  './wanko-war/?v=17',
+  './wanko-war/?v=18',
   './wanko-war/index.html',
+  './wanko-gacha/?v=1',
+  './wanko-gacha/index.html',
   './wanko-library/?v=13',
   './wanko-library/index.html',
   './official-wankos/futsuu-no-wanko.wanko.json?v=4',
@@ -66,6 +68,11 @@ const SHELL = [
   './assets/split-puzzle.svg',
   './assets/merge-block.svg?v=2',
   './assets/wanko-war.svg?v=1',
+  './assets/wanko-gacha.svg?v=1',
+  './assets/gacha-effects/orb.svg?v=1',
+  './assets/gacha-effects/confetti.svg?v=1',
+  './assets/gacha-effects/spark.svg?v=1',
+  './assets/gacha-effects/star.svg?v=1',
   './assets/wanko-library.svg?v=1',
   './assets/official-wankos/futsuu-no-wanko.svg?v=2',
   './assets/official-wankos/naganeko.svg?v=1',
