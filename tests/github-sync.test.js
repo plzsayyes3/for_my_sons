@@ -162,3 +162,58 @@ test('writePath refuses to overwrite a file that appeared after an expected-abse
   assert.deepEqual(result, { status: 'conflict', remoteSha: 'sha-surprise' });
   assert.equal(putRequests.length, 0);
 });
+
+
+test('writePathKnown updates with one PUT and no GET', async () => {
+  const calls = [];
+  const { sync } = await setup(async (url, options) => {
+    calls.push({ url, options });
+    return response(200, { content: { sha: 'sha-new' } });
+  });
+  const result = await sync.writePathKnown(
+    'profiles/profile-1/apps/kids-3d-playgrand/project.json',
+    Uint8Array.from([1, 2, 3]),
+    { sha: 'sha-old', message: 'save' }
+  );
+  assert.equal(result.status, 'synced');
+  assert.equal(calls.length, 1);
+  assert.equal(calls[0].options.method, 'PUT');
+  assert.equal(JSON.parse(calls[0].options.body).sha, 'sha-old');
+});
+
+test('writePathKnown treats 422 as a safe conflict for expected-absent creates', async () => {
+  const { sync } = await setup(async () => response(422, { message: 'already exists' }));
+  const result = await sync.writePathKnown(
+    'profiles/profile-1/apps/kids-3d-playgrand/history/backup.json',
+    Uint8Array.from([1]),
+    { expectAbsent: true }
+  );
+  assert.equal(result.status, 'conflict');
+});
+
+test('writePathKnown reports GitHub rate limiting separately from auth failure', async () => {
+  const { sync } = await setup(async () => response(403, { message: 'rate limited' }, {
+    'x-ratelimit-remaining': '0',
+    'x-ratelimit-reset': '1893456000'
+  }));
+  const result = await sync.writePathKnown(
+    'profiles/profile-1/apps/kids-3d-playgrand/project.json',
+    Uint8Array.from([1]),
+    { sha: 'sha-old' }
+  );
+  assert.equal(result.status, 'rate-limit');
+  assert.ok(result.resetAt);
+});
+
+test('deletePathKnown deletes with one request using a listed SHA', async () => {
+  const calls = [];
+  const { sync } = await setup(async (url, options) => {
+    calls.push({ url, options });
+    return response(200, {});
+  });
+  const result = await sync.deletePathKnown('history/old.json', 'sha-old');
+  assert.equal(result.status, 'deleted');
+  assert.equal(calls.length, 1);
+  assert.equal(calls[0].options.method, 'DELETE');
+  assert.equal(JSON.parse(calls[0].options.body).sha, 'sha-old');
+});
