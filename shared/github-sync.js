@@ -39,8 +39,19 @@
       return `${settings.apiBase}/repos/${encodeURIComponent(settings.owner)}/${encodeURIComponent(settings.repo)}/contents/${String(path).split('/').map(encodeURIComponent).join('/')}`;
     }
 
+    function normalizeToken(value) {
+      const compact = String(value || '').replace(/\s+/gu, '');
+      if (!compact) return '';
+      if (!/^[\x21-\x7E]+$/.test(compact)) {
+        const error = new Error('Token contains non-ASCII characters');
+        error.code = 'TOKEN_FORMAT';
+        throw error;
+      }
+      return compact;
+    }
+
     async function token() {
-      return String(await tokenProvider() || '');
+      return normalizeToken(await tokenProvider());
     }
 
     async function request(path, options = {}) {
