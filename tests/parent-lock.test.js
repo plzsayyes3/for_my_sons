@@ -11,7 +11,9 @@ function fixture(origin = 'https://family.example') {
 
 test('encrypts token at rest and returns it only inside an unlocked callback', async () => {
   const { lock, data } = fixture();
+  assert.equal(await lock.isConfigured(), false);
   await lock.setupPin('4826');
+  assert.equal(await lock.isConfigured(), true);
   await lock.storeToken('ghp-example-secret');
   const envelope = data.get('parentLock');
   assert.ok(envelope.token.ciphertext);
@@ -38,6 +40,7 @@ test('rejects a wrong PIN and damaged ciphertext', async () => {
 test('fails closed for unset, github.io, or mismatched origins', async () => {
   for (const [allowed, current] of [
     ['', 'https://family.example'],
+    ['http://family.example', 'http://family.example'],
     ['https://family.github.io', 'https://family.github.io'],
     ['https://family.example', 'https://other.example']
   ]) {
@@ -46,4 +49,14 @@ test('fails closed for unset, github.io, or mismatched origins', async () => {
     await lock.setupPin('4826');
     await assert.rejects(lock.storeToken('token'), /origin/i);
   }
+});
+
+test('does not use a copied encrypted token on a different origin', async () => {
+  const source = fixture();
+  await source.lock.setupPin('4826');
+  await source.lock.storeToken('copied-token');
+  const data = new Map(source.data);
+  const otherOrigin = createParentLock({ get: async key => data.get(key), set: async (key, value) => data.set(key, value) }, webcrypto, 'https://family.example', () => 'https://family.github.io');
+  await otherOrigin.unlock('4826');
+  await assert.rejects(otherOrigin.withToken(token => token), /origin/i);
 });

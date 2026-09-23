@@ -30,13 +30,15 @@
 
     async function putRecord(profileId, appId, key, value, kind = 'json') {
       const storageKey = composite(profileId, appId, key);
-      const existing = await adapter.get(storageKey);
-      const record = {
+      const create = existing => ({
         profileId, appId, key, kind, value,
         updatedAt: new Date().toISOString(),
         revision: (existing?.revision || 0) + 1,
-        syncState: 'pending'
-      };
+        syncState: 'pending',
+        ...(existing?.remoteSha ? { remoteSha: existing.remoteSha } : {})
+      });
+      if (adapter.update) return adapter.update(storageKey, create);
+      const record = create(await adapter.get(storageKey));
       await adapter.put(storageKey, record);
       return record;
     }
@@ -80,10 +82,11 @@
     let databasePromise;
     function database() {
       if (!databasePromise) databasePromise = new Promise((resolve, reject) => {
-        const request = indexedDB.open(databaseName, 1);
+        const request = indexedDB.open(databaseName, 2);
         request.onupgradeneeded = () => {
           const db = request.result;
           if (!db.objectStoreNames.contains('records')) db.createObjectStore('records');
+          if (!db.objectStoreNames.contains('settings')) db.createObjectStore('settings');
         };
         request.onsuccess = () => resolve(request.result);
         request.onerror = () => reject(new Error('Could not open local save storage'));
@@ -112,6 +115,22 @@
         }));
       },
       put(key, record) { return transaction('readwrite', store => store.put(record, key)); },
+      update(key, updateRecord) {
+        return database().then(db => new Promise((resolve, reject) => {
+          const tx = db.transaction('records', 'readwrite');
+          const store = tx.objectStore('records');
+          let next;
+          const request = store.get(key);
+          request.onsuccess = () => {
+            next = updateRecord(request.result || null);
+            store.put(next, key);
+          };
+          request.onerror = () => reject(new Error('Could not update local save'));
+          tx.oncomplete = () => resolve(next);
+          tx.onerror = () => reject(new Error('Local save transaction failed'));
+          tx.onabort = () => reject(new Error('Local save transaction aborted'));
+        }));
+      },
       list() {
         return database().then(db => new Promise((resolve, reject) => {
           const request = db.transaction('records', 'readonly').objectStore('records').getAll();

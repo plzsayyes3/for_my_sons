@@ -2,7 +2,7 @@
   const api = factory();
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
   if (!root) return;
-  const exported = { createProgressStore: api.createProgressStore };
+  const exported = { createProgressStore: api.createProgressStore, createProfileStore: api.createProfileStore };
   if (root.WankoLibrary && root.WankoGameData) {
     const store = api.createProgressStore({
       getMeta: () => root.WankoLibrary.getMeta('wankoGameProgressV1'),
@@ -143,5 +143,13 @@
     };
   }
 
-  return { createProgressStore, initialState: () => ({ ...INITIAL_STATE }) };
+  function createProfileStore(profileId, saveStore, definitions) {
+    if (typeof profileId !== 'string' || !saveStore?.get || !saveStore?.put) throw new TypeError('A profile and save store are required');
+    return createProgressStore({
+      getMeta: async () => (await saveStore.get(profileId, 'wanko-war', 'progress'))?.value ?? null,
+      setMeta: async (_key, value) => saveStore.put(profileId, 'wanko-war', 'progress', value)
+    }, definitions);
+  }
+
+  return { createProgressStore, createProfileStore, initialState: () => ({ ...INITIAL_STATE }) };
 });

@@ -58,8 +58,18 @@ test('wanko app entries and service-worker shell point to current versioned page
   assert.ok(shell.urls.includes(battle.url));
   assert.ok(shell.urls.includes(library.url));
   for (const script of [
+    './shared/save-contract.js?v=1',
+    './shared/local-settings.js?v=1',
+    './shared/parent-lock.js?v=1',
+    './shared/save-store.js?v=1',
+    './shared/for-my-sons-config.js?v=1',
+    './shared/github-sync.js?v=1',
+    './shared/profile-manager.js?v=1',
+    './shared/index.js?v=1',
+    './shared/parent-settings-view.js?v=1',
+    './shared/wanko-profile-migration.js?v=1',
     './shared/wanko-game-data.js?v=2',
-    './shared/wanko-game-progress.js?v=2',
+    './shared/wanko-game-progress.js?v=3',
     './shared/wanko-library-view.js?v=2'
   ]) assert.ok(shell.urls.includes(script), `${script} must be cached`);
   assert.match(shell.cacheName, /v\d+$/);

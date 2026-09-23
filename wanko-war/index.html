@@ -148,7 +148,23 @@
 <script src="../shared/official-wankos.js?v=5"></script>
 <script src="../shared/wanko-library.js"></script>
 <script src="../shared/wanko-game-data.js?v=2"></script>
-<script src="../shared/wanko-game-progress.js?v=2"></script>
+<script src="../shared/save-contract.js?v=1"></script>
+<script src="../shared/save-store.js?v=1"></script>
+<script src="../shared/wanko-game-progress.js?v=3"></script>
+<script>
+(() => {
+  try {
+    const profileId = localStorage.getItem('forMySons.currentProfileId.v1');
+    const verified = JSON.parse(localStorage.getItem('forMySons.verifiedProfileSummaries.v1') || '[]');
+    if (profileId && Array.isArray(verified) && verified.some(profile => profile.profileId === profileId)) {
+      const adapter = window.ForMySonsSaveStore.createSaveStore(window.ForMySonsSaveStore.createIndexedDbAdapter());
+      window.ForMySonsProfileProgress = window.WankoGameProgress.createProfileStore(profileId, adapter, window.WankoGameData);
+    }
+  } catch (error) {
+    console.warn('Profile save unavailable; legacy local save remains active.', error);
+  }
+})();
+</script>
 <script>
 (() => {
   const field = document.getElementById('field');
@@ -168,7 +184,7 @@
   let customDogUrl = null;
 
   const GameData=window.WankoGameData;
-  const Progress=window.WankoGameProgress;
+  const Progress=window.ForMySonsProfileProgress||window.WankoGameProgress;
   const DOGS={
     legacyBig:{cost:280,hp:310,damage:58,speed:25,range:50,cooldown:1.18,sprite:'🐩',className:'big'}
   };

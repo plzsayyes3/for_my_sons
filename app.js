@@ -53,6 +53,33 @@ async function loadApps() {
 
 loadApps();
 
+async function setupSharedProfile() {
+  const indicator = document.querySelector('#current-profile-indicator');
+  const settingsButton = document.querySelector('#parent-settings-button');
+  const settingsPanel = document.querySelector('#parent-settings-panel');
+  if (!window.ForMySonsShared || !window.ForMySonsSettingsView || !indicator || !settingsButton || !settingsPanel) return;
+  try {
+    const api = await window.ForMySonsShared.createForMySons();
+    window.ForMySons = api;
+    const updateIndicator = async () => {
+      try {
+        const profile = await api.profile.current();
+        indicator.textContent = profile ? `現在: ${profile.label}` : 'プロフィール未設定';
+      } catch {
+        indicator.textContent = 'プロフィール未設定';
+      }
+    };
+    await updateIndicator();
+    window.ForMySonsSettings = window.ForMySonsSettingsView.renderSettings(settingsPanel, api);
+    settingsButton.addEventListener('click', () => window.ForMySonsSettings.open());
+    window.addEventListener('for-my-sons-profile-changed', updateIndicator);
+  } catch (error) {
+    console.warn('Shared profile foundation unavailable.', error);
+  }
+}
+
+setupSharedProfile();
+
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
     navigator.serviceWorker.register('./service-worker.js', { updateViaCache: 'none' })

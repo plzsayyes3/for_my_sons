@@ -40,7 +40,7 @@ test('exposes 念を込めたスネーク through the official catalog and PWA s
   assert.match(serviceWorker, new RegExp(`official-wankos/${id}\.wanko\.json\\?v=1`));
   assert.match(serviceWorker, new RegExp(`assets/official-wankos/${id}\.png\\?v=1`));
   assert.match(serviceWorker, /official-wankos\.js\?v=5/);
-  assert.ok(apps.some(app => app.id === 'wanko-war' && /\?v=13$/.test(app.url)));
+  assert.ok(apps.some(app => app.id === 'wanko-war' && /\?v=14$/.test(app.url)));
   assert.ok(apps.some(app => app.id === 'wanko-library' && /\?v=9$/.test(app.url)));
 });
 

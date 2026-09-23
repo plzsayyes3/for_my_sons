@@ -1,7 +1,7 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const game = require('../shared/wanko-game-data.js');
-const { createProgressStore } = require('../shared/wanko-game-progress.js');
+const { createProgressStore, createProfileStore } = require('../shared/wanko-game-progress.js');
 
 function memoryStorage(initialValue = null) {
   let value = initialValue;
@@ -24,6 +24,22 @@ test('starts with only S001 playable and unlocked ally slots available', async (
   assert.equal(await store.isCharacterUnlocked('W01'), true);
   assert.equal(await store.isCharacterUnlocked('W02'), true);
   assert.equal(await store.isCharacterUnlocked('W03'), false);
+});
+
+test('profile-scoped progress writes only to the captured profile namespace', async () => {
+  const writes = [];
+  let stored = null;
+  const saveStore = {
+    get: async () => stored ? { value: stored } : null,
+    put: async (...args) => { writes.push(args); stored = args[3]; }
+  };
+  const store = createProfileStore('child-a', saveStore, game);
+  await store.startStage('S001');
+  const lastWrite = writes.at(-1);
+  assert.equal(lastWrite[0], 'child-a');
+  assert.equal(lastWrite[1], 'wanko-war');
+  assert.equal(lastWrite[2], 'progress');
+  assert.deepEqual(lastWrite[3].discoveredElementIds, [1]);
 });
 
 test('starting an unlocked stage selects it and discovers its element', async () => {

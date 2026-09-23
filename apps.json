@@ -79,7 +79,7 @@
   {
     "id": "wanko-war",
     "name": "わんこ大戦争",
-    "url": "./wanko-war/?v=13",
+    "url": "./wanko-war/?v=14",
     "icon": "./assets/wanko-war.svg?v=1",
     "description": "右の基地からわんこを出して、敵の基地をこわそう"
   },

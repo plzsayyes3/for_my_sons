@@ -66,7 +66,7 @@
       let actual;
       try { expected = new URL(allowedOrigin); actual = new URL(getOrigin()); }
       catch { throw new Error('A dedicated allowed origin is required'); }
-      if (expected.origin !== actual.origin || !expected.hostname || expected.hostname === 'github.io' || expected.hostname.endsWith('.github.io')) {
+      if (expected.protocol !== 'https:' || expected.origin !== actual.origin || !expected.hostname || expected.hostname === 'github.io' || expected.hostname.endsWith('.github.io')) {
         throw new Error('Token storage is disabled on this origin');
       }
     }
@@ -74,6 +74,7 @@
     return {
       setupPin,
       unlock,
+      async isConfigured() { return Boolean(await storage.get(STORAGE_KEY)); },
       lock() { activeKey = null; unlocked = false; },
       isUnlocked() { return unlocked; },
       async storeToken(token) {
@@ -87,6 +88,7 @@
       async withToken(callback) {
         if (!unlocked || !activeKey) throw new Error('Parent lock is locked');
         if (typeof callback !== 'function') throw new TypeError('A token callback is required');
+        assertOrigin();
         const envelope = await storage.get(STORAGE_KEY);
         if (!envelope?.token) throw new Error('No token is configured');
         const token = await decrypt(activeKey, envelope.token);
