@@ -251,6 +251,8 @@
     registerWanko,
     listWankos,
     getWanko,
+    getMeta,
+    setMeta,
     setActiveWanko,
     getActiveWanko,
     getLatestWanko,
