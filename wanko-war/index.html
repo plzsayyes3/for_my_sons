@@ -270,6 +270,9 @@
     requestAnimationFrame(step);
   }
 
+  document.addEventListener('dblclick',(event)=>event.preventDefault(),{passive:false});
+  document.addEventListener('gesturestart',(event)=>event.preventDefault(),{passive:false});
+
   cards.forEach(c=>c.addEventListener('click',()=>spawnDog(c.dataset.dog)));
   document.getElementById('restart').addEventListener('click',reset);
   window.addEventListener('resize',()=>entities.forEach(renderEntity));
