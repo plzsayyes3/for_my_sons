@@ -819,6 +819,17 @@ cropModal.addEventListener("click", (event) => {
 window.addEventListener("resize", fitFrame);
 window.addEventListener("orientationchange", () => window.setTimeout(fitFrame, 100));
 
+async function retryPendingCharacterRequests() {
+  if (!window.ForMySonsShared?.createForMySons) return;
+  try {
+    if (!sharedForMySons) sharedForMySons = await window.ForMySonsShared.createForMySons();
+    await sharedForMySons.characterRequests.syncPending();
+  } catch (error) {
+    console.warn("Character request retry deferred", error?.message || "offline");
+  }
+}
+
 restoreDrafts();
 fitFrame();
 configureCanvas();
+window.setTimeout(retryPendingCharacterRequests, 0);
