@@ -36,7 +36,7 @@ function makeRequest() {
   };
 }
 
-function createFakeSync({ calls, failJsonOnce = false, existingJson = null } = {}) {
+function createFakeSync({ calls, failJsonOnce = false, existingJson = null, failArtwork = false } = {}) {
   const remote = new Map();
   let shouldFailJson = failJsonOnce;
   return {
@@ -49,6 +49,7 @@ function createFakeSync({ calls, failJsonOnce = false, existingJson = null } = {
     },
     async writePath(path, value, options = {}) {
       calls.push({ kind: options.kind || 'json', path, value });
+      if (options.kind === 'binary' && failArtwork) return { status: 'pending' };
       if (options.kind !== 'binary' && shouldFailJson) {
         shouldFailJson = false;
         throw new Error('temporary remote failure');
@@ -129,6 +130,42 @@ test('marks a request as conflict when a different remote JSON already exists', 
   assert.equal(result[0].syncState, 'conflict');
   assert.equal(calls.length, 1);
   assert.equal(calls[0].kind, 'binary');
+});
+
+test('keeps a request retryable when a remote write returns a pending status', async () => {
+  const calls = [];
+  const service = createCharacterRequestService({
+    db: await seededDb(),
+    sync: createFakeSync({ calls, failArtwork: true })
+  });
+  const result = await service.syncPending();
+  assert.equal(result[0].syncState, 'error');
+  assert.equal(result[0].status, 'pending');
+});
+
+test('recognizes equivalent request JSON returned as GitHub bytes', async () => {
+  const calls = [];
+  const request = makeRequest();
+  const expected = {
+    id: request.requestId,
+    requestId: request.requestId,
+    name: request.name,
+    faction: request.faction,
+    createdAt: request.createdAt,
+    status: 'pending',
+    artwork: request.artwork,
+    source: 'paint'
+  };
+  const service = createCharacterRequestService({
+    db: await seededDb(),
+    sync: createFakeSync({
+      calls,
+      existingJson: new TextEncoder().encode(JSON.stringify(expected))
+    })
+  });
+  const result = await service.syncPending();
+  assert.equal(result[0].syncState, 'synced');
+  assert.equal(calls.filter(call => call.kind === 'json').length, 0);
 });
 
 test('moves a request to completed paths with completed status', async () => {

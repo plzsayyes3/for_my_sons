@@ -95,8 +95,34 @@
     };
   }
 
+  function decodeRemoteJson(content) {
+    if (content == null || typeof content === 'object' && !(content instanceof Uint8Array) && !(content instanceof ArrayBuffer)) return content;
+    const bytes = content instanceof Uint8Array
+      ? content
+      : new Uint8Array(content);
+    return JSON.parse(new TextDecoder().decode(bytes));
+  }
+
   function sameRequestJson(left, right) {
-    return JSON.stringify(left) === JSON.stringify(right);
+    try {
+      return JSON.stringify(decodeRemoteJson(left)) === JSON.stringify(right);
+    } catch {
+      return false;
+    }
+  }
+
+  function assertWriteSucceeded(result) {
+    if (result?.status === 'created' || result?.status === 'synced') return result;
+    const error = new Error('Character request remote write failed');
+    error.code = result?.status === 'conflict' ? 'CONFLICT' : 'REMOTE_UNAVAILABLE';
+    throw error;
+  }
+
+  function assertDeleteSucceeded(result) {
+    if (result?.status === 'deleted' || result?.status === 'absent') return result;
+    const error = new Error('Character request remote delete failed');
+    error.code = result?.status === 'conflict' ? 'CONFLICT' : 'REMOTE_UNAVAILABLE';
+    throw error;
   }
 
   function createCharacterRequestService({ db, sync, clock = () => Date.now(), imageEncoder } = {}) {
@@ -134,11 +160,11 @@
       const paths = requestPaths(record.requestId);
       const artworkRemote = await sync.readPath(paths.pendingArtwork);
       if (!artworkRemote.exists) {
-        await sync.writePath(paths.pendingArtwork, record.artworkBlob, {
+        assertWriteSucceeded(await sync.writePath(paths.pendingArtwork, record.artworkBlob, {
           kind: 'binary',
           contentType: record.artworkContentType,
           sha: artworkRemote.sha
-        });
+        }));
       }
 
       const payload = requestJson(record, paths);
@@ -148,7 +174,7 @@
         conflict.code = 'CONFLICT';
         throw conflict;
       }
-      if (!jsonRemote.exists) await sync.writePath(paths.pendingJson, payload, { kind: 'json', sha: jsonRemote.sha });
+      if (!jsonRemote.exists) assertWriteSucceeded(await sync.writePath(paths.pendingJson, payload, { kind: 'json', sha: jsonRemote.sha }));
 
       const next = {
         ...record,
@@ -188,13 +214,13 @@
       const paths = requestPaths(requestId);
       const completedArtwork = paths.completedArtwork;
       const completedJson = paths.completedJson;
-      await sync.writePath(completedArtwork, record.artworkBlob, {
+      assertWriteSucceeded(await sync.writePath(completedArtwork, record.artworkBlob, {
         kind: 'binary',
         contentType: record.artworkContentType
-      });
-      await sync.writePath(completedJson, requestJson(record, paths, 'completed'), { kind: 'json' });
-      await sync.deletePath(paths.pendingArtwork);
-      await sync.deletePath(paths.pendingJson);
+      }));
+      assertWriteSucceeded(await sync.writePath(completedJson, requestJson(record, paths, 'completed'), { kind: 'json' }));
+      assertDeleteSucceeded(await sync.deletePath(paths.pendingArtwork));
+      assertDeleteSucceeded(await sync.deletePath(paths.pendingJson));
       const next = {
         ...record,
         status: 'completed',
