@@ -3,12 +3,12 @@
     {
       id: "futsuu-no-wanko",
       name: "ふつうのわんこ",
-      path: "../official-wankos/futsuu-no-wanko.wanko.json"
+      path: "../official-wankos/futsuu-no-wanko.wanko.json?v=3"
     },
     {
       id: "naganeko",
       name: "長ねこ",
-      path: "../official-wankos/naganeko.wanko.json"
+      path: "../official-wankos/naganeko.wanko.json?v=2"
     }
   ];
   const cache = new Map();
@@ -36,7 +36,8 @@
   }
 
   async function list() {
-    return Promise.all(CATALOG.map(item => load(item.id)));
+    const results = await Promise.allSettled(CATALOG.map(item => load(item.id)));
+    return results.filter(result => result.status === "fulfilled" && result.value).map(result => result.value);
   }
 
   window.OfficialWankos = { catalog: CATALOG, load, list };
