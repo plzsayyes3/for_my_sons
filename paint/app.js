@@ -24,6 +24,7 @@ const wankoLibraryOpenButton = document.querySelector("#wanko-library-open");
 const wankoNameInput = document.querySelector("#wanko-name");
 const wankoPreviewImg = document.querySelector("#wanko-preview-img");
 let pendingWankoBlob = null;
+let pendingWankoDataUrl = null;
 let pendingWankoUrl = null;
 
 const cropModal = document.querySelector("#crop-modal");
@@ -584,6 +585,7 @@ function closeWankoModal() {
   if (pendingWankoUrl) URL.revokeObjectURL(pendingWankoUrl);
   pendingWankoUrl = null;
   pendingWankoBlob = null;
+  pendingWankoDataUrl = null;
 }
 
 function openWankoModal() {
@@ -593,7 +595,8 @@ function openWankoModal() {
     return;
   }
   const output = makeWankoCanvas();
-  pendingWankoBlob = canvasBlobSync(output);
+  pendingWankoDataUrl = output.toDataURL("image/png");
+  pendingWankoBlob = dataUrlToBlob(pendingWankoDataUrl);
   if (pendingWankoUrl) URL.revokeObjectURL(pendingWankoUrl);
   pendingWankoUrl = URL.createObjectURL(pendingWankoBlob);
   wankoPreviewImg.src = pendingWankoUrl;
@@ -604,17 +607,88 @@ function openWankoModal() {
   setTimeout(() => wankoNameInput.focus(), 80);
 }
 
+function safeWankoFileName(name) {
+  return String(name || "wanko")
+    .trim()
+    .replace(/[\\/:*?"<>|]/g, "-")
+    .replace(/\s+/g, "-")
+    .slice(0, 40) || "wanko";
+}
+
+function makeWankoPackage(name) {
+  return {
+    format: "for-my-sons-wanko",
+    version: 1,
+    requestId: crypto?.randomUUID ? crypto.randomUUID() : ("wanko-" + Date.now()),
+    name,
+    createdAt: new Date().toISOString(),
+    image: pendingWankoDataUrl,
+    stats: {
+      cost: 180,
+      hp: 140,
+      damage: 30,
+      speed: 46,
+      range: 44,
+      cooldown: 0.72
+    }
+  };
+}
+
+function makeWankoPackageFile(payload) {
+  const json = JSON.stringify(payload, null, 2);
+  return new File(
+    [json],
+    safeWankoFileName(payload.name) + ".wanko.json",
+    { type: "application/json" }
+  );
+}
+
+async function shareWankoPackage(file, name) {
+  alert("できたよ！\nメッセージをえらんで、パパに送ってね！");
+  if (canShareFile(file)) {
+    try {
+      await navigator.share({
+        files: [file],
+        title: name + " を登録",
+        text: "わんこを作ったよ！"
+      });
+      return "shared";
+    } catch (error) {
+      if (error?.name === "AbortError") return "cancelled";
+      console.warn("Wanko share failed", error);
+    }
+  }
+
+  downloadBlob(file, file.name);
+  return "downloaded";
+}
+
 async function confirmWankoRegistration() {
-  if (!pendingWankoBlob || !window.WankoLibrary) return;
+  if (!pendingWankoBlob || !pendingWankoDataUrl || !window.WankoLibrary) return;
   wankoConfirmButton.disabled = true;
+
+  const name = (wankoNameInput.value || "うちのわんこ").trim();
+  const blobForLocal = pendingWankoBlob;
+  const packageFile = makeWankoPackageFile(makeWankoPackage(name));
+
   try {
-    const record = await WankoLibrary.registerWanko({
-      name: wankoNameInput.value || "うちのわんこ",
-      blob: pendingWankoBlob,
+    const sharePromise = shareWankoPackage(packageFile, name);
+    const recordPromise = WankoLibrary.registerWanko({
+      name,
+      blob: blobForLocal,
       creator: "paint"
     });
+
+    const [shareResult, record] = await Promise.all([sharePromise, recordPromise]);
     closeWankoModal();
-    showToast(record.name + " を図鑑に登録したよ ✓");
+
+    if (shareResult === "shared") {
+      showToast(record.name + " を登録して、パパに送ったよ ✓");
+    } else if (shareResult === "downloaded") {
+      showToast("ファイルを保存したよ。パパに送ってね");
+    } else {
+      showToast(record.name + " は図鑑に登録したよ");
+    }
   } catch (error) {
     console.error(error);
     showToast("わんこの登録に失敗しました");
