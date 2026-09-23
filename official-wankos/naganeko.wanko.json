@@ -5,7 +5,7 @@
   "name": "長ねこ",
   "createdAt": "2026-09-23T03:20:26.286Z",
   "imagePath": "../assets/official-wankos/naganeko.svg?v=1",
-  "renderScale": 1.2,
+  "renderScale": 2,
   "stats": {
     "cost": 180,
     "hp": 140,

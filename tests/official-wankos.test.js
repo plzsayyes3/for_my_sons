@@ -16,7 +16,7 @@ test('registers 念を込めたスネーク as an official ally with its submitt
   assert.equal(metadata.id, id);
   assert.equal(metadata.name, '念を込めたスネーク');
   assert.equal(metadata.faction, 'ally');
-  assert.equal(metadata.renderScale, 1);
+  assert.equal(metadata.renderScale, 2);
   assert.deepEqual(metadata.stats, {
     cost: 180,
     hp: 140,
@@ -35,13 +35,13 @@ test('exposes 念を込めたスネーク through the official catalog and PWA s
   const apps = JSON.parse(fs.readFileSync(path.join(root, 'apps.json'), 'utf8'));
 
   assert.match(catalog, new RegExp(`id: "${id}"`));
-  assert.match(warPage, /official-wankos\.js\?v=6/);
-  assert.match(libraryPage, /official-wankos\.js\?v=6/);
-  assert.match(serviceWorker, new RegExp(`official-wankos/${id}\.wanko\.json\\?v=1`));
+  assert.match(warPage, /official-wankos\.js\?v=7/);
+  assert.match(libraryPage, /official-wankos\.js\?v=7/);
+  assert.match(serviceWorker, new RegExp(`official-wankos/${id}\.wanko\.json\\?v=2`));
   assert.match(serviceWorker, new RegExp(`assets/official-wankos/${id}\.png\\?v=1`));
-  assert.match(serviceWorker, /official-wankos\.js\?v=6/);
-  assert.ok(apps.some(app => app.id === 'wanko-war' && /\?v=14$/.test(app.url)));
-  assert.ok(apps.some(app => app.id === 'wanko-library' && /\?v=10$/.test(app.url)));
+  assert.match(serviceWorker, /official-wankos\.js\?v=7/);
+  assert.ok(apps.some(app => app.id === 'wanko-war' && /\?v=15$/.test(app.url)));
+  assert.ok(apps.some(app => app.id === 'wanko-library' && /\?v=11$/.test(app.url)));
 });
 
 test('registers 爆発玉 as a low-cost high-damage self-destructing ally', () => {
@@ -54,7 +54,7 @@ test('registers 爆発玉 as a low-cost high-damage self-destructing ally', () =
   const metadata = JSON.parse(fs.readFileSync(metadataPath, 'utf8'));
   assert.equal(metadata.name, '爆発玉');
   assert.equal(metadata.faction, 'ally');
-  assert.equal(metadata.renderScale, 1);
+  assert.equal(metadata.renderScale, 2);
   assert.deepEqual(metadata.stats, {
     cost: 90,
     hp: 80,
@@ -80,7 +80,7 @@ test('wanko war contains the self-destruct area-attack and particle hooks', () =
   assert.match(warPage, /selfDestruct/);
   assert.match(warPage, /splashRadius/);
   assert.match(warPage, /explosion-particle/);
-  assert.match(serviceWorker, /official-wankos\/bakuhatsu-dama\.wanko\.json\?v=1/);
+  assert.match(serviceWorker, /official-wankos\/bakuhatsu-dama\.wanko\.json\?v=2/);
   assert.match(serviceWorker, /assets\/official-wankos\/bakuhatsu-dama\.png\?v=1/);
 });
 
@@ -94,7 +94,7 @@ test('registers ハンマー as an official ally with the submitted standard sta
   const metadata = JSON.parse(fs.readFileSync(metadataPath, 'utf8'));
   assert.equal(metadata.name, 'ハンマー');
   assert.equal(metadata.faction, 'ally');
-  assert.equal(metadata.renderScale, 1);
+  assert.equal(metadata.renderScale, 2);
   assert.deepEqual(metadata.stats, {
     cost: 180,
     hp: 140,
@@ -109,6 +109,16 @@ test('exposes ハンマー in the official catalog and PWA shell', () => {
   const catalog = fs.readFileSync(path.join(root, 'shared', 'official-wankos.js'), 'utf8');
   const serviceWorker = fs.readFileSync(path.join(root, 'service-worker.js'), 'utf8');
   assert.match(catalog, /id: "hammer"/);
-  assert.match(serviceWorker, /official-wankos\/hammer\.wanko\.json\?v=1/);
+  assert.match(serviceWorker, /official-wankos\/hammer\.wanko\.json\?v=2/);
   assert.match(serviceWorker, /assets\/official-wankos\/hammer\.png\?v=1/);
+});
+
+test('uses the standard 2.0 display scale for every original official character', () => {
+  const metadataFiles = fs.readdirSync(path.join(root, 'official-wankos'))
+    .filter(file => file.endsWith('.wanko.json'));
+  assert.ok(metadataFiles.length >= 7);
+  for (const file of metadataFiles) {
+    const metadata = JSON.parse(fs.readFileSync(path.join(root, 'official-wankos', file), 'utf8'));
+    assert.equal(metadata.renderScale, 2, `${file} should use renderScale 2`);
+  }
 });
