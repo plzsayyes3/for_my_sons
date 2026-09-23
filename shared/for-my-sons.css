@@ -1,0 +1,31 @@
+.parent-settings-panel {
+  position: fixed;
+  inset: 0;
+  z-index: 10;
+  overflow: auto;
+  padding: calc(env(safe-area-inset-top) + 18px) 18px calc(env(safe-area-inset-bottom) + 18px);
+  background: rgba(15, 23, 42, 0.34);
+  backdrop-filter: blur(8px);
+}
+
+.parent-settings-panel[hidden] { display: none; }
+
+.parent-settings-card {
+  width: min(100%, 560px);
+  margin: 0 auto;
+  padding: 22px;
+  border-radius: 26px;
+  background: #f7fbfa;
+  box-shadow: 0 20px 60px rgba(15, 23, 42, 0.22);
+}
+
+.parent-settings-card h2 { margin: 0 0 16px; }
+.parent-settings-card label { display: grid; gap: 6px; margin-top: 12px; font-size: 13px; font-weight: 700; }
+.parent-settings-card input,
+.parent-settings-card select,
+.parent-settings-card button { min-height: 44px; border-radius: 12px; font: inherit; }
+.parent-settings-card input,
+.parent-settings-card select { border: 1px solid rgba(15, 23, 42, 0.18); padding: 10px 12px; background: white; }
+.parent-settings-card button { border: 0; padding: 10px 14px; margin: 12px 8px 0 0; background: #c6e6e4; color: #0f172a; font-weight: 750; }
+.parent-settings-card .settings-close { float: right; margin-top: -8px; background: transparent; }
+.settings-message, .sync-status { color: rgba(15, 23, 42, 0.66); font-size: 13px; }
