@@ -82,6 +82,23 @@
     return artwork?.type || 'image/png';
   }
 
+  function requestJson(record, paths = requestPaths(record.requestId), status = 'pending') {
+    return {
+      id: record.requestId,
+      requestId: record.requestId,
+      name: record.name,
+      faction: record.faction,
+      createdAt: record.createdAt,
+      status,
+      artwork: status === 'completed' ? paths.completedArtwork : paths.pendingArtwork,
+      source: 'paint'
+    };
+  }
+
+  function sameRequestJson(left, right) {
+    return JSON.stringify(left) === JSON.stringify(right);
+  }
+
   function createCharacterRequestService({ db, sync, clock = () => Date.now(), imageEncoder } = {}) {
     if (!db?.get || !db?.put || !db?.list) throw new TypeError('database adapter is required');
 
@@ -112,7 +129,85 @@
       return { ...record };
     }
 
-    return { create, get, listPending, prepareArtwork };
+    async function syncOne(record) {
+      if (!sync?.readPath || !sync?.writePath) throw new Error('Character request sync is not configured');
+      const paths = requestPaths(record.requestId);
+      const artworkRemote = await sync.readPath(paths.pendingArtwork);
+      if (!artworkRemote.exists) {
+        await sync.writePath(paths.pendingArtwork, record.artworkBlob, {
+          kind: 'binary',
+          contentType: record.artworkContentType,
+          sha: artworkRemote.sha
+        });
+      }
+
+      const payload = requestJson(record, paths);
+      const jsonRemote = await sync.readPath(paths.pendingJson);
+      if (jsonRemote.exists && !sameRequestJson(jsonRemote.content, payload)) {
+        const conflict = new Error('Character request remote conflict');
+        conflict.code = 'CONFLICT';
+        throw conflict;
+      }
+      if (!jsonRemote.exists) await sync.writePath(paths.pendingJson, payload, { kind: 'json', sha: jsonRemote.sha });
+
+      const next = {
+        ...record,
+        status: 'synced',
+        syncState: 'synced',
+        lastError: null,
+        updatedAt: new Date(clock()).toISOString()
+      };
+      await db.put('characterRequests', next, record.requestId);
+      return { ...next };
+    }
+
+    async function syncPending() {
+      const records = await listPending();
+      const results = [];
+      for (const record of records) {
+        try {
+          results.push(await syncOne(record));
+        } catch (error) {
+          const next = {
+            ...record,
+            syncState: error?.code === 'CONFLICT' ? 'conflict' : 'error',
+            lastError: error?.code === 'CONFLICT' ? 'conflict' : 'remote-unavailable',
+            updatedAt: new Date(clock()).toISOString()
+          };
+          await db.put('characterRequests', next, record.requestId);
+          results.push({ ...next });
+        }
+      }
+      return results;
+    }
+
+    async function markCompleted(requestId) {
+      const record = await get(requestId);
+      if (!record) throw new Error('Character request not found');
+      if (!sync?.writePath || !sync?.deletePath) throw new Error('Character request sync is not configured');
+      const paths = requestPaths(requestId);
+      const completedArtwork = paths.completedArtwork;
+      const completedJson = paths.completedJson;
+      await sync.writePath(completedArtwork, record.artworkBlob, {
+        kind: 'binary',
+        contentType: record.artworkContentType
+      });
+      await sync.writePath(completedJson, requestJson(record, paths, 'completed'), { kind: 'json' });
+      await sync.deletePath(paths.pendingArtwork);
+      await sync.deletePath(paths.pendingJson);
+      const next = {
+        ...record,
+        status: 'completed',
+        syncState: 'synced',
+        artwork: completedArtwork,
+        lastError: null,
+        updatedAt: new Date(clock()).toISOString()
+      };
+      await db.put('characterRequests', next, requestId);
+      return { ...next };
+    }
+
+    return { create, get, listPending, prepareArtwork, syncPending, markCompleted };
   }
 
   return {

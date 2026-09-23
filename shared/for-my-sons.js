@@ -94,7 +94,13 @@
           return result;
         }
       },
-      characterRequests
+      characterRequests: {
+        create: characterRequests.create,
+        get: characterRequests.get,
+        listPending: characterRequests.listPending,
+        syncPending: characterRequests.syncPending,
+        markCompleted: characterRequests.markCompleted
+      }
     };
     return api;
   }
