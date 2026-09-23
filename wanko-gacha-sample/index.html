@@ -19,10 +19,10 @@ main{width:min(100%,720px);margin:auto;padding:14px 12px calc(env(safe-area-inse
 .machine{position:relative;overflow:hidden;border:3px solid var(--line);border-radius:26px;background:linear-gradient(180deg,#cae8ef 0 45%,#dbe8b4 45% 52%,#f3d883 52% 100%);box-shadow:0 7px 0 var(--line);min-height:340px;padding:18px 16px 16px}
 .machine:before,.machine:after{content:"";position:absolute;border-radius:50%;background:rgba(255,255,255,.58)}.machine:before{width:130px;height:55px;left:-20px;top:36px}.machine:after{width:110px;height:45px;right:-18px;top:70px}
 .machineTitle{position:relative;z-index:2;text-align:center}.machineTitle .small{font-size:11px;font-weight:1000;letter-spacing:.2em}.machineTitle h2{margin:2px 0 0;font-size:31px;letter-spacing:.04em}.machineTitle p{margin:5px 0 0;font-size:12px;font-weight:800}
-.gachaStage{position:relative;height:166px;margin-top:4px;display:grid;place-items:center}.ring{position:absolute;width:155px;height:155px;border:3px dashed rgba(52,47,41,.25);border-radius:50%;animation:spin 13s linear infinite}
+.gachaStage{position:relative;height:166px;margin-top:4px;display:grid;place-items:center}.ring{position:absolute;width:155px;height:155px;border:3px dashed rgba(52,47,41,.25);border-radius:50%;animation:spin 13s linear infinite}.chargeHalo{position:absolute;width:178px;height:178px;border-radius:50%;background:conic-gradient(#ffd84f var(--charge,0deg),rgba(255,255,255,.18) 0);opacity:.12;transform:rotate(-90deg);transition:opacity .2s}.chargeHalo:after{content:"";position:absolute;inset:9px;border-radius:50%;background:rgba(255,250,238,.78)}
 .machineBody{position:relative;width:128px;height:124px;border:3px solid var(--line);border-radius:42px 42px 22px 22px;background:#fff9ee;box-shadow:inset 0 -20px rgba(241,201,77,.3),0 5px 0 rgba(52,47,41,.2);display:grid;place-items:center;z-index:2}
 .window{width:78px;height:65px;border:3px solid var(--line);border-radius:50%;background:radial-gradient(circle at 38% 30%,#fff,#e9f6f8 66%,#c0dde5);display:grid;place-items:center;font-size:35px;font-weight:1000;box-shadow:inset 0 0 0 7px rgba(255,255,255,.65)}
-.knob{position:absolute;right:-18px;bottom:24px;width:43px;height:19px;border:3px solid var(--line);border-radius:99px;background:#f2c94c;transform:rotate(-20deg)}.machine.drawing .machineBody{animation:shake .13s linear infinite}.machine.drawing .window{animation:flash .24s ease-in-out infinite alternate}
+.knob{position:absolute;right:-18px;bottom:24px;width:43px;height:19px;border:3px solid var(--line);border-radius:99px;background:#f2c94c;transform:rotate(-20deg);transform-origin:left center}.machine.charging .chargeHalo{opacity:.92;filter:drop-shadow(0 0 16px rgba(255,213,72,.72))}.machine.charging .machineBody{animation:chargePulse var(--pulse,.55s) ease-in-out infinite alternate}.machine.charging .window{box-shadow:inset 0 0 0 7px rgba(255,255,255,.7),0 0 24px rgba(255,220,75,.55)}.machine.charging .knob{animation:knobCharge .34s ease-in-out infinite alternate}.machine.drawing .machineBody{animation:shake .09s linear infinite}.machine.drawing .window{animation:flash .16s ease-in-out infinite alternate}.chargeStatus{min-height:18px;margin:1px 0 8px;text-align:center;font-size:12px;font-weight:1000;color:#5f554a;letter-spacing:.03em}
 .actions{display:grid;gap:9px;position:relative;z-index:3}.drawButton,.medalButton{width:100%;border:2.5px solid var(--line);border-radius:15px;padding:12px 14px;font-weight:1000;box-shadow:0 4px 0 var(--line)}.drawButton{background:var(--gold2);font-size:17px}.medalButton{background:#fffdf8;font-size:14px}.drawButton:active,.medalButton:active{transform:translateY(3px);box-shadow:0 1px 0 var(--line)}.drawButton:disabled,.medalButton:disabled{opacity:.45;filter:grayscale(.4)}
 .rule{margin:14px 0 0;padding:12px 13px;border:2px solid var(--line);border-radius:17px;background:#fffaf2;display:grid;grid-template-columns:auto 1fr;gap:10px;align-items:center}.ruleIcon{width:42px;height:42px;display:grid;place-items:center;border-radius:13px;background:#efe6d9;font-size:22px}.rule b{display:block;font-size:13px;margin-bottom:2px}.rule span{display:block;font-size:11px;line-height:1.45;color:#665d54;font-weight:700}
 .sectionHead{display:flex;align-items:end;justify-content:space-between;margin:20px 3px 10px}.sectionHead h3{margin:0;font-size:17px}.sectionHead span{font-size:11px;font-weight:800;color:var(--muted)}
@@ -53,7 +53,7 @@ main{width:min(100%,720px);margin:auto;padding:14px 12px calc(env(safe-area-inse
 @keyframes resultDuplicate{0%{transform:scale(.75);opacity:0}65%{transform:scale(1.03);opacity:1}100%{transform:scale(1)}}
 @keyframes halo{0%{opacity:1;transform:scale(.8)}100%{opacity:0;transform:scale(1.18)}}
 @keyframes newBadge{0%{transform:scale(.2) rotate(-14deg);opacity:0}100%{transform:scale(1) rotate(-3deg);opacity:1}}
-@keyframes machineSweep{to{transform:translateX(130%)}}
+@keyframes machineSweep{to{transform:translateX(130%)}}@keyframes chargePulse{from{transform:scale(.98)}to{transform:scale(1.055)}}@keyframes knobCharge{from{transform:rotate(-20deg)}to{transform:rotate(8deg)}}
 @keyframes spin{to{transform:rotate(360deg)}}@keyframes shake{25%{transform:translateX(-3px) rotate(-1deg)}75%{transform:translateX(3px) rotate(1deg)}}@keyframes flash{to{background:#fff3a8;transform:scale(1.04)}}@keyframes pop{from{transform:scale(.55) rotate(-4deg);opacity:0}to{transform:scale(1);opacity:1}}
 @media(min-width:620px){.collection{grid-template-columns:repeat(4,minmax(0,1fr))}.machine{min-height:360px}.gachaStage{height:180px}}@media(max-width:380px){header h1{font-size:18px}.machineTitle h2{font-size:27px}.machine{padding-left:12px;padding-right:12px}.collection{gap:8px}}@media(prefers-reduced-motion:reduce){*{animation-duration:.001ms!important;animation-iteration-count:1!important}}
 </style>
@@ -67,7 +67,8 @@ main{width:min(100%,720px);margin:auto;padding:14px 12px calc(env(safe-area-inse
 </section>
 <section class="machine" id="machine">
   <div class="machineTitle"><div class="small">MY WANKO GACHA</div><h2>じぶんのわんこガチャ</h2><p>つくったわんこが、なかまになる！</p></div>
-  <div class="gachaStage"><div class="ring"></div><div class="machineBody"><div class="window" id="windowMark">?</div><div class="knob"></div></div></div>
+  <div class="gachaStage"><div class="chargeHalo" id="chargeHalo"></div><div class="ring"></div><div class="machineBody"><div class="window" id="windowMark">?</div><div class="knob"></div></div></div>
+  <div class="chargeStatus" id="chargeStatus">ボタンを押すとエネルギーがたまる</div>
   <div class="actions">
     <button class="drawButton" id="ticketDraw">🎫 ガチャ券で 1回ひく</button>
     <button class="medalButton" id="medalDraw">⭐ 100メダルで 1回ひく</button>
@@ -92,7 +93,7 @@ main{width:min(100%,720px);margin:auto;padding:14px 12px calc(env(safe-area-inse
   ];
   let characters=initial.map(x=>({...x})),tickets=3,medals=240,drawing=false;
   const machine=document.getElementById('machine'),ticketEl=document.getElementById('tickets'),medalEl=document.getElementById('medals'),ticketDraw=document.getElementById('ticketDraw'),medalDraw=document.getElementById('medalDraw'),collection=document.getElementById('collection'),ownedCount=document.getElementById('ownedCount'),layer=document.getElementById('resultLayer'),resultBadge=document.getElementById('resultBadge'),resultImage=document.getElementById('resultImage'),resultName=document.getElementById('resultName'),resultText=document.getElementById('resultText');
-  const fxLayer=document.getElementById('fxLayer');
+  const fxLayer=document.getElementById('fxLayer'),chargeHalo=document.getElementById('chargeHalo'),chargeStatus=document.getElementById('chargeStatus');
   function render(){
     ticketEl.textContent=tickets;medalEl.textContent=medals;ticketDraw.disabled=drawing||tickets<1;medalDraw.disabled=drawing||medals<100;
     const owned=characters.filter(x=>x.owned).length;ownedCount.textContent=owned+' / '+characters.length+' なかま';collection.replaceChildren();
@@ -143,12 +144,39 @@ main{width:min(100%,720px);margin:auto;padding:14px 12px calc(env(safe-area-inse
   function chooseCharacter(){const notOwned=characters.filter(x=>!x.owned);const pool=Math.random()<.72&&notOwned.length?notOwned:characters;return pool[Math.floor(Math.random()*pool.length)]}
   function draw(kind){
     if(drawing)return;if(kind==='ticket'&&tickets<1)return;if(kind==='medal'&&medals<100)return;
-    drawing=true;if(kind==='ticket')tickets-=1;else medals-=100;machine.classList.add('drawing');document.getElementById('windowMark').textContent='★';render();playIntroFx();
+    drawing=true;if(kind==='ticket')tickets-=1;else medals-=100;render();
     const character=chooseCharacter(),wasOwned=character.owned;
-    setTimeout(()=>{character.owned=true;machine.classList.remove('drawing');document.getElementById('windowMark').textContent='?';resultBadge.textContent=wasOwned?'GET!':'NEW!';resultBadge.style.background=wasOwned?'#e9e1d6':'#f7d45c';resultImage.src=character.image;resultName.textContent=character.name;resultText.textContent=wasOwned?'もう持っているわんこ！ かぶり時の処理はこれから決める。':'なかまになった！ これで正式にデッキへ入れられる。';layer.classList.remove('newDraw','duplicateDraw');layer.classList.add(wasOwned?'duplicateDraw':'newDraw');layer.classList.add('show');celebrate(!wasOwned);drawing=false;render()},900);
+    const windowMark=document.getElementById('windowMark');
+    const CHARGE_MS=1850;
+    let start=performance.now(),lastStep=-1;
+    machine.classList.add('charging');machine.classList.remove('drawing');
+    chargeStatus.textContent='ためてる…';windowMark.textContent='·';
+    try{navigator.vibrate?.(18)}catch{}
+    function chargeFrame(now){
+      const p=Math.min(1,(now-start)/CHARGE_MS);
+      const eased=1-Math.pow(1-p,1.7);
+      chargeHalo.style.setProperty('--charge',(eased*360).toFixed(1)+'deg');
+      machine.style.setProperty('--pulse',(0.62-p*.38).toFixed(2)+'s');
+      const step=p<.33?0:p<.66?1:p<.9?2:3;
+      if(step!==lastStep){
+        lastStep=step;
+        windowMark.textContent=['·','✦','★','★'][step];
+        chargeStatus.textContent=['ためてる…','まだまだ…','もうすこし…','いっぱい！'][step];
+        try{navigator.vibrate?.(step===3?35:14)}catch{}
+      }
+      if(p<1){requestAnimationFrame(chargeFrame);return}
+      machine.classList.remove('charging');machine.classList.add('drawing');
+      chargeStatus.textContent='でてくる！';playIntroFx();
+      setTimeout(()=>{
+        character.owned=true;machine.classList.remove('drawing');machine.style.removeProperty('--pulse');
+        chargeHalo.style.setProperty('--charge','0deg');windowMark.textContent='?';chargeStatus.textContent='ボタンを押すとエネルギーがたまる';
+        resultBadge.textContent=wasOwned?'GET!':'NEW!';resultBadge.style.background=wasOwned?'#e9e1d6':'#f7d45c';resultImage.src=character.image;resultName.textContent=character.name;resultText.textContent=wasOwned?'もう持っているわんこ！ かぶり時の処理はこれから決める。':'なかまになった！ これで正式にデッキへ入れられる。';layer.classList.remove('newDraw','duplicateDraw');layer.classList.add(wasOwned?'duplicateDraw':'newDraw');layer.classList.add('show');celebrate(!wasOwned);drawing=false;render();
+      },620);
+    }
+    requestAnimationFrame(chargeFrame);
   }
   ticketDraw.addEventListener('click',()=>draw('ticket'));medalDraw.addEventListener('click',()=>draw('medal'));document.getElementById('closeResult').addEventListener('click',()=>{layer.classList.remove('show','newDraw','duplicateDraw')});layer.addEventListener('click',e=>{if(e.target===layer)layer.classList.remove('show','newDraw','duplicateDraw')});
-  document.getElementById('reset').addEventListener('click',()=>{characters=initial.map(x=>({...x}));tickets=3;medals=240;drawing=false;layer.classList.remove('show','newDraw','duplicateDraw');machine.classList.remove('drawing');document.getElementById('windowMark').textContent='?';render()});
+  document.getElementById('reset').addEventListener('click',()=>{characters=initial.map(x=>({...x}));tickets=3;medals=240;drawing=false;layer.classList.remove('show','newDraw','duplicateDraw');machine.classList.remove('drawing','charging');machine.style.removeProperty('--pulse');chargeHalo.style.setProperty('--charge','0deg');chargeStatus.textContent='ボタンを押すとエネルギーがたまる';document.getElementById('windowMark').textContent='?';render()});
   document.addEventListener('gesturestart',e=>e.preventDefault(),{passive:false});render();
 })();
 </script>
