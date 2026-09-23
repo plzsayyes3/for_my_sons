@@ -284,6 +284,72 @@
       return profiles;
     }
 
+    function safeSegment(value, name) {
+      const text = String(value || '');
+      if (!/^[A-Za-z0-9][A-Za-z0-9_-]{0,99}$/.test(text)) throw new TypeError(name + ' is invalid');
+      return text;
+    }
+
+    async function readProfileSave(profileId) {
+      const id = safeSegment(profileId, 'profileId');
+      const path = 'saves/' + id + '.json';
+      const remote = await readRemote(path);
+      if (!remote.exists) return { exists: false, path, record: null, sha: null };
+      const record = JSON.parse(new TextDecoder().decode(remote.content));
+      if (!record || typeof record !== 'object' || Array.isArray(record) || String(record.profileId || '') !== id) {
+        throw new Error('Profile save is invalid');
+      }
+      return { exists: true, path, record, sha: remote.sha };
+    }
+
+    async function readProfileApp(profileId, appId) {
+      const app = safeSegment(appId, 'appId');
+      const remote = await readProfileSave(profileId);
+      if (!remote.exists) return { exists: false, data: null, sha: null, revision: null };
+      const apps = remote.record.apps && typeof remote.record.apps === 'object' && !Array.isArray(remote.record.apps)
+        ? remote.record.apps
+        : {};
+      const data = apps[app] && typeof apps[app] === 'object' && !Array.isArray(apps[app])
+        ? apps[app]
+        : null;
+      return {
+        exists: Boolean(data),
+        data: data ? JSON.parse(JSON.stringify(data)) : null,
+        sha: remote.sha,
+        revision: Number.isFinite(Number(remote.record.revision)) ? Number(remote.record.revision) : 0
+      };
+    }
+
+    async function writeProfileApp(profileId, appId, data, options = {}) {
+      const app = safeSegment(appId, 'appId');
+      if (!data || typeof data !== 'object' || Array.isArray(data)) throw new TypeError('app data must be an object');
+      const remote = await readProfileSave(profileId);
+      if (!remote.exists) throw new Error('Profile save was not found');
+      const previousApps = remote.record.apps && typeof remote.record.apps === 'object' && !Array.isArray(remote.record.apps)
+        ? remote.record.apps
+        : {};
+      const previousApp = previousApps[app] && typeof previousApps[app] === 'object' && !Array.isArray(previousApps[app])
+        ? previousApps[app]
+        : {};
+      const appData = { ...previousApp, ...JSON.parse(JSON.stringify(data)) };
+      const nextRecord = {
+        ...remote.record,
+        apps: { ...previousApps, [app]: appData },
+        revision: (Number.isFinite(Number(remote.record.revision)) ? Number(remote.record.revision) : 0) + 1,
+        updatedAt: new Date().toISOString()
+      };
+      const result = await writePath(remote.path, nextRecord, {
+        sha: options.sha || remote.sha,
+        message: options.message || ('Sync ' + app + ' for ' + profileId)
+      });
+      return {
+        ...result,
+        data: appData,
+        revision: nextRecord.revision,
+        updatedAt: nextRecord.updatedAt
+      };
+    }
+
     async function status() {
       const pending = saveStore?.listPending ? await saveStore.listPending() : [];
       return { configured: Boolean(settings.owner && settings.repo), pending: pending.length, state: pending.length ? 'pending' : 'idle' };
@@ -303,6 +369,9 @@
       testConnection,
       readHouseholdSettings,
       listProfiles,
+      readProfileSave,
+      readProfileApp,
+      writeProfileApp,
       writePath,
       deletePath,
       pushRecord,
