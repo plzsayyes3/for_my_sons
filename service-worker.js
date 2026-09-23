@@ -1,4 +1,4 @@
-const CACHE_NAME = 'for-my-sons-v39';
+const CACHE_NAME = 'for-my-sons-v40';
 const SHELL = [
   './',
   './index.html',
