@@ -265,6 +265,7 @@
         }
       });
 
+      throwIfRateLimited(userResponse);
       if (userResponse.status === 401) {
         const error = new Error('Token is invalid or expired');
         error.code = 'TOKEN_INVALID';
