@@ -23,6 +23,17 @@
       <p class="hero-copy">ここから、すきなものをひらこう。</p>
     </section>
 
+    <section class="recent-wanko" id="recent-wanko" hidden aria-label="さいきんのわんこ">
+      <div class="recent-wanko-copy">
+        <p class="eyebrow">MY WANKO</p>
+        <strong id="recent-wanko-name">さいきんのわんこ</strong>
+        <span>タップでバトルへ</span>
+      </div>
+      <a class="recent-wanko-link" href="./wanko-war/?v=5" aria-label="さいきんのわんこでバトル">
+        <img id="recent-wanko-image" alt="">
+      </a>
+    </section>
+
     <section class="apps-section" aria-label="アプリ">
       <div id="app-grid" class="app-grid" aria-live="polite"></div>
     </section>
@@ -41,6 +52,8 @@
     </a>
   </template>
 
-  <script src="./app.js" defer></script>
+  <script src="./shared/wanko-cloud-config.js"></script>
+  <script src="./shared/wanko-library.js"></script>
+  <script src="./app.js?v=2" defer></script>
 </body>
 </html>
