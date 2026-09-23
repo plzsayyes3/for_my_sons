@@ -16,11 +16,12 @@ const SHELL = [
   './merge-block/index.html',
   './merge-block/styles.css?v=10',
   './merge-block/app.js?v=11',
-  './wanko-war/?v=7',
+  './wanko-war/?v=8',
   './wanko-war/index.html',
-  './wanko-library/?v=3',
+  './wanko-library/?v=4',
   './wanko-library/index.html',
   './official-wankos/futsuu-no-wanko.wanko.json',
+  './official-wankos/naganeko.wanko.json',
   './wanko-cloud/?v=1',
   './wanko-cloud/index.html',
   './shared/wanko-cloud-config.js',
@@ -45,6 +46,8 @@ const SHELL = [
   './assets/merge-block.svg?v=2',
   './assets/wanko-war.svg?v=1',
   './assets/wanko-library.svg?v=1',
+  './assets/official-wankos/futsuu-no-wanko.svg?v=2',
+  './assets/official-wankos/naganeko.svg?v=1',
   './assets/paint.svg'
 ];
 
