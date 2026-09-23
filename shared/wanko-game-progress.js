@@ -2,7 +2,7 @@
   const api = factory();
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
   if (!root) return;
-  const exported = { createProgressStore: api.createProgressStore, createProfileStore: api.createProfileStore };
+  const exported = { createProgressStore: api.createProgressStore, createProfileStore: api.createProfileStore, mergeStates: api.mergeStates, normalizeState: api.normalizeState };
   if (root.WankoLibrary && root.WankoGameData) {
     const store = api.createProgressStore({
       getMeta: () => root.WankoLibrary.getMeta('wankoGameProgressV1'),
@@ -20,6 +20,43 @@
     clearedStageIds: []
   });
 
+  function normalizeState(raw, definitions) {
+    if (!definitions?.stages || !definitions?.elements || !definitions?.characters) throw new TypeError('game definitions are required');
+    const stageById = new Map(definitions.stages.map(stage => [stage.id, stage]));
+    const elementIds = new Set(definitions.elements.map(element => Number(element.id)));
+    const characterById = definitions.characters;
+    const value = raw && typeof raw === 'object' && !Array.isArray(raw) ? raw : {};
+    const clearedStageIds = [...new Set(
+      (Array.isArray(value.clearedStageIds) ? value.clearedStageIds : [])
+        .filter(id => stageById.has(id))
+    )].sort((a, b) => stageById.get(a).sequence - stageById.get(b).sequence);
+    const discoveredElementIds = [...new Set(
+      (Array.isArray(value.discoveredElementIds) ? value.discoveredElementIds : [])
+        .map(Number)
+        .filter(id => Number.isInteger(id) && elementIds.has(id))
+    )].sort((a, b) => a - b);
+    const discoveredCharacterIds = [...new Set(
+      (Array.isArray(value.discoveredCharacterIds) ? value.discoveredCharacterIds : [])
+        .filter(id => characterById[id]?.faction === 'enemy')
+    )].sort();
+    const selectedStageId = stageById.has(value.selectedStageId) ? value.selectedStageId : INITIAL_STATE.selectedStageId;
+    return { selectedStageId, discoveredElementIds, discoveredCharacterIds, clearedStageIds };
+  }
+
+  function mergeStates(left, right, definitions) {
+    const a = normalizeState(left, definitions);
+    const b = normalizeState(right, definitions);
+    const stageById = new Map(definitions.stages.map(stage => [stage.id, stage]));
+    const selectedStageId = [a.selectedStageId, b.selectedStageId]
+      .sort((x, y) => (stageById.get(y)?.sequence || 0) - (stageById.get(x)?.sequence || 0))[0] || INITIAL_STATE.selectedStageId;
+    return normalizeState({
+      selectedStageId,
+      discoveredElementIds: [...a.discoveredElementIds, ...b.discoveredElementIds],
+      discoveredCharacterIds: [...a.discoveredCharacterIds, ...b.discoveredCharacterIds],
+      clearedStageIds: [...a.clearedStageIds, ...b.clearedStageIds]
+    }, definitions);
+  }
+
   function createProgressStore(storage, definitions) {
     if (!storage?.getMeta || !storage?.setMeta) throw new TypeError('storage must provide getMeta and setMeta');
     if (!definitions?.stages || !definitions?.elements || !definitions?.characters) throw new TypeError('game definitions are required');
@@ -30,22 +67,7 @@
     let writeQueue = Promise.resolve();
 
     function normalize(raw) {
-      const value = raw && typeof raw === 'object' && !Array.isArray(raw) ? raw : {};
-      const clearedStageIds = [...new Set(
-        (Array.isArray(value.clearedStageIds) ? value.clearedStageIds : [])
-          .filter(id => stageById.has(id))
-      )].sort((a, b) => stageById.get(a).sequence - stageById.get(b).sequence);
-      const discoveredElementIds = [...new Set(
-        (Array.isArray(value.discoveredElementIds) ? value.discoveredElementIds : [])
-          .map(Number)
-          .filter(id => Number.isInteger(id) && elementIds.has(id))
-      )].sort((a, b) => a - b);
-      const discoveredCharacterIds = [...new Set(
-        (Array.isArray(value.discoveredCharacterIds) ? value.discoveredCharacterIds : [])
-          .filter(id => characterById[id]?.faction === 'enemy')
-      )].sort();
-      const selectedStageId = stageById.has(value.selectedStageId) ? value.selectedStageId : INITIAL_STATE.selectedStageId;
-      return { selectedStageId, discoveredElementIds, discoveredCharacterIds, clearedStageIds };
+      return normalizeState(raw, definitions);
     }
 
     async function readState() {
@@ -123,6 +145,12 @@
       });
     }
 
+    async function importState(raw) {
+      const next = normalize(raw);
+      await storage.setMeta(META_KEY, next);
+      return next;
+    }
+
     async function isCharacterUnlocked(characterId) {
       const character = characterById[characterId];
       if (!character) return false;
@@ -138,6 +166,7 @@
       discoverCharacter,
       startStage,
       completeStage,
+      importState,
       isStageUnlocked,
       isCharacterUnlocked
     };
@@ -151,5 +180,5 @@
     }, definitions);
   }
 
-  return { createProgressStore, createProfileStore, initialState: () => ({ ...INITIAL_STATE }) };
+  return { createProgressStore, createProfileStore, mergeStates, normalizeState, initialState: () => ({ ...INITIAL_STATE }) };
 });
