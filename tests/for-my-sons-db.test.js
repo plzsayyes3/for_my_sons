@@ -9,8 +9,8 @@ const {
 
 test('shared database declares the versioned stores', () => {
   assert.equal(DB_NAME, 'for-my-sons-shared-v1');
-  assert.equal(DB_VERSION, 1);
-  assert.deepEqual(STORE_NAMES, ['settings', 'profiles', 'avatars', 'saves', 'snapshots']);
+  assert.equal(DB_VERSION, 2);
+  assert.deepEqual(STORE_NAMES, ['settings', 'profiles', 'avatars', 'saves', 'snapshots', 'characterRequests']);
 });
 
 test('memory database preserves records and binary values', async () => {

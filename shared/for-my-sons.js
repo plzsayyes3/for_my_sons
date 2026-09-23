@@ -15,6 +15,7 @@
     const parentModule = typeof require === 'function' ? require('./parent-lock.js') : globalThis.ForMySonsParentLock;
     const saveModule = typeof require === 'function' ? require('./save-store.js') : globalThis.ForMySonsSaveStore;
     const githubModule = typeof require === 'function' ? require('./github-sync.js') : globalThis.ForMySonsGithubSync;
+    const requestModule = typeof require === 'function' ? require('./character-requests.js') : globalThis.ForMySonsCharacterRequests;
     const eventTarget = options.eventTarget || (typeof window !== 'undefined' ? window : null);
     const dispatch = (type, detail) => eventTarget?.dispatchEvent?.(eventFor(type, detail));
     const profile = profileModule.createProfileManager(db);
@@ -27,6 +28,7 @@
       profileManager: profile,
       config: options.config || {}
     });
+    const characterRequests = requestModule.createCharacterRequestService({ db, sync });
 
     profile.onChange(event => dispatch('for-my-sons-profile-changed', { type: event.type, profileId: event.profile.id }));
 
@@ -91,7 +93,8 @@
           dispatch('for-my-sons-sync-changed', await sync.status());
           return result;
         }
-      }
+      },
+      characterRequests
     };
     return api;
   }
