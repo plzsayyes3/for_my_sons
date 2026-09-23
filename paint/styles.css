@@ -141,7 +141,7 @@ main { padding-top: 10px; }
   width: min(100%, 760px);
   margin: 0 auto 10px;
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: repeat(3, 1fr);
   gap: 8px;
 }
 
@@ -160,6 +160,9 @@ main { padding-top: 10px; }
 
 .puzzle-save {
   background: linear-gradient(135deg, #fff1e9, #fffaf5);
+}
+.wanko-save {
+  background: linear-gradient(135deg, #fff0b9, #fffaf0);
 }
 
 .save-choice-icon {
@@ -556,4 +559,20 @@ main { padding-top: 10px; }
   .toast,
   .modal,
   .modal-card { transition: none; }
+}
+
+.wanko-card { max-width: 430px; }
+.wanko-preview {
+  width: 180px; aspect-ratio: 1; margin: 16px auto 12px; display:grid; place-items:center;
+  border-radius:22px; overflow:hidden; background:linear-gradient(#cce9ef 0 66%,#c8d995 66%);
+  box-shadow:inset 0 0 0 2px rgba(44,41,38,.1);
+}
+.wanko-preview img { width:90%; height:90%; object-fit:contain; filter:drop-shadow(0 4px 1px rgba(0,0,0,.18)); }
+.wanko-name-label { display:block; margin:4px 2px 6px; font-size:11px; font-weight:900; color:var(--muted); }
+.wanko-name-input { width:100%; height:50px; border:2px solid rgba(44,41,38,.18); border-radius:14px; padding:0 14px; font:inherit; font-weight:850; background:white; outline:none; }
+.wanko-name-input:focus { border-color:var(--ink); }
+.wanko-note { margin:9px 2px 0; color:var(--muted); font-size:11px; font-weight:700; line-height:1.45; }
+@media (max-width: 520px) {
+  .save-actions { grid-template-columns: 1fr 1fr; }
+  .wanko-save { grid-column: 1 / -1; }
 }
