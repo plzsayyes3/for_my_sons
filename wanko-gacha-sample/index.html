@@ -29,6 +29,31 @@ main{width:min(100%,720px);margin:auto;padding:14px 12px calc(env(safe-area-inse
 .collection{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}.character{position:relative;overflow:hidden;border:2px solid var(--line);border-radius:19px;background:var(--card);box-shadow:0 4px 0 var(--line)}.character .art{aspect-ratio:1.2;display:grid;place-items:center;padding:13px;background:linear-gradient(#cce9ef 0 68%,#cadb95 68%)}.character img{width:100%;height:100%;object-fit:contain;filter:drop-shadow(0 4px 1px rgba(0,0,0,.16))}.character .info{padding:9px 10px 11px}.character .name{font-size:13px;font-weight:1000;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.tag{display:inline-flex;margin-top:6px;padding:4px 7px;border-radius:999px;font-size:9px;font-weight:1000}.tag.owned{background:#f4cd58}.tag.trial{background:#e6dfd4;color:#6d6256}.character.isOwned{outline:3px solid rgba(241,201,77,.7);outline-offset:-3px}
 .reset{display:block;margin:17px auto 0;border:0;background:none;text-decoration:underline;color:#786d62;font-size:11px;font-weight:800;padding:8px}
 .resultLayer{position:fixed;inset:0;z-index:60;display:none;place-items:center;padding:20px;background:rgba(38,32,26,.42);backdrop-filter:blur(7px)}.resultLayer.show{display:grid}.resultCard{position:relative;width:min(88vw,360px);border:3px solid var(--line);border-radius:28px;background:#fffaf2;box-shadow:0 9px 0 var(--line);padding:18px;text-align:center;animation:pop .38s cubic-bezier(.18,.89,.32,1.28)}.burst{position:absolute;inset:-60px;z-index:-1;background:repeating-conic-gradient(from 0deg,rgba(255,225,102,.8) 0 10deg,transparent 10deg 20deg);border-radius:50%;animation:spin 11s linear infinite}.resultBadge{display:inline-flex;padding:5px 11px;border:2px solid var(--line);border-radius:999px;background:#f7d45c;font-size:13px;font-weight:1000}.resultArt{height:190px;display:grid;place-items:center;margin:5px 0}.resultArt img{max-width:88%;max-height:180px;object-fit:contain;filter:drop-shadow(0 6px 1px rgba(0,0,0,.15))}.resultCard h2{font-size:25px;margin:2px 0 4px}.resultCard p{margin:0 0 14px;font-size:12px;font-weight:800;color:#665d54}.closeResult{width:100%;border:2.5px solid var(--line);border-radius:14px;background:#ffe88a;padding:11px;font-weight:1000;box-shadow:0 4px 0 var(--line)}.closeResult:active{transform:translateY(3px);box-shadow:0 1px 0 var(--line)}
+
+.fxLayer{position:fixed;inset:0;z-index:50;pointer-events:none;overflow:hidden}
+.screenFlash{position:absolute;inset:0;opacity:0;background:radial-gradient(circle at 50% 45%,#fff 0 10%,#fff5a8 18%,rgba(255,214,72,.65) 35%,transparent 72%)}
+.screenFlash.play{animation:screenFlash .72s ease-out}
+.rayBurst{position:absolute;left:50%;top:48%;width:190vmax;height:190vmax;transform:translate(-50%,-50%) scale(.25);opacity:0;border-radius:50%;background:repeating-conic-gradient(from 0deg,rgba(255,233,122,.88) 0 4deg,transparent 4deg 12deg)}
+.rayBurst.play{animation:rayBurst .9s cubic-bezier(.2,.8,.2,1)}
+.flyingOrb{position:absolute;width:74px;height:74px;left:50%;top:51%;transform:translate(-50%,-50%) scale(.2);opacity:0;filter:drop-shadow(0 0 18px rgba(255,223,85,.95));will-change:transform,opacity}
+.flyingOrb.play{animation:orbLaunch .86s cubic-bezier(.18,.75,.2,1)}
+.fxParticle{position:absolute;width:28px;height:28px;left:50%;top:48%;opacity:0;will-change:transform,opacity;filter:drop-shadow(0 2px 2px rgba(52,47,41,.18))}
+.fxParticle.star{width:34px;height:34px}.fxParticle.confetti{width:17px;height:26px}
+.fxParticle.play{animation:particleFly var(--dur,.92s) cubic-bezier(.17,.67,.3,1) var(--delay,0s) forwards}
+.resultLayer.newDraw .resultCard{animation:resultNew .55s cubic-bezier(.17,.95,.3,1.22)}
+.resultLayer.newDraw .resultCard:after{content:"";position:absolute;inset:-9px;border-radius:34px;border:4px solid rgba(255,214,72,.9);box-shadow:0 0 28px 10px rgba(255,222,88,.5);animation:halo 1s ease-out forwards;pointer-events:none}
+.resultLayer.newDraw .resultBadge{animation:newBadge .55s .12s cubic-bezier(.17,.95,.3,1.4) both}
+.resultLayer.duplicateDraw .resultCard{animation:resultDuplicate .42s ease-out}
+.machine.drawing:after{content:"";position:absolute;inset:0;background:linear-gradient(115deg,transparent 0 36%,rgba(255,255,255,.75) 43%,transparent 51%);transform:translateX(-130%);animation:machineSweep .62s ease-in-out infinite}
+@keyframes screenFlash{0%{opacity:0}24%{opacity:1}100%{opacity:0}}
+@keyframes rayBurst{0%{opacity:0;transform:translate(-50%,-50%) scale(.2) rotate(0)}30%{opacity:.9}100%{opacity:0;transform:translate(-50%,-50%) scale(1.05) rotate(18deg)}}
+@keyframes orbLaunch{0%{opacity:0;transform:translate(-50%,90%) scale(.2) rotate(-40deg)}20%{opacity:1}58%{transform:translate(-50%,-70%) scale(1.15) rotate(80deg)}100%{opacity:0;transform:translate(-50%,-210%) scale(1.75) rotate(190deg)}}
+@keyframes particleFly{0%{opacity:0;transform:translate(-50%,-50%) scale(.2) rotate(0)}12%{opacity:1}100%{opacity:0;transform:translate(calc(-50% + var(--x)),calc(-50% + var(--y))) scale(var(--s,1)) rotate(var(--r,180deg))}}
+@keyframes resultNew{0%{transform:scale(.45) rotate(-5deg);opacity:0}58%{transform:scale(1.07) rotate(1deg);opacity:1}100%{transform:scale(1) rotate(0)}}
+@keyframes resultDuplicate{0%{transform:scale(.75);opacity:0}65%{transform:scale(1.03);opacity:1}100%{transform:scale(1)}}
+@keyframes halo{0%{opacity:1;transform:scale(.8)}100%{opacity:0;transform:scale(1.18)}}
+@keyframes newBadge{0%{transform:scale(.2) rotate(-14deg);opacity:0}100%{transform:scale(1) rotate(-3deg);opacity:1}}
+@keyframes machineSweep{to{transform:translateX(130%)}}
 @keyframes spin{to{transform:rotate(360deg)}}@keyframes shake{25%{transform:translateX(-3px) rotate(-1deg)}75%{transform:translateX(3px) rotate(1deg)}}@keyframes flash{to{background:#fff3a8;transform:scale(1.04)}}@keyframes pop{from{transform:scale(.55) rotate(-4deg);opacity:0}to{transform:scale(1);opacity:1}}
 @media(min-width:620px){.collection{grid-template-columns:repeat(4,minmax(0,1fr))}.machine{min-height:360px}.gachaStage{height:180px}}@media(max-width:380px){header h1{font-size:18px}.machineTitle h2{font-size:27px}.machine{padding-left:12px;padding-right:12px}.collection{gap:8px}}@media(prefers-reduced-motion:reduce){*{animation-duration:.001ms!important;animation-iteration-count:1!important}}
 </style>
@@ -53,8 +78,9 @@ main{width:min(100%,720px);margin:auto;padding:14px 12px calc(env(safe-area-inse
 <section class="collection" id="collection"></section>
 <button class="reset" id="reset">サンプル状態をリセット</button>
 </main>
+<div class="fxLayer" id="fxLayer" aria-hidden="true"></div>
 <div class="resultLayer" id="resultLayer" role="dialog" aria-modal="true" aria-labelledby="resultName">
-  <div class="resultCard"><div class="burst"></div><div class="resultBadge" id="resultBadge">NEW!</div><div class="resultArt"><img id="resultImage" alt=""></div><h2 id="resultName">わんこ</h2><p id="resultText">なかまになった！</p><button class="closeResult" id="closeResult">やった！</button></div>
+  <div class="resultCard" id="resultCard"><div class="burst"></div><div class="resultBadge" id="resultBadge">NEW!</div><div class="resultArt"><img id="resultImage" alt=""></div><h2 id="resultName">わんこ</h2><p id="resultText">なかまになった！</p><button class="closeResult" id="closeResult">やった！</button></div>
 </div>
 <script>
 (() => {
@@ -66,6 +92,7 @@ main{width:min(100%,720px);margin:auto;padding:14px 12px calc(env(safe-area-inse
   ];
   let characters=initial.map(x=>({...x})),tickets=3,medals=240,drawing=false;
   const machine=document.getElementById('machine'),ticketEl=document.getElementById('tickets'),medalEl=document.getElementById('medals'),ticketDraw=document.getElementById('ticketDraw'),medalDraw=document.getElementById('medalDraw'),collection=document.getElementById('collection'),ownedCount=document.getElementById('ownedCount'),layer=document.getElementById('resultLayer'),resultBadge=document.getElementById('resultBadge'),resultImage=document.getElementById('resultImage'),resultName=document.getElementById('resultName'),resultText=document.getElementById('resultText');
+  const fxLayer=document.getElementById('fxLayer');
   function render(){
     ticketEl.textContent=tickets;medalEl.textContent=medals;ticketDraw.disabled=drawing||tickets<1;medalDraw.disabled=drawing||medals<100;
     const owned=characters.filter(x=>x.owned).length;ownedCount.textContent=owned+' / '+characters.length+' なかま';collection.replaceChildren();
@@ -77,15 +104,51 @@ main{width:min(100%,720px);margin:auto;padding:14px 12px calc(env(safe-area-inse
       info.append(name,tag);card.append(art,info);collection.appendChild(card);
     }
   }
+  function addFxNode(className,src=null){
+    const node=src?document.createElement('img'):document.createElement('div');
+    node.className=className;if(src){node.src=src;node.alt='';}fxLayer.appendChild(node);return node;
+  }
+  function playIntroFx(){
+    const flash=addFxNode('screenFlash play');
+    const rays=addFxNode('rayBurst play');
+    const orb=addFxNode('flyingOrb play','../assets/gacha-effects/orb.svg?v=1');
+    setTimeout(()=>{flash.remove();rays.remove();orb.remove()},1100);
+  }
+  function celebrate(isNew){
+    const total=isNew?34:16;
+    const sources=['../assets/gacha-effects/star.svg?v=1','../assets/gacha-effects/spark.svg?v=1','../assets/gacha-effects/confetti.svg?v=1'];
+    for(let i=0;i<total;i++){
+      const type=i%3===2?'confetti':'star';
+      const node=addFxNode('fxParticle '+type,sources[i%3]);
+      const angle=Math.random()*Math.PI*2;
+      const dist=(isNew?150:105)+Math.random()*(isNew?170:100);
+      const x=Math.cos(angle)*dist,y=Math.sin(angle)*dist;
+      node.style.setProperty('--x',x.toFixed(1)+'px');
+      node.style.setProperty('--y',y.toFixed(1)+'px');
+      node.style.setProperty('--r',(Math.round(Math.random()*520-260))+'deg');
+      node.style.setProperty('--s',(0.65+Math.random()*0.95).toFixed(2));
+      node.style.setProperty('--dur',(0.72+Math.random()*0.7).toFixed(2)+'s');
+      node.style.setProperty('--delay',(Math.random()*0.16).toFixed(2)+'s');
+      requestAnimationFrame(()=>node.classList.add('play'));
+      setTimeout(()=>node.remove(),1700);
+    }
+    if(isNew){
+      const flash=addFxNode('screenFlash play');
+      const rays=addFxNode('rayBurst play');
+      setTimeout(()=>{flash.remove();rays.remove()},1000);
+    }
+    try{navigator.vibrate?.(isNew?[40,35,75]:[35])}catch{}
+  }
+
   function chooseCharacter(){const notOwned=characters.filter(x=>!x.owned);const pool=Math.random()<.72&&notOwned.length?notOwned:characters;return pool[Math.floor(Math.random()*pool.length)]}
   function draw(kind){
     if(drawing)return;if(kind==='ticket'&&tickets<1)return;if(kind==='medal'&&medals<100)return;
-    drawing=true;if(kind==='ticket')tickets-=1;else medals-=100;machine.classList.add('drawing');document.getElementById('windowMark').textContent='★';render();
+    drawing=true;if(kind==='ticket')tickets-=1;else medals-=100;machine.classList.add('drawing');document.getElementById('windowMark').textContent='★';render();playIntroFx();
     const character=chooseCharacter(),wasOwned=character.owned;
-    setTimeout(()=>{character.owned=true;machine.classList.remove('drawing');document.getElementById('windowMark').textContent='?';resultBadge.textContent=wasOwned?'GET!':'NEW!';resultBadge.style.background=wasOwned?'#e9e1d6':'#f7d45c';resultImage.src=character.image;resultName.textContent=character.name;resultText.textContent=wasOwned?'もう持っているわんこ！ かぶり時の処理はこれから決める。':'なかまになった！ これで正式にデッキへ入れられる。';layer.classList.add('show');drawing=false;render()},900);
+    setTimeout(()=>{character.owned=true;machine.classList.remove('drawing');document.getElementById('windowMark').textContent='?';resultBadge.textContent=wasOwned?'GET!':'NEW!';resultBadge.style.background=wasOwned?'#e9e1d6':'#f7d45c';resultImage.src=character.image;resultName.textContent=character.name;resultText.textContent=wasOwned?'もう持っているわんこ！ かぶり時の処理はこれから決める。':'なかまになった！ これで正式にデッキへ入れられる。';layer.classList.remove('newDraw','duplicateDraw');layer.classList.add(wasOwned?'duplicateDraw':'newDraw');layer.classList.add('show');celebrate(!wasOwned);drawing=false;render()},900);
   }
-  ticketDraw.addEventListener('click',()=>draw('ticket'));medalDraw.addEventListener('click',()=>draw('medal'));document.getElementById('closeResult').addEventListener('click',()=>layer.classList.remove('show'));layer.addEventListener('click',e=>{if(e.target===layer)layer.classList.remove('show')});
-  document.getElementById('reset').addEventListener('click',()=>{characters=initial.map(x=>({...x}));tickets=3;medals=240;drawing=false;layer.classList.remove('show');machine.classList.remove('drawing');document.getElementById('windowMark').textContent='?';render()});
+  ticketDraw.addEventListener('click',()=>draw('ticket'));medalDraw.addEventListener('click',()=>draw('medal'));document.getElementById('closeResult').addEventListener('click',()=>{layer.classList.remove('show','newDraw','duplicateDraw')});layer.addEventListener('click',e=>{if(e.target===layer)layer.classList.remove('show','newDraw','duplicateDraw')});
+  document.getElementById('reset').addEventListener('click',()=>{characters=initial.map(x=>({...x}));tickets=3;medals=240;drawing=false;layer.classList.remove('show','newDraw','duplicateDraw');machine.classList.remove('drawing');document.getElementById('windowMark').textContent='?';render()});
   document.addEventListener('gesturestart',e=>e.preventDefault(),{passive:false});render();
 })();
 </script>
