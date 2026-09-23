@@ -194,6 +194,13 @@
       ? '<img class="customSprite" alt="" src="'+data.imageUrl+'">'
       : '<div class="sprite">'+data.sprite+'</div>';
     el.innerHTML='<div class="miniHp"><i></i></div>'+visual;
+    if(data.imageUrl){
+      const sprite=el.querySelector('.customSprite');
+      const scale=Math.max(.6,Math.min(2,Number(data.renderScale)||1));
+      const size=50*scale;
+      sprite.style.width=size+'px';
+      sprite.style.height=size+'px';
+    }
     unitsLayer.appendChild(el);
     const ent={...data,team,x:spawnX(team),hp:data.hp,maxHp:data.hp,attackClock:Math.random()*.2,el,dead:false};
     entities.push(ent);
@@ -335,6 +342,7 @@
         range:Number(stats.range)||44,
         cooldown:Number(stats.cooldown)||.72,
         imageUrl:customDogUrl,
+        renderScale:Number(w.renderScale)||1,
         className:'custom'
       };
       customDogCard.hidden=false;
