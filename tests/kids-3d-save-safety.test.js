@@ -127,3 +127,15 @@ test('FMS facade exposes low-call write and delete primitives', () => {
   assert.match(facadeSource, /writePathKnown: \(path, value, options\) => sync\.writePathKnown/);
   assert.match(facadeSource, /deletePathKnown: \(path, sha, options\) => sync\.deletePathKnown/);
 });
+
+
+test('unchanged cloud save exits before backup or current writes', () => {
+  const saveStart = source.indexOf('async function saveCloudProject()');
+  const loadStart = source.indexOf('async function loadCloudProject()', saveStart);
+  const saveBody = source.slice(saveStart, loadStart);
+  const sameCheck = saveBody.indexOf('currentPayload?.checksumSha256&&currentPayload.checksumSha256===built.payload.checksumSha256');
+  const backupWrite = saveBody.indexOf('writePathKnown(backupPath,current.content');
+  const currentWrite = saveBody.indexOf('writePathKnown(path,built.envelopeBytes');
+  assert.ok(sameCheck >= 0 && backupWrite > sameCheck && currentWrite > sameCheck);
+  assert.match(saveBody, /変更がないので、セーブは増やさなかったよ/);
+});
