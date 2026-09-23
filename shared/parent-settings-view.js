@@ -19,16 +19,18 @@
     const title = make('h2', { id: 'parent-settings-title' }, 'おとなの設定');
     const status = make('p', { role: 'status', 'aria-live': 'polite' }, '親PINを設定してください。');
     const pin = make('input', { type: 'password', autocomplete: 'current-password', 'aria-label': '親PIN' });
-    pin.inputMode = 'numeric'; pin.maxLength = 32;
+    pin.inputMode = 'numeric'; pin.maxLength = 6; pin.pattern = '[0-9]{6}';
     const pinButton = make('button', { type: 'button' }, 'PINを設定');
     const token = make('input', { type: 'password', autocomplete: 'off', 'aria-label': 'GitHub token' });
     token.hidden = true;
+    const tokenNote = make('p', {}, 'tokenはこの端末に保存します（暗号化はしません）。PINは設定画面を子どもが開けないようにするロックです。');
+    tokenNote.hidden = true;
     const tokenButton = make('button', { type: 'button', hidden: true }, 'tokenを端末に保存');
     const profileSelect = make('select', { 'aria-label': '利用プロフィール', hidden: true });
     const syncButton = make('button', { type: 'button', hidden: true }, '同期');
     const migrationButton = make('button', { type: 'button', hidden: true }, '旧セーブを選択プロフィールへコピー');
     const close = make('button', { type: 'button' }, '閉じる');
-    panel.append(title, status, pin, pinButton, token, tokenButton, profileSelect, migrationButton, syncButton, close);
+    panel.append(title, status, pin, pinButton, token, tokenNote, tokenButton, profileSelect, migrationButton, syncButton, close);
     container.replaceChildren(panel);
     const autoSync = root.ForMySonsAutoSync?.createAutoSync({
       sync: api.sync,
@@ -50,11 +52,12 @@
         pin.hidden = true;
         pinButton.hidden = true;
         token.hidden = false;
+        tokenNote.hidden = false;
         tokenButton.hidden = false;
         profileSelect.hidden = false;
         migrationButton.hidden = !api.migration;
         syncButton.hidden = false;
-        status.textContent = 'ロック解除中。プロフィールを読み込みます。';
+        status.textContent = '設定を開きました。プロフィールを読み込みます。';
         await refreshProfiles();
         autoSync?.resetBackoff();
         await autoSync?.trigger({ force: true });
@@ -88,13 +91,13 @@
       try {
         await api.lock.storeToken(token.value);
         token.value = '';
-        status.textContent = 'tokenを暗号化して端末に保存しました。';
+        status.textContent = 'tokenを端末に保存しました。';
         await refreshProfiles();
         autoSync?.resetBackoff();
         await autoSync?.trigger({ force: true });
       } catch (error) {
         token.value = '';
-        status.textContent = error.message.includes('origin') ? '専用ドメインが未設定のため、tokenは保存できません。' : 'tokenを保存できませんでした。';
+        status.textContent = 'tokenをこの端末に保存できませんでした。';
       }
     });
     profileSelect.addEventListener('change', async () => {
@@ -131,7 +134,7 @@
       } catch { status.textContent = '同期できませんでした。ローカル保存は保持されています。'; }
     });
     close.addEventListener('click', () => { api.lock.lock(); panel.hidden = true; });
-    return { open() { panel.hidden = false; pin.hidden = false; pinButton.hidden = false; api.lock.isConfigured().then(configured => { pinButton.textContent = configured ? 'PINで解除' : 'PINを設定'; }); token.hidden = true; tokenButton.hidden = true; profileSelect.hidden = true; migrationButton.hidden = true; syncButton.hidden = true; status.textContent = '親PINを入力してください。'; pin.focus(); }, close() { api.lock.lock(); panel.hidden = true; } };
+    return { open() { api.lock.lock(); panel.hidden = false; pin.hidden = false; pinButton.hidden = false; api.lock.isConfigured().then(configured => { pinButton.textContent = configured ? 'PINで解除' : 'PINを設定'; }); token.hidden = true; tokenNote.hidden = true; tokenButton.hidden = true; profileSelect.hidden = true; migrationButton.hidden = true; syncButton.hidden = true; status.textContent = '親PINを入力してください。'; pin.focus(); }, close() { api.lock.lock(); panel.hidden = true; } };
   }
 
   return { renderSettings };

@@ -3,9 +3,9 @@
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
   if (root) root.ForMySonsShared = api;
 })(typeof globalThis !== 'undefined' ? globalThis : this, root => {
-  async function createForMySons({ allowedOrigin = '', fetchImpl = globalThis.fetch } = {}) {
+  async function createForMySons({ fetchImpl = globalThis.fetch } = {}) {
     const settings = root.ForMySonsLocalSettings.create();
-    const lock = root.ForMySonsParentLock.createParentLock(settings, root.crypto, allowedOrigin);
+    const lock = root.ForMySonsParentLock.createParentLock(settings, root.crypto);
     const saveStore = root.ForMySonsSaveStore.createSaveStore(root.ForMySonsSaveStore.createIndexedDbAdapter());
     const sync = root.ForMySonsGitHubSync.createGitHubSync({ fetchImpl, tokenVault: lock, config: root.ForMySonsConfig, saveStore });
     const profile = root.ForMySonsProfileManager.createProfileManager({ sync });

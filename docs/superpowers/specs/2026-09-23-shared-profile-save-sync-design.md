@@ -41,15 +41,14 @@
 
 ## 認証情報
 
-- 親PINからWeb Crypto APIで鍵を導出し、tokenはAES-GCMで暗号化して端末IndexedDBに保存する。暗号化形式にはアルゴリズム版、salt、nonceを含め、将来の鍵導出方式変更を可能にする。
-- 復号済みtokenはGitHub通信中のメモリに限り、URL、リクエスト本文、ログ、例外メッセージ、同期データには入れない。
+- 親設定へ入るときは6桁の親PINを要求する。PIN検証値はsalt付きPBKDF2で保存し、連続した誤入力には一時ロックをかける。
+- tokenはブラウザーの端末内IndexedDBに保存するが、暗号化しない。公開repository、Private save repositoryのファイル、設計ノート、分析・ログサービス、端末間同期には保存しない。
+- tokenはGitHub通信層だけが読み出し、URL、リクエスト本文、ログ、例外メッセージ、同期データには入れない。
 - tokenはPrivate repository専用の最小権限Fine-grained PATを前提とし、読み込み・書き込みに必要な範囲に限定する。token自体は端末間同期しない。
 - 認証ヘッダーを送る通信先を `github.com` / `api.github.com` のPrivate save repository操作に限定し、他ホスト・公開repositoryへは決して転送しない。
-- 親PINは管理UIのアクセス制御であり、同一オリジンの悪意あるスクリプトに対する完全なセキュリティ境界ではない。復号中は同一サイトのJavaScriptからtoken利用が可能であることを明示する。PIN暗号化は保存時の保護であって、XSS対策の代替ではない。
-- 現在のGitHub PagesプロジェクトURLは同一アカウントの他プロジェクトと同じ `*.github.io` オリジン上にある。URLパスが違ってもIndexedDBの境界にはならないため、この共有オリジン上ではtokenの永続保存を有効にしない。[GitHub Pages URL](https://docs.github.com/en/pages/getting-started-with-github-pages/what-is-github-pages) / [IndexedDB same-origin boundary](https://developer.mozilla.org/en-US/docs/Web/API/IndexedDB_API/Basic_Terminology)
-- token永続化を有効にする前提条件として、他の公開プロジェクトとホスト名が異なる専用オリジン（例: 独自ドメイン）へ移行する。ホスト名が未決定・未検証なら、同期はtokenをメモリ内だけで受け取る一時運用に限定するか、無効のままにする。
-- 専用オリジンでも同一オリジンJavaScriptは復号後のtokenを利用できる。サードパーティscriptを読み込まず、認証付きfetchをGitHub API allowlistに閉じる。
-- 親PINの強度とオフライン総当たり耐性を考慮し、暗号化エンベロープの版、KDF、salt、iteration/work factorを定義・検証する。PIN暗号化を高度な端末侵害への完全な保護とは表現しない。
+- 親PINは子どもが通常の画面操作で親設定へ入るのを防ぐUIロックであり、同一オリジンのスクリプト、開発者ツール、端末利用者からtokenを秘匿する仕組みではない。この脅威モデルを親設定に明記する。
+- 専用ドメインは必須にしない。現在のアプリoriginで動かし、認証付きfetchはPrivate GitHub APIのallowlistに閉じる。
+- 本番通信にはHTTPSを使う。PINロックとtoken未暗号化保存を、HTTPSや端末自体の保護の代替として説明しない。
 - GitHub REST APIはブラウザーからのCORSリクエストをサポートしている。実通信では認証・CORS・API制限・オフライン時の挙動を統合試験する。[GitHubのCORS説明](https://docs.github.com/en/rest/using-the-rest-api/using-cors-and-jsonp-to-make-cross-origin-requests)
 
 ## 共通層
@@ -63,8 +62,8 @@
 
 ### `parent-lock`
 
-- 親PINの設定・検証、ロック状態、token暗号化・復号を担当する。
-- 生PINや平文tokenを保存しない。tokenをアプリやSave APIへ返さず、GitHub通信層に限定して利用させる。
+- 親PINの設定・検証と画面ロック状態を担当する。tokenは端末内IndexedDBに平文保存する。
+- 生PINは保存せず、tokenをアプリやSave APIへ返さない。GitHub通信層だけに利用させる。
 
 ### `save-store`
 
@@ -113,12 +112,11 @@
 ## 段階導入
 
 1. 現行schemaと保存ファイルの互換テストを作り、schema更新（`apps` と既存 `profileOrder` の明文化）を別途レビューする。
-2. 専用オリジンを設定・公開し、現在の他プロジェクトとhostが異なることを検証する。移行完了前はtoken永続化を無効にする。
-3. Parent Lockと端末内token暗号化、Private repoからの動的プロフィール取得を実装する。公開データにプロフィール固有値を入れない検査を加える。
-4. プロフィール別ローカルSave APIとpending/conflict状態を実装する。まずはテスト用プロフィールデータで検証する。
-5. GitHub同期・SHA/revision競合・明示復元を実装する。プロフィールごとにバックアップを確認しながら有効化する。
-6. 既存アプリを一つずつ移行する。第一候補はわんこ大戦争の進行データ。既存アプリの保存形式を一度に変更しない。
-7. 残るアプリ・画像・3D作品を個別に追加し、手動同期・自動同期・オフライン復帰を検証する。
+2. Parent Lockの6桁PIN UIロックと端末内token保存、Private repoからの動的プロフィール取得を実装する。公開データにプロフィール固有値を入れない検査を加える。
+3. プロフィール別ローカルSave APIとpending/conflict状態を実装する。まずはテスト用プロフィールデータで検証する。
+4. GitHub同期・SHA/revision競合・明示復元を実装する。プロフィールごとにバックアップを確認しながら有効化する。
+5. 既存アプリを一つずつ移行する。第一候補はわんこ大戦争の進行データ。既存アプリの保存形式を一度に変更しない。
+6. 残るアプリ・画像・3D作品を個別に追加し、手動同期・自動同期・オフライン復帰を検証する。
 
 ## 検証要件
 
@@ -126,7 +124,7 @@
 - schema version 1と新schemaの双方で読込でき、`profileOrder` 等の未知フィールドをラウンドトリップで保持する。
 - 公開repoのソース、ビルド成果物、テスト出力にプロフィール具体値、平文token、Private save JSONがないことを検査する。
 - API呼び出しテストでGitHub以外の宛先に認証ヘッダーが送られないこと、URL/ログ/例外にtokenが含まれないことを検査する。
-- PIN暗号化・正しいPINでの復号・誤PIN・破損暗号文・salt/nonce更新・ロック後のメモリ破棄を検査する。
+- 6桁PINの設定・照合・誤PIN・連続失敗後の一時ロック・ロック中の設定/同期拒否を検査する。
 - オフライン時のローカル保存、復帰後の同期、stale SHA、同一アプリ競合、重複同期、復元とロールバックを検査する。
 - 既存 IndexedDB/Local Storage のデータが移行前後で維持されることを検査する。
 
@@ -134,8 +132,8 @@
 
 - 公開repoにはプロフィールの具体値、個人名、token、セーブ実データが存在しない。
 - プロフィール一覧はPrivate repoから動的に取得され、公開コードへのプロフィール追加変更を必要としない。
-- tokenは親PINで暗号化して端末内に保存され、GitHub認証時以外に送信・記録されない。公開repo宛て通信には決して載らない。
-- token永続保存は専用オリジンでのみ有効化され、共有 `*.github.io` オリジン上では無効。
+- 6桁PINは親設定画面のUIロックとして機能し、ロック中は親向け操作・同期ができない。
+- tokenは暗号化せず端末内IndexedDBにのみ保存され、GitHub認証時以外に送信・記録されない。公開repo宛て通信には決して載らない。
 - ローカルIndexedDBを通常利用の正本として使い、Private repo同期が失敗してもセーブを失わない。
 - 現行schemaと実ファイル差分を保持し、既存セーブを読み書き後も復元できる。
 - プロフィール切替後にアプリ間でデータが混ざらず、競合時に無断上書きがない。
