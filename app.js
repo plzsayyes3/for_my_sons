@@ -5,7 +5,7 @@ const fallbackApps = [
   {
     id: 'kids-3d-playgrand',
     name: '3Dこうさく',
-    url: './kids-3d-playgrand/?v=4',
+    url: './kids-3d-playgrand/?v=5',
     icon: './assets/kids-3d.svg',
     description: 'かたちをつくって、くっつけて、3Dにしよう'
   },
