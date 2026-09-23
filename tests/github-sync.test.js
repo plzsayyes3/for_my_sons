@@ -99,3 +99,15 @@ test('returns safe statuses for missing auth and network failure', async () => {
   assert.equal(result.status, 'pending');
   assert.equal(JSON.stringify(result).includes('offline-secret'), false);
 });
+
+test('restores binary records through the binary repository path', async () => {
+  const calls = [];
+  const { store, sync } = await setup(async (url, options) => {
+    calls.push({ url, options });
+    return response(200, { content: Buffer.from([7, 6, 5]).toString('base64'), sha: 'sha-binary' });
+  });
+  await store.writeBinary('kids-3d', 'model-stl', Uint8Array.from([1]), 'model/stl', 'stl');
+  await sync.pullRecord({ profileId: 'profile-1', appId: 'kids-3d', saveKey: 'model-stl' });
+  assert.match(calls[0].url, /\/files\/kids-3d\/model-stl\.stl$/);
+  assert.deepEqual([...((await store.readBinary('kids-3d', 'model-stl')).bytes)], [7, 6, 5]);
+});

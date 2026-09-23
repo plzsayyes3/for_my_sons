@@ -34,6 +34,13 @@ test('facade keeps model JSON separate from STL and thumbnail files', async () =
   assert.equal((await api.sync.status()).pending >= 3, true);
 });
 
+test('profile avatar becomes a pending shared save for repository backup', async () => {
+  const api = await createForMySons({ db: createMemoryDatabase(), crypto: webcrypto });
+  await api.profile.setAvatar('profile-1', Uint8Array.from([8, 9]), 'image/webp');
+  const pending = await api.save.pending();
+  assert.equal(pending.some(record => record.appId === 'profile' && record.saveKey === 'avatar'), true);
+});
+
 test('facade does not expose PAT in configuration or status events', async () => {
   const events = [];
   const api = await createForMySons({

@@ -113,12 +113,12 @@
     }
 
     async function pullRecord(identity) {
-      const remote = await readRemote(saveStore.pathFor({ ...identity, kind: 'json' }));
-      if (!remote.exists) throw new Error('Remote save not found');
       const current = await saveStore.readRecord(identity);
-      if (current) await saveStore.createSnapshot(identity);
+      const remote = await readRemote(saveStore.pathFor(current || { ...identity, kind: 'json' }));
+      if (!remote.exists) throw new Error('Remote save not found');
       const profile = await profileManager.current();
       if (profile.id !== identity.profileId) throw new Error('Profile must be selected before restore');
+      if (current) await saveStore.createSnapshot(identity);
       const isBinary = current?.kind === 'binary';
       if (isBinary) await saveStore.writeBinary(identity.appId, identity.saveKey, remote.content, current.contentType, current.extension);
       else await saveStore.writeJson(identity.appId, identity.saveKey, JSON.parse(new TextDecoder().decode(remote.content)));

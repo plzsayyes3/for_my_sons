@@ -46,7 +46,13 @@
         current: () => profile.current(),
         list: () => profile.list(),
         setCurrent: profileId => profile.setCurrent(profileId),
-        setAvatar: (profileId, blob, contentType) => profile.setAvatar(profileId, blob, contentType),
+        async setAvatar(profileId, blob, contentType) {
+          const current = await profile.current();
+          if (current.id !== profileId) throw new Error('Profile must be selected before changing its avatar');
+          const result = await profile.setAvatar(profileId, blob, contentType);
+          await emitSave(await save.writeBinary('profile', 'avatar', blob, contentType || blob.type, 'webp'));
+          return result;
+        },
         getAvatar: profileId => profile.getAvatar(profileId)
       },
       parent: {

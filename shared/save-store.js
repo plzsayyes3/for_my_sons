@@ -28,10 +28,11 @@
     return JSON.parse(encoded);
   }
 
-  function bytesOf(value) {
+  async function bytesOf(value) {
     if (value instanceof Uint8Array) return new Uint8Array(value);
     if (typeof ArrayBuffer !== 'undefined' && value instanceof ArrayBuffer) return new Uint8Array(value.slice(0));
     if (ArrayBuffer.isView(value)) return new Uint8Array(value.buffer.slice(value.byteOffset, value.byteOffset + value.byteLength));
+    if (typeof Blob !== 'undefined' && value instanceof Blob) return new Uint8Array(await value.arrayBuffer());
     throw new TypeError('Binary value must be an ArrayBuffer or typed array');
   }
 
@@ -87,14 +88,14 @@
     async function writeBinary(appId, saveKey, bytes, contentType, extension = 'bin') {
       const identity = await currentIdentity(appId, saveKey);
       assertSegment(extension, 'extension');
-      return writeRecord(identity, bytesOf(bytes), 'binary', contentType, extension);
+      return writeRecord(identity, await bytesOf(bytes), 'binary', contentType, extension);
     }
 
     async function readBinary(appId, saveKey) {
       const identity = await currentIdentity(appId, saveKey);
       const record = await readRecord(identity);
       if (!record || record.kind !== 'binary') return null;
-      return { bytes: bytesOf(record.value), contentType: record.contentType, extension: record.extension };
+      return { bytes: await bytesOf(record.value), contentType: record.contentType, extension: record.extension };
     }
 
     async function markSynced(identity, remoteSha) {
@@ -140,7 +141,7 @@
       const next = {
         ...(current || {}),
         ...identity,
-        value: snapshot.kind === 'json' ? cloneJson(snapshot.value) : bytesOf(snapshot.value),
+        value: snapshot.kind === 'json' ? cloneJson(snapshot.value) : await bytesOf(snapshot.value),
         kind: snapshot.kind,
         contentType: snapshot.contentType,
         extension: snapshot.extension,
