@@ -50,7 +50,7 @@
     @keyframes float{to{transform:translateY(-32px) scale(.85);opacity:0}}
     footer{padding:9px 10px max(10px,env(safe-area-inset-bottom));background:#fff9ee;border-top:3px solid var(--line);z-index:5}
     .controls{display:flex;gap:8px;max-width:860px;margin:auto;align-items:stretch}
-    .deck{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;flex:1;min-width:0}
+    .deck{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;flex:1;min-width:0}
     .cannon{width:94px;flex:0 0 94px;border:2.5px solid var(--line);border-radius:16px;background:#ece8df;box-shadow:0 4px 0 var(--line);padding:7px 6px 6px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;font-weight:1000;touch-action:manipulation}
     .cannon.ready{background:#ffe36d;animation:cannonReady .7s ease-in-out infinite alternate}
     .cannon:active:not(:disabled){transform:translateY(3px);box-shadow:0 1px 0 var(--line)}
@@ -68,7 +68,8 @@
     .card{position:relative;min-height:74px;border:2.5px solid var(--line);border-radius:16px;background:white;box-shadow:0 4px 0 var(--line);display:grid;grid-template-columns:auto 1fr;align-items:center;gap:6px;padding:6px 8px;text-align:left;touch-action:manipulation}
     .card:active:not(:disabled){transform:translateY(3px);box-shadow:0 1px 0 var(--line)}
     .card:disabled{opacity:.43;filter:grayscale(.4)}
-    .card .dog{font-size:38px}.card .name{font-size:12px;font-weight:1000;line-height:1.1}.card .cost{font-size:12px;font-weight:900;color:#6b532c;margin-top:4px}
+    .card .dog{font-size:38px}.card .dog img{width:40px;height:40px;display:block;object-fit:contain}.card .name{font-size:12px;font-weight:1000;line-height:1.1}.card .cost{font-size:12px;font-weight:900;color:#6b532c;margin-top:4px}
+    .unit .customSprite{width:50px;height:50px;object-fit:contain;display:block;filter:drop-shadow(0 3px 0 rgba(0,0,0,.16));transform-origin:50% 100%;animation:bob .42s ease-in-out infinite alternate}
     #message{position:absolute;left:50%;top:11%;transform:translateX(-50%);padding:7px 13px;border:2px solid var(--line);border-radius:999px;background:rgba(255,255,255,.9);font-weight:900;z-index:6;opacity:0;transition:.18s;pointer-events:none;white-space:nowrap}
     #message.show{opacity:1}
     #overlay{position:absolute;inset:0;z-index:20;display:none;place-items:center;background:rgba(255,248,234,.78);backdrop-filter:blur(5px)}
@@ -122,6 +123,7 @@
         <button class="card" data-dog="shiba"><span class="dog">🐕</span><span><div class="name">しばわん</div><div class="cost">🦴 80</div></span></button>
         <button class="card" data-dog="dash"><span class="dog">🐶</span><span><div class="name">ダッシュわん</div><div class="cost">🦴 150</div></span></button>
         <button class="card" data-dog="big"><span class="dog">🐩</span><span><div class="name">でかわん</div><div class="cost">🦴 280</div></span></button>
+        <button class="card" data-dog="custom" id="customDogCard" hidden><span class="dog" id="customDogThumb">🎨</span><span><div class="name" id="customDogName">うちのわんこ</div><div class="cost" id="customDogCost">🦴 180</div></span></button>
       </div>
       <button class="cannon" id="cannonBtn" disabled aria-label="わんこ砲">
         <span class="cannonIcon">💥</span>
@@ -132,6 +134,8 @@
   </footer>
 </div>
 
+<script src="../shared/wanko-cloud-config.js"></script>
+<script src="../shared/wanko-library.js"></script>
 <script>
 (() => {
   const field = document.getElementById('field');
@@ -143,6 +147,11 @@
   const cannonBtn = document.getElementById('cannonBtn');
   const chargeFill = document.getElementById('chargeFill');
   const cannonFx = document.getElementById('cannonFx');
+  const customDogCard = document.getElementById('customDogCard');
+  const customDogThumb = document.getElementById('customDogThumb');
+  const customDogName = document.getElementById('customDogName');
+  const customDogCost = document.getElementById('customDogCost');
+  let customDogUrl = null;
 
   const DOGS = {
     shiba:{cost:80,hp:115,damage:22,speed:42,range:43,cooldown:.72,sprite:'🐕',className:''},
@@ -179,7 +188,10 @@
   function createEntity(data,team){
     const el=document.createElement('div');
     el.className='unit '+(team==='enemy'?'enemyUnit ':'')+(data.className||'');
-    el.innerHTML='<div class="miniHp"><i></i></div><div class="sprite">'+data.sprite+'</div>';
+    const visual=data.imageUrl
+      ? '<img class="customSprite" alt="" src="'+data.imageUrl+'">'
+      : '<div class="sprite">'+data.sprite+'</div>';
+    el.innerHTML='<div class="miniHp"><i></i></div>'+visual;
     unitsLayer.appendChild(el);
     const ent={...data,team,x:spawnX(team),hp:data.hp,maxHp:data.hp,attackClock:Math.random()*.2,el,dead:false};
     entities.push(ent);
@@ -190,6 +202,7 @@
   function spawnDog(type){
     if(!running)return;
     const d=DOGS[type];
+    if(!d){ flash('わんこを図鑑からえらんでね'); return; }
     if(bones<d.cost){ flash('🦴 がたりない！'); return; }
     bones-=d.cost; createEntity(d,'ours'); updateUI();
   }
@@ -278,9 +291,43 @@
     enemy.querySelector('.hpText').textContent=Math.max(0,Math.ceil(enemyBase.hp))+' / '+enemyBase.maxHp;
   }
 
+  async function loadCustomDog(){
+    if(!window.WankoLibrary)return;
+    try{
+      const w=await WankoLibrary.getActiveWanko();
+      if(customDogUrl){URL.revokeObjectURL(customDogUrl);customDogUrl=null;}
+      if(!w){
+        delete DOGS.custom;
+        customDogCard.hidden=true;
+        return;
+      }
+      customDogUrl=WankoLibrary.blobUrl(w);
+      const stats=w.stats||{};
+      DOGS.custom={
+        cost:Number(stats.cost)||180,
+        hp:Number(stats.hp)||140,
+        damage:Number(stats.damage)||30,
+        speed:Number(stats.speed)||46,
+        range:Number(stats.range)||44,
+        cooldown:Number(stats.cooldown)||.72,
+        imageUrl:customDogUrl,
+        className:'custom'
+      };
+      customDogCard.hidden=false;
+      customDogName.textContent=w.name||'うちのわんこ';
+      customDogCost.textContent='🦴 '+DOGS.custom.cost;
+      customDogThumb.innerHTML='';
+      const img=document.createElement('img');img.alt='';img.src=customDogUrl;customDogThumb.appendChild(img);
+      updateUI();
+    }catch(error){console.warn('Custom wanko load failed',error);}
+  }
+
   function updateUI(){
     bonesEl.textContent=Math.floor(bones);
-    cards.forEach(c=>{c.disabled=!running||bones<DOGS[c.dataset.dog].cost;});
+    cards.forEach(c=>{
+      const dog=DOGS[c.dataset.dog];
+      c.disabled=!dog||!running||bones<dog.cost;
+    });
     const ratio=Math.min(1,cannonCharge/CANNON_CHARGE_TIME);
     chargeFill.style.width=(ratio*100)+'%';
     const ready=running&&ratio>=1;
@@ -343,7 +390,9 @@
   cannonBtn.addEventListener('click',fireCannon);
   document.getElementById('restart').addEventListener('click',reset);
   window.addEventListener('resize',()=>entities.forEach(renderEntity));
-  updateBaseUI();updateUI();setTimeout(()=>flash('右の基地から出撃！'),450);
+  window.addEventListener('wanko-active-changed',loadCustomDog);
+  window.addEventListener('wanko-library-changed',loadCustomDog);
+  updateBaseUI();updateUI();loadCustomDog();setTimeout(()=>flash('右の基地から出撃！'),450);
   requestAnimationFrame(step);
 })();
 </script>
