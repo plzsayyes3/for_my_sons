@@ -167,6 +167,54 @@
       return saveStore.readRecord(identity);
     }
 
+    async function listDirectory(path) {
+      const response = await request(path, { method: 'GET' });
+      if (response.status === 401 || response.status === 403) {
+        const error = new Error('GitHub authentication failed');
+        error.code = 'AUTH_FAILED';
+        throw error;
+      }
+      if (!response.ok) throw new Error('GitHub directory read failed (' + response.status + ')');
+      const body = await response.json();
+      if (!Array.isArray(body)) throw new Error('GitHub path is not a directory');
+      return body.map(item => ({
+        name: item.name,
+        path: item.path,
+        type: item.type,
+        sha: item.sha || null
+      }));
+    }
+
+    async function testConnection() {
+      const schema = await readRemote('schema.json');
+      if (!schema.exists) throw new Error('Save repository schema was not found');
+      return { ok: true, repo: settings.owner + '/' + settings.repo, branch: settings.branch };
+    }
+
+    async function listProfiles() {
+      const entries = await listDirectory('saves');
+      const jsonFiles = entries.filter(item => item.type === 'file' && /[.]json$/i.test(item.name));
+      const profiles = [];
+      for (const item of jsonFiles) {
+        const remote = await readRemote(item.path);
+        if (!remote.exists) continue;
+        try {
+          const parsed = JSON.parse(new TextDecoder().decode(remote.content));
+          const id = String(parsed.profileId || '').trim();
+          if (!id) continue;
+          profiles.push({
+            id,
+            label: String(parsed.displayName || id),
+            order: Number.isFinite(Number(parsed.profileOrder)) ? Number(parsed.profileOrder) : Number.MAX_SAFE_INTEGER,
+            path: item.path,
+            sha: remote.sha
+          });
+        } catch {}
+      }
+      profiles.sort((a, b) => a.order - b.order || a.label.localeCompare(b.label, 'ja'));
+      return profiles;
+    }
+
     async function status() {
       const pending = saveStore?.listPending ? await saveStore.listPending() : [];
       return { configured: Boolean(settings.owner && settings.repo), pending: pending.length, state: pending.length ? 'pending' : 'idle' };
@@ -182,6 +230,9 @@
     return {
       readRemote,
       readPath: readRemote,
+      listDirectory,
+      testConnection,
+      listProfiles,
       writePath,
       deletePath,
       pushRecord,
