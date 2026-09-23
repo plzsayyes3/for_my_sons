@@ -76,6 +76,11 @@
         readJson: (appId, saveKey) => save.readJson(appId, saveKey),
         async binary(appId, saveKey, bytes, contentType, extension) { return emitSave(await save.writeBinary(appId, saveKey, bytes, contentType, extension)); },
         readBinary: (appId, saveKey) => save.readBinary(appId, saveKey),
+        get: (profileId, appId, saveKey) => save.get(profileId, appId, saveKey),
+        async put(profileId, appId, saveKey, value) {
+          const record = await save.put(profileId, appId, saveKey, value);
+          return emitSave(record);
+        },
         pending: profileId => save.listPending(profileId)
       },
       sync: {
@@ -102,6 +107,8 @@
           await api.profile.importRemote(remote);
           return remote;
         },
+        readProfileApp: (profileId, appId) => sync.readProfileApp(profileId, appId),
+        writeProfileApp: (profileId, appId, data, options) => sync.writeProfileApp(profileId, appId, data, options),
         async installHousehold() {
           const connection = await sync.testConnection();
           const household = await sync.readHouseholdSettings();
