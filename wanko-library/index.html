@@ -19,16 +19,17 @@ main{width:min(100%,900px);margin:auto;padding:18px 14px calc(env(safe-area-inse
 </style>
 </head>
 <body>
-<header><a class="back" href="../">‹</a><h1>わんこ図鑑</h1><span class="status" id="status">📱 保存中</span></header>
+<header><a class="back" href="../">‹</a><h1>わんこ図鑑</h1><a class="status" id="status" href="../wanko-cloud/">📱 保存中</a></header>
 <main><a class="new" href="../paint/?wanko=1">＋ 新しいわんこを描く</a><div id="content"></div></main>
 <script src="../shared/wanko-cloud-config.js"></script>
+<script src="../shared/wanko-cloud.js"></script>
 <script src="../shared/wanko-library.js"></script>
 <script>
 (async()=>{
  const content=document.getElementById('content'), status=document.getElementById('status');
  async function render(){
   const [list,active,state]=await Promise.all([WankoLibrary.listWankos(),WankoLibrary.getActiveWanko(),WankoLibrary.syncState()]);
-  status.textContent=state.configured?(state.pending?'☁️ 同期待ち '+state.pending:'☁️ 保存済み'):'📱 この端末に保存';
+  status.textContent=!state.configured?'📱 この端末に保存':(!state.authenticated?'☁️ ログイン':(state.pending?'☁️ 同期待ち '+state.pending:'☁️ 保存済み'));
   if(!list.length){content.innerHTML='<div class="empty"><b>🐶</b>まだわんこがいないよ<br>ペイントで描いてみよう</div>';return;}
   const grid=document.createElement('div');grid.className='grid';
   for(const w of list){
@@ -44,6 +45,7 @@ main{width:min(100%,900px);margin:auto;padding:18px 14px calc(env(safe-area-inse
  }
  window.addEventListener('wanko-library-changed',render);window.addEventListener('wanko-active-changed',render);
  await WankoLibrary.syncNow().catch(()=>{});render();
+ window.addEventListener('wanko-cloud-auth-changed',async()=>{await WankoLibrary.syncNow().catch(()=>{});render();});
 })();
 </script>
 </body></html>
