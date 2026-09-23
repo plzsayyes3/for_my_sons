@@ -25,6 +25,12 @@
       name: "念を込めたスネーク",
       faction: "ally",
       path: "../official-wankos/nen-o-kometa-snake.wanko.json?v=1"
+    },
+    {
+      id: "bakuhatsu-dama",
+      name: "爆発玉",
+      faction: "ally",
+      path: "../official-wankos/bakuhatsu-dama.wanko.json?v=1"
     }
   ];
   const cache = new Map();
@@ -45,6 +51,7 @@
       image: source.imagePath || source.image,
       faction: source.faction || meta.faction || "ally",
       stats: source.stats || {},
+      behavior: source.behavior || {},
       renderScale: Number(source.renderScale) || 1,
       official: true
     };
