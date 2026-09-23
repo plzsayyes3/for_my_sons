@@ -1,0 +1,192 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>つながる3Dこうさく</title>
+<style>
+:root{--bg:#f6f7f9;--panel:#fff;--text:#20252b;--accent:#356df3;--ok:#16884a;--bad:#d33f49;--cut:#dc4455}
+*{box-sizing:border-box}
+html,body{margin:0;width:100%;height:100%;overflow:hidden;font-family:-apple-system,BlinkMacSystemFont,"Hiragino Sans","Yu Gothic",sans-serif;background:var(--bg);color:var(--text);overscroll-behavior:none}
+body{position:fixed;inset:0}
+#app{height:100%;height:100dvh;display:grid;grid-template-rows:auto auto minmax(0,1fr) auto}
+.bar{display:flex;gap:8px;align-items:center;padding:9px max(9px,env(safe-area-inset-right)) 9px max(9px,env(safe-area-inset-left));background:var(--panel);overflow-x:auto;-webkit-overflow-scrolling:touch;border-bottom:1px solid #dde2e7;scrollbar-width:none}
+.bar::-webkit-scrollbar{display:none}
+.modebar{justify-content:center;padding-top:7px;padding-bottom:7px;background:#f9fafb}
+.bottom{border-top:1px solid #dde2e7;border-bottom:0;padding-bottom:max(9px,env(safe-area-inset-bottom))}
+.btn{border:0;border-radius:13px;min-height:44px;min-width:44px;padding:10px 13px;font-size:16px;font-weight:700;background:#edf1f5;white-space:nowrap;-webkit-tap-highlight-color:transparent;touch-action:manipulation}
+.help{display:inline-flex;align-items:center;color:inherit;text-decoration:none}
+.shape{background:#e9efff}.cloudSave{background:#e8f6ee;color:#116b3b}.cloudLoad{background:#e9efff;color:#2458b8}.profilePill{display:inline-flex;align-items:center;min-height:38px;padding:7px 10px;border-radius:12px;background:#f1f3f5;color:#4e5965;font-size:13px;font-weight:800;white-space:nowrap}.primary{background:var(--accent);color:#fff}.danger{background:#ffe9e9;color:#a3212a}.newProject{background:#fff4d8;color:#6b4d00}.cutAction{background:#ffe5e9;color:#a3212a}.cutAction:not(:disabled){background:var(--cut);color:#fff}.btn:disabled{opacity:.35}.active{background:#20252b;color:#fff}.op.active.add{background:#356df3}.op.active.cut{background:var(--cut)}
+dialog{border:0;border-radius:20px;padding:0;width:min(430px,calc(100% - 28px));background:#fff;color:var(--text);box-shadow:0 18px 70px #0004}dialog::backdrop{background:rgba(20,25,30,.45);backdrop-filter:blur(2px)}.dialogBody{padding:22px}.dialogBody h2{margin:0 0 10px;font-size:22px}.dialogBody p{margin:0 0 12px;line-height:1.65}.dialogWarn{padding:12px 14px;border-radius:13px;background:#fff2f2;color:#8b2630;font-weight:800}.dialogActions{display:flex;gap:10px;justify-content:flex-end;margin-top:18px;flex-wrap:wrap}.dialogActions .btn{min-width:120px}.dialogDelete{background:var(--bad);color:#fff}
+#stage{position:relative;min-width:0;min-height:0;overflow:hidden}
+canvas{display:block;width:100%;height:100%;touch-action:none;cursor:pointer;-webkit-user-select:none;user-select:none}
+.hint,.status,.error{position:absolute;z-index:3;background:rgba(255,255,255,.93);border-radius:12px;padding:9px 11px;font-size:13px;box-shadow:0 3px 16px #0001;pointer-events:none}
+.hint{left:max(10px,env(safe-area-inset-left));top:10px;max-width:365px}.status{right:max(10px,env(safe-area-inset-right));top:10px;font-weight:800}.error{display:none;left:10px;right:10px;bottom:10px;color:#a3212a;border:1px solid #efb6b6}.brand{font-weight:900}
+@media(max-width:700px){.brand{display:none}.btn{font-size:15px}.hint{font-size:12px;max-width:285px}.modebar{justify-content:flex-start}}
+</style>
+</head>
+<body>
+<div id="app">
+<header class="bar">
+<span class="brand">つながる3Dこうさく</span>
+<button class="btn shape" data-add="box">□ はこ</button>
+<button class="btn shape" data-add="sphere">● まる</button>
+<button class="btn shape" data-add="cylinder">▰ ぼう</button>
+<button class="btn shape" data-add="cone">△ とんがり</button>
+<button id="copy" class="btn">⧉ コピー</button>
+<button id="del" class="btn danger">✕ けす</button>
+<button id="multi" class="btn">☑ まとめてえらぶ</button>
+<button id="group" class="btn" disabled>▦ グループ</button>
+<button id="ungroup" class="btn" disabled>▦ ばらす</button>
+<button id="export" class="btn primary" disabled>できた！ STL</button>
+<span id="cloudProfile" class="profilePill">☁ プレイヤー確認中</span>
+<button id="cloudSave" class="btn cloudSave" disabled>☁ セーブ</button>
+<button id="cloudLoad" class="btn cloudLoad" disabled>☁ よみこむ</button>
+<button id="newProject" class="btn newProject">↺ 新しく作る</button>
+<a class="btn help" href="manual.html" aria-label="あそびかたを見る">？ あそびかた</a>
+</header>
+<nav class="bar modebar">
+<button class="btn op add active" data-op="add">＋ つける</button>
+<button class="btn op cut" data-op="cut">− きりぬく</button>
+<button id="applyCut" class="btn cutAction" disabled>✂ きりぬく！</button>
+<span id="opHelp">次に置く形は「つける」パーツです</span>
+</nav>
+<main id="stage">
+<div class="hint">重力はありません。空中に置いてOK。<br>赤い形を本体に重ねて「✂ きりぬく！」を押すと、穴だけが残ります。</div>
+<div id="status" class="status">3Dをよみこみ中…</div>
+<div id="error" class="error">3Dの読み込みに失敗しました。Safariを再読み込みしてください。</div>
+</main>
+<footer class="bar bottom">
+<button class="btn active" data-mode="translate">↔ うごかす</button>
+<button class="btn" data-mode="rotate">↻ まわす</button>
+<button class="btn" data-mode="scale">⤢ おおきさ</button>
+<button id="swap" class="btn">＋/− えらんだ形を反転</button>
+<button id="snap" class="btn">🧲 くっつけ補助: ON</button>
+<button id="home" class="btn">⌂ ぜんぶ見る</button>
+</footer>
+</div>
+<dialog id="newProjectDialog" aria-labelledby="newProjectTitle">
+  <div class="dialogBody">
+    <h2 id="newProjectTitle">新しく作りますか？</h2>
+    <p>いまの作品を消して、まっさらな状態から始めます。この端末に自動保存されている作品も消えます。</p>
+    <p class="dialogWarn">STLなどに保存していない作品は、あとから復元できません。</p>
+    <div class="dialogActions">
+      <button id="cancelNewProject" class="btn" type="button">やめる</button>
+      <button id="confirmNewProject" class="btn dialogDelete" type="button">消して新しく作る</button>
+    </div>
+  </div>
+</dialog>
+<script>
+setTimeout(()=>{if(!window.__kids3dReady){const e=document.getElementById('error');e.style.display='block';e.style.pointerEvents='auto'}},10000);
+</script>
+<script src="../shared/for-my-sons-db.js?v=2"></script>
+<script src="../shared/profile-manager.js?v=2"></script>
+<script src="../shared/parent-lock.js?v=3"></script>
+<script src="../shared/save-store.js?v=2"></script>
+<script src="../shared/github-sync.js?v=7"></script>
+<script src="../shared/character-requests.js?v=1"></script>
+<script src="../shared/for-my-sons.js?v=6"></script>
+<script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/","three-mesh-bvh":"https://cdn.jsdelivr.net/npm/three-mesh-bvh@0.9.7/build/index.module.js","three-bvh-csg":"https://cdn.jsdelivr.net/npm/three-bvh-csg@0.0.18/build/index.module.js"}}</script>
+<script type="module">
+import * as THREE from 'three';
+import {OrbitControls} from 'three/addons/controls/OrbitControls.js';
+import {TransformControls} from 'three/addons/controls/TransformControls.js';
+import {STLExporter} from 'three/addons/exporters/STLExporter.js';
+import {Brush, Evaluator, SUBTRACTION} from 'three-bvh-csg';
+
+const stage=document.getElementById('stage');
+const status=document.getElementById('status');
+const exportBtn=document.getElementById('export');
+const errorBox=document.getElementById('error');
+const opHelp=document.getElementById('opHelp');
+const applyCutBtn=document.getElementById('applyCut');
+let renderer;
+try{renderer=new THREE.WebGLRenderer({antialias:true,powerPreference:'high-performance'})}
+catch(err){errorBox.textContent='この端末では3D表示を開始できませんでした。';errorBox.style.display='block';throw err}
+renderer.setPixelRatio(Math.min(window.devicePixelRatio||1,2));renderer.shadowMap.enabled=true;renderer.outputColorSpace=THREE.SRGBColorSpace;stage.appendChild(renderer.domElement);
+const scene=new THREE.Scene();scene.background=new THREE.Color(0xf6f7f9);
+const camera=new THREE.PerspectiveCamera(45,1,.1,1000);camera.position.set(11,9,13);
+scene.add(new THREE.HemisphereLight(0xffffff,0xb7c0ca,2));const sun=new THREE.DirectionalLight(0xffffff,2);sun.position.set(7,12,8);sun.castShadow=true;scene.add(sun);
+scene.add(new THREE.GridHelper(30,30,0xaab3bd,0xd7dde4));
+const ground=new THREE.Mesh(new THREE.PlaneGeometry(30,30),new THREE.MeshStandardMaterial({color:0xffffff,transparent:true,opacity:.35,side:THREE.DoubleSide}));ground.rotation.x=-Math.PI/2;ground.position.y=-.01;scene.add(ground);
+const orbit=new OrbitControls(camera,renderer.domElement);orbit.enableDamping=true;orbit.target.set(0,1,0);orbit.minDistance=4;orbit.maxDistance=45;orbit.screenSpacePanning=true;
+let transformDragged=false;
+const transform=new TransformControls(camera,renderer.domElement);transform.setSize(1.35);scene.add(transform.getHelper());transform.addEventListener('dragging-changed',e=>{orbit.enabled=!e.value;if(e.value)transformDragged=true});transform.addEventListener('objectChange',()=>{if(snapOn)snap();updateState()});
+const parts=[],groups=[];const multiSelected=new Set();let selected=null,snapOn=true,color=0,opMode='add',multiSelect=false;const colors=[0xffb84d,0x62b6ff,0x8fd36b,0xff8298,0xb29cff,0xffd45f];const EPS=.09;
+const SAVE_KEY='kids3d-autosave-v1',APP_ID='kids-3d-playgrand',CLOUD_SAVE_VERSION=1;let autosaveReady=false,autosaveTimer=0,fmsApi=null,cloudBusy=false;
+const multiBtn=document.getElementById('multi'),groupBtn=document.getElementById('group'),ungroupBtn=document.getElementById('ungroup');
+function geom(t){if(t==='box')return new THREE.BoxGeometry(2,2,2);if(t==='sphere')return new THREE.SphereGeometry(1.12,32,20);if(t==='cylinder')return new THREE.CylinderGeometry(1,1,2.5,32);return new THREE.ConeGeometry(1.2,2.6,32)}
+function stylePart(m){const cut=m.userData.op==='cut';m.material.color.setHex(cut?0xdc4455:(m.userData.baseColor||0x62b6ff));m.material.transparent=cut;m.material.opacity=cut?.42:1;m.material.depthWrite=!cut;m.material.wireframe=false}
+function addPart(t,pos,forcedOp){const op=forcedOp||opMode;const baseColor=colors[color++%colors.length];const m=new THREE.Mesh(geom(t),new THREE.MeshStandardMaterial({color:baseColor,roughness:.55}));m.userData={type:t,op,baseColor};m.position.copy(pos||new THREE.Vector3(0,1.2,0));m.castShadow=op==='add';m.receiveShadow=op==='add';stylePart(m);scene.add(m);parts.push(m);select(m);updateState();return m}
+function isModelGroup(o){return !!o&&o.userData?.modelGroup===true}
+function leafParts(o){if(!o)return[];if(parts.includes(o))return[o];const out=[];o.traverse?.(x=>{if(x!==o&&parts.includes(x))out.push(x)});return out}
+function parentGroup(o){let p=o?.parent;while(p&&p!==scene){if(isModelGroup(p))return p;p=p.parent}return null}
+function rootUnit(o){let u=o,g=parentGroup(u);while(g){u=g;g=parentGroup(u)}return u}
+function paintSelection(){const active=new Set();if(selected)for(const p of leafParts(selected))active.add(p);for(const u of multiSelected)for(const p of leafParts(u))active.add(p);for(const p of parts)p.material.emissive.setHex(active.has(p)?0x181818:0)}
+function select(o){selected=o;multiSelect=false;multiSelected.clear();transform.detach();multiBtn.classList.remove('active');multiBtn.textContent='☑ まとめてえらぶ';if(o)transform.attach(o);paintSelection();updateState()}
+function setMultiSelect(on){multiSelect=!!on;selected=null;multiSelected.clear();transform.detach();multiBtn.classList.toggle('active',multiSelect);multiBtn.textContent=multiSelect?'☑ えらび中':'☑ まとめてえらぶ';paintSelection();updateState()}
+function toggleMulti(o){const unit=rootUnit(o);if(!unit)return;if(multiSelected.has(unit))multiSelected.delete(unit);else multiSelected.add(unit);selected=null;transform.detach();paintSelection();updateState()}
+function box(o,pad=0){o.updateMatrixWorld(true);const b=new THREE.Box3().setFromObject(o);if(pad)b.expandByScalar(pad);return b}
+function removeGroupRecord(g){const i=groups.indexOf(g);if(i>=0)groups.splice(i,1)}
+function dissolveGroup(g){if(!isModelGroup(g))return[];const children=[...g.children];for(const child of children)scene.attach(child);if(g.parent)g.parent.remove(g);removeGroupRecord(g);return children}
+function cleanupGroups(){for(const g of [...groups]){const leaves=leafParts(g);if(leaves.length<=1)dissolveGroup(g)}}
+function groupSelected(){const leaves=[],seen=new Set(),oldGroups=new Set();for(const unit of multiSelected){if(isModelGroup(unit))oldGroups.add(unit);for(const p of leafParts(unit)){if(!seen.has(p)){seen.add(p);leaves.push(p)}const g=parentGroup(p);if(g)oldGroups.add(g)}}if(leaves.length<2)return;for(const g of oldGroups)dissolveGroup(g);const bounds=new THREE.Box3();for(const p of leaves)bounds.union(box(p));const center=bounds.getCenter(new THREE.Vector3());const g=new THREE.Group();g.userData={modelGroup:true};g.position.copy(center);scene.add(g);g.updateMatrixWorld(true);for(const p of leaves)g.attach(p);groups.push(g);multiSelected.clear();select(g)}
+function ungroupSelected(){if(!isModelGroup(selected))return;const children=dissolveGroup(selected);selected=null;transform.detach();paintSelection();if(children.length)select(children[0]);else updateState()}
+function touching(a,b){return box(a,EPS).intersectsBox(box(b,EPS))}function groundTouch(p){return box(p).min.y<=EPS}
+function overlapVolume(a,b){const A=box(a),B=box(b);return Math.min(A.max.x,B.max.x)-Math.max(A.min.x,B.min.x)>EPS&&Math.min(A.max.y,B.max.y)-Math.max(A.min.y,B.min.y)>EPS&&Math.min(A.max.z,B.max.z)-Math.max(A.min.z,B.min.z)>EPS}
+function solids(){return parts.filter(p=>p.userData.op==='add')}function cutters(){return parts.filter(p=>p.userData.op==='cut')}
+function connectedSet(){const ss=solids(),set=new Set(),q=[];for(const p of ss)if(groundTouch(p)){set.add(p);q.push(p)}while(q.length){const a=q.shift();for(const p of ss)if(!set.has(p)&&touching(a,p)){set.add(p);q.push(p)}}return set}
+const closureCache=new WeakMap();
+function geometryClosure(geo){if(closureCache.has(geo))return closureCache.get(geo);const pos=geo.getAttribute('position'),idx=geo.index;if(!pos||pos.count<3){const r={closed:false,badEdges:1,degenerate:0};closureCache.set(geo,r);return r}const count=idx?idx.count:pos.count;if(count%3!==0){const r={closed:false,badEdges:1,degenerate:0};closureCache.set(geo,r);return r}geo.computeBoundingBox();const size=geo.boundingBox?geo.boundingBox.getSize(new THREE.Vector3()).length():1,tol=Math.max(size*1e-6,1e-7),edges=new Map(),v=new THREE.Vector3();let degenerate=0;function key(i){v.fromBufferAttribute(pos,i);return Math.round(v.x/tol)+','+Math.round(v.y/tol)+','+Math.round(v.z/tol)}function edge(a,b){if(a===b){degenerate++;return}const k=a<b?a+'|'+b:b+'|'+a;edges.set(k,(edges.get(k)||0)+1)}for(let i=0;i<count;i+=3){const ia=idx?idx.getX(i):i,ib=idx?idx.getX(i+1):i+1,ic=idx?idx.getX(i+2):i+2,a=key(ia),b=key(ib),c=key(ic);if(a===b||b===c||c===a){degenerate++;continue}edge(a,b);edge(b,c);edge(c,a)}let badEdges=0;for(const n of edges.values())if(n!==2)badEdges++;const r={closed:badEdges===0&&degenerate===0,badEdges,degenerate};closureCache.set(geo,r);return r}
+function modelClosure(ss=solids()){for(const p of ss){p.updateMatrixWorld(true);const topo=geometryClosure(p.geometry),det=Math.abs(p.matrixWorld.determinant());if(!topo.closed||!Number.isFinite(det)||det<1e-10)return{closed:false,part:p,...topo}}return{closed:ss.length>0,badEdges:0,degenerate:0}}
+function transformData(o){return{position:o.position.toArray(),quaternion:o.quaternion.toArray(),scale:o.scale.toArray()}}
+function applyTransform(o,t){if(!t)return;o.position.fromArray(t.position||[0,0,0]);o.quaternion.fromArray(t.quaternion||[0,0,0,1]);o.scale.fromArray(t.scale||[1,1,1])}
+function geometryData(p){if(p.userData.type!=='boolean')return null;const g=p.geometry,pa=g.getAttribute('position'),na=g.getAttribute('normal');return{position:pa?Array.from(pa.array):[],normal:na?Array.from(na.array):null,index:g.index?Array.from(g.index.array):null}}
+function geometryFromData(type,data){if(type!=='boolean')return geom(type);const g=new THREE.BufferGeometry();if(!data?.position?.length)return g;g.setAttribute('position',new THREE.Float32BufferAttribute(data.position,3));if(data.normal?.length)g.setAttribute('normal',new THREE.Float32BufferAttribute(data.normal,3));else g.computeVertexNormals();if(data.index?.length)g.setIndex(data.index);g.computeBoundingBox();g.computeBoundingSphere();return g}
+function autosaveSnapshot(){const groupIds=new Map(groups.map((g,i)=>[g,i]));return{version:1,savedAt:Date.now(),color,opMode,snapOn,camera:{position:camera.position.toArray(),quaternion:camera.quaternion.toArray(),target:orbit.target.toArray()},groups:groups.map((g,i)=>({id:i,transform:transformData(g)})),parts:parts.map(p=>({type:p.userData.type,op:p.userData.op,baseColor:p.userData.baseColor,transform:transformData(p),group:groupIds.has(p.parent)?groupIds.get(p.parent):null,geometry:geometryData(p)}))}}
+function saveAutosave(){if(!autosaveReady)return;try{localStorage.setItem(SAVE_KEY,JSON.stringify(autosaveSnapshot()))}catch(err){console.warn('autosave failed',err);errorBox.textContent='この端末の保存容量が足りず、自動保存できませんでした。';errorBox.style.display='block'}}
+function scheduleAutosave(){if(!autosaveReady)return;clearTimeout(autosaveTimer);autosaveTimer=setTimeout(()=>{autosaveTimer=0;saveAutosave()},650)}
+function flushAutosave(){if(!autosaveReady)return;clearTimeout(autosaveTimer);autosaveTimer=0;saveAutosave()}
+function clearSceneForLoad(){transform.detach();selected=null;multiSelected.clear();for(const p of [...parts]){if(p.parent)p.parent.remove(p);disposePart(p)}parts.length=0;for(const g of [...groups])if(g.parent)g.parent.remove(g);groups.length=0}
+function loadAutosave(){let raw;try{raw=localStorage.getItem(SAVE_KEY)}catch(err){console.warn('autosave unavailable',err);return false}if(!raw)return false;try{const data=JSON.parse(raw);if(data?.version!==1||!Array.isArray(data.parts))return false;clearSceneForLoad();const groupMap=new Map();for(const saved of data.groups||[]){const g=new THREE.Group();g.userData={modelGroup:true};applyTransform(g,saved.transform);scene.add(g);groups.push(g);groupMap.set(saved.id,g)}for(const saved of data.parts){const geometry=geometryFromData(saved.type,saved.geometry);const material=new THREE.MeshStandardMaterial({color:saved.baseColor||0x62b6ff,roughness:.55});const p=new THREE.Mesh(geometry,material);p.userData={type:saved.type||'box',op:saved.op||'add',baseColor:saved.baseColor||0x62b6ff};applyTransform(p,saved.transform);p.castShadow=p.userData.op==='add';p.receiveShadow=p.userData.op==='add';stylePart(p);const parent=groupMap.get(saved.group);(parent||scene).add(p);parts.push(p)}color=Number.isFinite(data.color)?data.color:parts.length;opMode=data.opMode==='cut'?'cut':'add';snapOn=data.snapOn!==false;setOpMode(opMode);document.getElementById('snap').textContent=`🧲 くっつけ補助: ${snapOn?'ON':'OFF'}`;if(data.camera?.position)camera.position.fromArray(data.camera.position);if(data.camera?.quaternion)camera.quaternion.fromArray(data.camera.quaternion);if(data.camera?.target)orbit.target.fromArray(data.camera.target);orbit.update();paintSelection();updateState();opHelp.textContent='前のつづきを自動で復元しました';return true}catch(err){console.warn('autosave restore failed',err);try{localStorage.removeItem(SAVE_KEY)}catch{}clearSceneForLoad();return false}}
+function startNewProject(){autosaveReady=false;clearTimeout(autosaveTimer);autosaveTimer=0;try{localStorage.removeItem(SAVE_KEY)}catch(err){console.warn('autosave clear failed',err)}clearSceneForLoad();color=0;opMode='add';snapOn=true;multiSelect=false;setOpMode('add');document.getElementById('snap').textContent='🧲 くっつけ補助: ON';document.querySelectorAll('[data-mode]').forEach(x=>x.classList.toggle('active',x.dataset.mode==='translate'));transform.setMode('translate');camera.position.set(11,9,13);orbit.target.set(0,1,0);orbit.update();addPart('box',new THREE.Vector3(0,1,0),'add');fit();opHelp.textContent='新しい工作をはじめたよ';autosaveReady=true;saveAutosave()}
+
+function cloudMessage(text,isError=false){opHelp.textContent=text;if(isError){errorBox.textContent=text;errorBox.style.display='block'}else if(errorBox.textContent===text)errorBox.style.display='none'}
+async function ensureCloudApi(){if(fmsApi)return fmsApi;if(!window.ForMySonsShared)throw new Error('For My Sonsの保存機能を読み込めませんでした');fmsApi=await window.ForMySonsShared.createForMySons();return fmsApi}
+async function refreshCloudProfile(){const badge=document.getElementById('cloudProfile'),saveBtn=document.getElementById('cloudSave'),loadBtn=document.getElementById('cloudLoad');try{const api=await ensureCloudApi(),profile=await api.profile.current(),hasToken=await api.sync.hasToken();badge.textContent='☁ '+profile.label;saveBtn.disabled=!hasToken;loadBtn.disabled=!hasToken;if(!hasToken)badge.title='For My Sonsホームの「おうちの人設定」でGitHub接続を設定してください';else badge.title='For-My-Sons-save / '+profile.id}catch(err){console.warn('cloud profile setup failed',err);badge.textContent='☁ 端末保存のみ';saveBtn.disabled=true;loadBtn.disabled=true}}
+async function saveCloudProject(){if(cloudBusy)return;cloudBusy=true;const btn=document.getElementById('cloudSave'),old=btn.textContent;btn.disabled=true;btn.textContent='保存中…';errorBox.style.display='none';try{flushAutosave();const api=await ensureCloudApi(),profile=await api.profile.current(),project=autosaveSnapshot();const result=await api.sync.writeProfileApp(profile.id,APP_ID,{version:CLOUD_SAVE_VERSION,project,savedAt:new Date().toISOString()},{message:'Save 3D project for '+profile.id});if(result.status==='auth-error')throw new Error('GitHub接続を確認してください');if(result.status==='conflict')throw new Error('別の端末でセーブが更新されています。先に「よみこむ」をしてください');if(result.status==='pending')throw new Error('クラウドへ保存できませんでした。通信状態を確認してください');opHelp.textContent='☁ '+profile.label+' にセーブしたよ'}catch(err){console.error('cloud save failed',err);cloudMessage('セーブできませんでした: '+(err?.message||err),true)}finally{cloudBusy=false;btn.textContent=old;await refreshCloudProfile()}}
+async function loadCloudProject(){if(cloudBusy)return;cloudBusy=true;const btn=document.getElementById('cloudLoad'),old=btn.textContent;btn.disabled=true;btn.textContent='読込中…';errorBox.style.display='none';try{const api=await ensureCloudApi(),profile=await api.profile.current(),remote=await api.sync.readProfileApp(profile.id,APP_ID);if(!remote.exists||!remote.data?.project)throw new Error(profile.label+' の3Dセーブはまだありません');const project=remote.data.project;if(project?.version!==1||!Array.isArray(project.parts))throw new Error('保存データの形式を読み込めません');localStorage.setItem(SAVE_KEY,JSON.stringify(project));if(!loadAutosave())throw new Error('保存データを復元できませんでした');saveAutosave();opHelp.textContent='☁ '+profile.label+' のセーブをよみこんだよ'}catch(err){console.error('cloud load failed',err);cloudMessage('よみこめませんでした: '+(err?.message||err),true)}finally{cloudBusy=false;btn.textContent=old;await refreshCloudProfile()}}
+async function setupCloudSave(){await refreshCloudProfile();window.addEventListener('for-my-sons-profile-changed',refreshCloudProfile)}
+
+function askNewProject(){const dialog=document.getElementById('newProjectDialog');if(dialog&&typeof dialog.showModal==='function')dialog.showModal();else if(window.confirm('いまの作品と自動保存データを消して、新しく作りますか？\n\nSTLなどに保存していない作品は復元できません。'))startNewProject()}
+function setOpMode(mode){opMode=mode;document.querySelectorAll('[data-op]').forEach(x=>x.classList.toggle('active',x.dataset.op===mode));opHelp.textContent=mode==='add'?'次に置く形は「つける」パーツです':'赤い形を置いて、本体に重ねてね'}
+function cutReady(){return !!selected&&selected.userData.op==='cut'&&solids().some(s=>overlapVolume(s,selected))}
+function updateState(){const ss=solids(),cc=cutters(),c=connectedSet(),ready=cutReady(),closure=modelClosure(ss);for(const p of ss){p.material.transparent=true;p.material.opacity=c.has(p)?1:.55;p.material.depthWrite=true}for(const p of cc)stylePart(p);applyCutBtn.disabled=!ready;const connected=ss.length>0&&c.size===ss.length;exportBtn.disabled=!(connected&&cc.length===0&&closure.closed);exportBtn.title=closure.closed?'':'閉じていない形があるためSTLにできません';groupBtn.disabled=!(multiSelect&&multiSelected.size>=2);ungroupBtn.disabled=!isModelGroup(selected);multiBtn.classList.toggle('active',multiSelect);if(multiSelect){const n=[...multiSelected].reduce((sum,u)=>sum+leafParts(u).length,0);status.textContent=n?`${n}こ えらんだよ`:'まとめたい形をタップしてね';status.style.color='#20252b'}else if(isModelGroup(selected)){status.textContent=`▦ ${leafParts(selected).length}こをまとめて操作中`;status.style.color='#20252b'}else if(!ss.length){status.textContent='まず ＋ で形を置いてね';status.style.color='#20252b'}else if(ready){status.textContent='✂ 「きりぬく！」を押してね';status.style.color='#dc4455'}else if(cc.length){status.textContent=selected&&selected.userData.op==='cut'?'赤い形を本体に少し重ねてね':'赤い形をえらんでね';status.style.color='#d33f49'}else if(!connected){status.textContent=`あと ${ss.length-c.size} こ 地面につなげよう`;status.style.color='#d33f49'}else if(!closure.closed){status.textContent='⚠ 閉じていない形があるよ';status.style.color='#d33f49'}else{status.textContent='✓ 閉じた形。STLにできる！';status.style.color='#16884a'}scheduleAutosave()}
+function snap(){if(!selected)return;const s=.25;selected.position.x=Math.round(selected.position.x/s)*s;selected.position.z=Math.round(selected.position.z/s)*s;const targets=isModelGroup(selected)?leafParts(selected):[selected];if(targets.some(p=>p.userData.op==='add')){const b=box(selected);if(Math.abs(b.min.y)<.22)selected.position.y-=b.min.y}}
+function clonePartWorld(p,offset=new THREE.Vector3()){p.updateMatrixWorld(true);const pos=new THREE.Vector3(),quat=new THREE.Quaternion(),scale=new THREE.Vector3();p.matrixWorld.decompose(pos,quat,scale);const c=p.clone();c.geometry=p.geometry.clone();c.material=p.material.clone();c.userData={...p.userData};c.position.copy(pos).add(offset);c.quaternion.copy(quat);c.scale.copy(scale);scene.add(c);parts.push(c);return c}
+function copy(){if(!selected)return;const offset=new THREE.Vector3(1,.4,0);if(isModelGroup(selected)){const clones=leafParts(selected).map(p=>clonePartWorld(p,offset));setMultiSelect(true);for(const c of clones)multiSelected.add(c);paintSelection();updateState();groupSelected();return}select(clonePartWorld(selected,offset))}
+function disposePart(p){if(p.geometry)p.geometry.dispose();if(Array.isArray(p.material))p.material.forEach(m=>m.dispose());else if(p.material)p.material.dispose()}
+function removePart(p){const i=parts.indexOf(p);if(i>=0)parts.splice(i,1);if(p.parent)p.parent.remove(p);multiSelected.delete(p);disposePart(p)}
+function del(){if(!selected)return;const group=isModelGroup(selected)?selected:null,doomed=group?leafParts(group):[selected];transform.detach();for(const p of doomed)removePart(p);if(group){if(group.parent)group.parent.remove(group);removeGroupRecord(group)}selected=null;cleanupGroups();paintSelection();updateState()}
+function swapOp(){if(!selected)return;const targets=isModelGroup(selected)?leafParts(selected):[selected],next=targets.every(p=>p.userData.op==='cut')?'add':'cut';for(const p of targets){p.userData.op=next;stylePart(p);p.castShadow=next==='add';p.receiveShadow=next==='add'}updateState()}
+function fit(){if(!parts.length)return;const b=new THREE.Box3();for(const p of parts)b.union(box(p));const s=b.getSize(new THREE.Vector3()),c=b.getCenter(new THREE.Vector3()),m=Math.max(s.x,s.y,s.z,4);orbit.target.copy(c);camera.position.copy(c).add(new THREE.Vector3(m*1.5,m*1.2,m*1.7));orbit.update()}
+function brushFrom(mesh){mesh.updateMatrixWorld(true);const g=mesh.geometry.clone();g.clearGroups();g.deleteAttribute('uv');g.applyMatrix4(mesh.matrixWorld);const b=new Brush(g);b.updateMatrixWorld(true);return b}
+function subtractMesh(base,cutter){const evaluator=new Evaluator();evaluator.useGroups=false;evaluator.attributes=['position','normal'];const a=brushFrom(base),b=brushFrom(cutter),result=evaluator.evaluate(a,b,SUBTRACTION),geo=result.geometry.clone();a.geometry.dispose();b.geometry.dispose();result.geometry.dispose();geo.clearGroups();geo.setDrawRange(0,Infinity);const pos=geo.getAttribute('position');if(!pos||!pos.count){geo.dispose();return null}const out=new THREE.Mesh(geo,new THREE.MeshStandardMaterial({color:base.userData.baseColor||0x62b6ff,roughness:.55}));out.userData={type:'boolean',op:'add',baseColor:base.userData.baseColor||0x62b6ff};out.castShadow=true;out.receiveShadow=true;out.updateMatrixWorld(true);return out}
+function commitCut(){if(!cutReady())return;const cutter=selected,targets=solids().filter(s=>overlapVolume(s,cutter)),old=applyCutBtn.textContent;applyCutBtn.disabled=true;applyCutBtn.textContent='きりぬき中…';errorBox.style.display='none';const results=[];try{for(const target of targets)results.push({target,result:subtractMesh(target,cutter)});const remove=new Set([...targets,cutter]);for(const p of remove)removePart(p);cleanupGroups();for(const {result} of results)if(result){scene.add(result);parts.push(result)}const next=results.find(x=>x.result)?.result||solids()[0]||null;select(next);setOpMode('add');opHelp.textContent='切り抜けた！ 次は「つける」パーツです';updateState()}catch(err){for(const {result} of results)if(result)disposePart(result);console.error(err);errorBox.textContent='うまく切り抜けませんでした。赤い形を少し深く重ねて、もう一度ためしてください。';errorBox.style.display='block'}finally{applyCutBtn.textContent=old;updateState()}}
+function exportSTL(){const ss=solids(),closure=modelClosure(ss);if(!closure.closed){errorBox.textContent='閉じていない形があるため、STLは作りませんでした。形を直してからもう一度ためしてください。';errorBox.style.display='block';updateState();return}if(exportBtn.disabled)return;exportBtn.disabled=true;const old=exportBtn.textContent;exportBtn.textContent='STLをつくってる…';errorBox.style.display='none';const group=new THREE.Group(),temp=[];try{for(const p of ss){p.updateMatrixWorld(true);const geo=p.geometry.clone();geo.applyMatrix4(p.matrixWorld);geo.clearGroups();geo.setDrawRange(0,Infinity);const mesh=new THREE.Mesh(geo,new THREE.MeshBasicMaterial());group.add(mesh);temp.push(mesh)}const data=new STLExporter().parse(group,{binary:true});const blob=new Blob([data],{type:'model/stl'}),url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download='my_3d_model.stl';a.style.display='none';document.body.appendChild(a);a.click();setTimeout(()=>{a.remove();URL.revokeObjectURL(url)},1500)}catch(err){console.error(err);errorBox.textContent='STLを作れませんでした。形を少し動かして、もう一度ためしてください。';errorBox.style.display='block'}finally{for(const m of temp){m.geometry.dispose();m.material.dispose()}exportBtn.textContent=old;updateState()}}
+const ray=new THREE.Raycaster(),pt=new THREE.Vector2(),activePointers=new Set();let tapStart=null;
+function pickAt(x,y){const r=renderer.domElement.getBoundingClientRect();pt.x=((x-r.left)/r.width)*2-1;pt.y=-((y-r.top)/r.height)*2+1;ray.setFromCamera(pt,camera);const h=ray.intersectObjects(parts,false),hit=h.length?h[0].object:null;if(multiSelect){if(hit)toggleMulti(hit);else{multiSelected.clear();paintSelection();updateState()}}else select(hit?rootUnit(hit):null)}
+renderer.domElement.addEventListener('pointerdown',e=>{activePointers.add(e.pointerId);if(activePointers.size===1&&!transform.dragging){tapStart={id:e.pointerId,x:e.clientX,y:e.clientY}}else tapStart=null});
+renderer.domElement.addEventListener('pointermove',e=>{if(!tapStart||tapStart.id!==e.pointerId)return;if(Math.hypot(e.clientX-tapStart.x,e.clientY-tapStart.y)>8)tapStart=null});
+renderer.domElement.addEventListener('pointerup',e=>{const tap=!!tapStart&&tapStart.id===e.pointerId&&!transformDragged&&Math.hypot(e.clientX-tapStart.x,e.clientY-tapStart.y)<=8;activePointers.delete(e.pointerId);if(tap)pickAt(e.clientX,e.clientY);if(activePointers.size===0){tapStart=null;transformDragged=false;orbit.enabled=true}});
+renderer.domElement.addEventListener('pointercancel',e=>{activePointers.delete(e.pointerId);if(activePointers.size===0){tapStart=null;transformDragged=false;orbit.enabled=true}});renderer.domElement.addEventListener('contextmenu',e=>e.preventDefault());
+document.querySelectorAll('[data-add]').forEach(b=>b.addEventListener('click',()=>addPart(b.dataset.add)));
+document.querySelectorAll('[data-op]').forEach(b=>b.addEventListener('click',()=>setOpMode(b.dataset.op)));
+document.querySelectorAll('[data-mode]').forEach(b=>b.addEventListener('click',()=>{document.querySelectorAll('[data-mode]').forEach(x=>x.classList.remove('active'));b.classList.add('active');transform.setMode(b.dataset.mode)}));
+document.getElementById('copy').addEventListener('click',copy);document.getElementById('del').addEventListener('click',del);document.getElementById('swap').addEventListener('click',swapOp);multiBtn.addEventListener('click',()=>setMultiSelect(!multiSelect));groupBtn.addEventListener('click',groupSelected);ungroupBtn.addEventListener('click',ungroupSelected);applyCutBtn.addEventListener('click',commitCut);exportBtn.addEventListener('click',exportSTL);document.getElementById('home').addEventListener('click',fit);document.getElementById('snap').addEventListener('click',e=>{snapOn=!snapOn;e.currentTarget.textContent=`🧲 くっつけ補助: ${snapOn?'ON':'OFF'}`;scheduleAutosave()});document.getElementById('newProject').addEventListener('click',askNewProject);document.getElementById('cloudSave').addEventListener('click',saveCloudProject);document.getElementById('cloudLoad').addEventListener('click',loadCloudProject);document.getElementById('cancelNewProject').addEventListener('click',()=>document.getElementById('newProjectDialog').close());document.getElementById('confirmNewProject').addEventListener('click',()=>{document.getElementById('newProjectDialog').close();startNewProject()});
+function resize(){const w=Math.max(1,stage.clientWidth),h=Math.max(1,stage.clientHeight);renderer.setSize(w,h,false);camera.aspect=w/h;camera.updateProjectionMatrix()}const ro=new ResizeObserver(resize);ro.observe(stage);window.addEventListener('orientationchange',()=>setTimeout(resize,150));window.addEventListener('resize',resize);if(window.visualViewport)window.visualViewport.addEventListener('resize',resize);resize();
+const restored=loadAutosave();if(!restored){addPart('box',new THREE.Vector3(0,1,0),'add');fit()}autosaveReady=true;scheduleAutosave();orbit.addEventListener('change',scheduleAutosave);window.addEventListener('pagehide',flushAutosave);void setupCloudSave();window.__kids3dReady=true;window.__kids3d={parts,addPart,connectedSet,subtractMesh,commitCut,saveAutosave,loadAutosave,diagnostics:{webgl:renderer.capabilities.isWebGL2?'WebGL2':'WebGL1',touch:navigator.maxTouchPoints||0,pixelRatio:renderer.getPixelRatio(),cutCommit:true,autosave:true,cloudSave:true}};
+let raf=0;function loop(){raf=requestAnimationFrame(loop);orbit.update();renderer.render(scene,camera)}loop();document.addEventListener('visibilitychange',()=>{if(document.hidden){flushAutosave();if(raf){cancelAnimationFrame(raf);raf=0}}else if(!raf)loop()});
+</script>
+</body>
+</html>
