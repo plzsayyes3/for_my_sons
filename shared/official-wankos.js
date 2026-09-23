@@ -14,6 +14,11 @@
       id: "inusensha",
       name: "いぬせんしゃ",
       path: "../official-wankos/inusensha.wanko.json?v=1"
+    },
+    {
+      id: "kurionen",
+      name: "クリオネン",
+      path: "../official-wankos/kurionen.wanko.json?v=1"
     }
   ];
   const cache = new Map();
