@@ -79,14 +79,14 @@
   {
     "id": "wanko-war",
     "name": "わんこ大戦争",
-    "url": "./wanko-war/?v=12",
+    "url": "./wanko-war/?v=13",
     "icon": "./assets/wanko-war.svg?v=1",
     "description": "右の基地からわんこを出して、敵の基地をこわそう"
   },
   {
     "id": "wanko-library",
     "name": "わんこ大図鑑",
-    "url": "./wanko-library/?v=8",
+    "url": "./wanko-library/?v=9",
     "icon": "./assets/wanko-library.svg?v=1",
     "description": "なかま・てき・元素を集めて、わんこ大図鑑を完成させよう"
   },
