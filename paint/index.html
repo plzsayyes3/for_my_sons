@@ -121,12 +121,22 @@
         <button class="modal-close" id="wanko-close" type="button" aria-label="とじる">✕</button>
       </div>
       <div class="wanko-preview"><img id="wanko-preview-img" alt=""></div>
-      <label class="wanko-name-label" for="wanko-name">なまえ</label>
-      <input class="wanko-name-input" id="wanko-name" maxlength="24" placeholder="なまえをつけてね">
-      <p class="wanko-note">前に作ったわんこは消えないよ。登録したらパパに送ってね。</p>
+      <div class="wanko-faction-step" id="wanko-faction-step">
+        <p class="wanko-question" id="wanko-faction-help">どっちのわんこ？</p>
+        <div class="wanko-factions" role="group" aria-label="わんこの種類">
+          <button class="faction-choice" type="button" data-faction="ally">味方</button>
+          <button class="faction-choice" type="button" data-faction="enemy">敵</button>
+        </div>
+      </div>
+      <div class="wanko-details is-hidden" id="wanko-details">
+        <label class="wanko-name-label" for="wanko-name">なまえ</label>
+        <input class="wanko-name-input" id="wanko-name" maxlength="24" placeholder="なまえをつけてね">
+        <p class="wanko-note">登録依頼を出すと、パパが強さを考えてゲームに入れてくれるよ。</p>
+      </div>
+      <p class="wanko-request-status" id="wanko-request-status" role="status" aria-live="polite"></p>
       <div class="crop-actions">
         <button class="secondary-action" id="wanko-library-open" type="button">図鑑を見る</button>
-        <button class="primary-action" id="wanko-confirm" type="button">登録する</button>
+        <button class="primary-action" id="wanko-confirm" type="button" disabled>登録依頼を出す</button>
       </div>
     </section>
   </div>

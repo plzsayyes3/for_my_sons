@@ -23,9 +23,15 @@ const wankoConfirmButton = document.querySelector("#wanko-confirm");
 const wankoLibraryOpenButton = document.querySelector("#wanko-library-open");
 const wankoNameInput = document.querySelector("#wanko-name");
 const wankoPreviewImg = document.querySelector("#wanko-preview-img");
+const wankoFactionButtons = [...document.querySelectorAll("[data-faction]")];
+const wankoDetails = document.querySelector("#wanko-details");
+const wankoRequestStatus = document.querySelector("#wanko-request-status");
 let pendingWankoBlob = null;
 let pendingWankoDataUrl = null;
 let pendingWankoUrl = null;
+let selectedWankoFaction = null;
+let requestSubmitInFlight = false;
+let sharedForMySons = null;
 
 const cropModal = document.querySelector("#crop-modal");
 const cropPreview = document.querySelector("#crop-preview");
@@ -586,6 +592,12 @@ function closeWankoModal() {
   pendingWankoUrl = null;
   pendingWankoBlob = null;
   pendingWankoDataUrl = null;
+  selectedWankoFaction = null;
+  wankoFactionButtons.forEach((button) => button.classList.remove("is-selected"));
+  wankoDetails.classList.add("is-hidden");
+  wankoNameInput.value = "";
+  wankoRequestStatus.textContent = "";
+  wankoConfirmButton.disabled = true;
 }
 
 function openWankoModal() {
@@ -600,99 +612,57 @@ function openWankoModal() {
   if (pendingWankoUrl) URL.revokeObjectURL(pendingWankoUrl);
   pendingWankoUrl = URL.createObjectURL(pendingWankoBlob);
   wankoPreviewImg.src = pendingWankoUrl;
+  selectedWankoFaction = null;
+  wankoFactionButtons.forEach((button) => button.classList.remove("is-selected"));
+  wankoDetails.classList.add("is-hidden");
   wankoNameInput.value = "";
+  wankoRequestStatus.textContent = "";
+  wankoConfirmButton.disabled = true;
   wankoModal.classList.add("is-open");
   wankoModal.setAttribute("aria-hidden", "false");
   document.body.classList.add("modal-open");
-  setTimeout(() => wankoNameInput.focus(), 80);
-}
-
-function safeWankoFileName(name) {
-  return String(name || "wanko")
-    .trim()
-    .replace(/[\\/:*?"<>|]/g, "-")
-    .replace(/\s+/g, "-")
-    .slice(0, 40) || "wanko";
-}
-
-function makeWankoPackage(name) {
-  return {
-    format: "for-my-sons-wanko",
-    version: 1,
-    requestId: crypto?.randomUUID ? crypto.randomUUID() : ("wanko-" + Date.now()),
-    name,
-    createdAt: new Date().toISOString(),
-    image: pendingWankoDataUrl,
-    stats: {
-      cost: 180,
-      hp: 140,
-      damage: 30,
-      speed: 46,
-      range: 44,
-      cooldown: 0.72
-    }
-  };
-}
-
-function makeWankoPackageFile(payload) {
-  const json = JSON.stringify(payload, null, 2);
-  return new File(
-    [json],
-    safeWankoFileName(payload.name) + ".wanko.json",
-    { type: "application/json" }
-  );
-}
-
-async function shareWankoPackage(file, name) {
-  alert("できたよ！\nメッセージをえらんで、パパに送ってね！");
-  if (canShareFile(file)) {
-    try {
-      await navigator.share({
-        files: [file],
-        title: name + " を登録",
-        text: "わんこを作ったよ！"
-      });
-      return "shared";
-    } catch (error) {
-      if (error?.name === "AbortError") return "cancelled";
-      console.warn("Wanko share failed", error);
-    }
-  }
-
-  downloadBlob(file, file.name);
-  return "downloaded";
+  setTimeout(() => wankoFactionButtons[0]?.focus(), 80);
 }
 
 async function confirmWankoRegistration() {
-  if (!pendingWankoBlob || !pendingWankoDataUrl || !window.WankoLibrary) return;
+  if (!pendingWankoBlob || !selectedWankoFaction || requestSubmitInFlight) return;
+  const name = (wankoNameInput.value || "").trim();
+  if (!name) {
+    wankoRequestStatus.textContent = "なまえをつけてね";
+    wankoNameInput.focus();
+    return;
+  }
+
+  requestSubmitInFlight = true;
   wankoConfirmButton.disabled = true;
 
-  const name = (wankoNameInput.value || "うちのわんこ").trim();
-  const blobForLocal = pendingWankoBlob;
-  const packageFile = makeWankoPackageFile(makeWankoPackage(name));
-
   try {
-    const sharePromise = shareWankoPackage(packageFile, name);
-    const recordPromise = WankoLibrary.registerWanko({
+    if (!window.ForMySonsShared?.createForMySons) throw new Error("REQUEST_SERVICE_UNAVAILABLE");
+    sharedForMySons ||= await window.ForMySonsShared.createForMySons();
+    const request = await sharedForMySons.characterRequests.create({
       name,
-      blob: blobForLocal,
-      creator: "paint"
+      faction: selectedWankoFaction,
+      artwork: pendingWankoBlob
     });
-
-    const [shareResult, record] = await Promise.all([sharePromise, recordPromise]);
-    closeWankoModal();
-
-    if (shareResult === "shared") {
-      showToast(record.name + " を登録して、パパに送ったよ ✓");
-    } else if (shareResult === "downloaded") {
-      showToast("ファイルを保存したよ。パパに送ってね");
-    } else {
-      showToast(record.name + " は図鑑に登録したよ");
+    let synced = false;
+    try {
+      const results = await sharedForMySons.characterRequests.syncPending();
+      synced = results.some((item) => item.requestId === request.requestId && item.syncState === "synced");
+    } catch (error) {
+      console.warn("Character request sync deferred", error);
     }
+
+    if (window.WankoLibrary?.registerWanko) {
+      await window.WankoLibrary.registerWanko({ name, blob: pendingWankoBlob, creator: "paint" });
+    }
+    closeWankoModal();
+    showToast(synced ? "登録依頼を出しました ✓" : "登録依頼を保存したよ。あとで送るね");
   } catch (error) {
     console.error(error);
-    showToast("わんこの登録に失敗しました");
+    wankoRequestStatus.textContent = "登録依頼を保存できなかったよ。もう一度ためしてね";
+    showToast("登録依頼に失敗しました");
   } finally {
+    requestSubmitInFlight = false;
     wankoConfirmButton.disabled = false;
   }
 }
@@ -759,6 +729,19 @@ wankoCloseButton.addEventListener("click", closeWankoModal);
 wankoConfirmButton.addEventListener("click", confirmWankoRegistration);
 wankoLibraryOpenButton.addEventListener("click", () => { window.location.href = "../wanko-library/"; });
 wankoModal.addEventListener("click", (event) => { if (event.target === wankoModal) closeWankoModal(); });
+wankoFactionButtons.forEach((button) => {
+  button.addEventListener("click", () => {
+    selectedWankoFaction = button.dataset.faction;
+    wankoFactionButtons.forEach((item) => item.classList.toggle("is-selected", item === button));
+    wankoDetails.classList.remove("is-hidden");
+    wankoConfirmButton.disabled = !wankoNameInput.value.trim();
+    wankoNameInput.focus();
+  });
+});
+wankoNameInput.addEventListener("input", () => {
+  wankoConfirmButton.disabled = !selectedWankoFaction || !wankoNameInput.value.trim() || requestSubmitInFlight;
+  if (wankoNameInput.value.trim()) wankoRequestStatus.textContent = "";
+});
 
 cropPreview.addEventListener("pointerdown", (event) => {
   if (!cropSession) return;
