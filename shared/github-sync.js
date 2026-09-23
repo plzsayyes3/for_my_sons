@@ -72,9 +72,29 @@
       });
     }
 
+    function rateLimitStatus(response) {
+      const remaining = response?.headers?.get?.('x-ratelimit-remaining');
+      if (response?.status !== 429 && !(response?.status === 403 && remaining === '0')) return null;
+      const resetSeconds = Number(response?.headers?.get?.('x-ratelimit-reset'));
+      return {
+        status: 'rate-limit',
+        resetAt: Number.isFinite(resetSeconds) && resetSeconds > 0 ? new Date(resetSeconds * 1000).toISOString() : null
+      };
+    }
+
+    function throwIfRateLimited(response) {
+      const limited = rateLimitStatus(response);
+      if (!limited) return;
+      const error = new Error('GitHub API rate limit reached');
+      error.code = 'RATE_LIMIT';
+      error.resetAt = limited.resetAt;
+      throw error;
+    }
+
     async function readRemote(path) {
       const response = await request(path, { method: 'GET' });
       if (response.status === 404) return { exists: false, content: null, sha: null, etag: null };
+      throwIfRateLimited(response);
       if (response.status === 401 || response.status === 403) {
         const error = new Error('GitHub authentication failed');
         error.code = 'AUTH_FAILED';
@@ -92,26 +112,41 @@
 
     async function writePath(path, value, options = {}) {
       const remote = await readRemote(path);
-      if (options.sha && remote.exists && options.sha !== remote.sha) {
-        return { status: 'conflict', remoteSha: remote.sha };
+      if (options.sha) {
+        if (options.sha === '__absent__' && remote.exists) return { status: 'conflict', remoteSha: remote.sha };
+        if (options.sha !== '__absent__' && (!remote.exists || options.sha !== remote.sha)) {
+          return { status: 'conflict', remoteSha: remote.sha || null };
+        }
       }
+      return writePathKnown(path, value, {
+        sha: remote.exists ? remote.sha : null,
+        expectAbsent: !remote.exists,
+        message: options.message
+      });
+    }
+
+    async function writePathKnown(path, value, options = {}) {
+      const expectedSha = options.sha || null;
+      const expectAbsent = options.expectAbsent === true || expectedSha === '__absent__';
       const payload = {
         message: options.message || `Sync ${path}`,
         content: encodeBase64(value),
         branch: settings.branch
       };
-      if (remote.exists) payload.sha = remote.sha;
+      if (expectedSha && expectedSha !== '__absent__') payload.sha = expectedSha;
       const response = await request(path, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload)
       });
+      const limited = rateLimitStatus(response);
+      if (limited) return limited;
       if (response.status === 401 || response.status === 403) return { status: 'auth-error' };
-      if (response.status === 409) return { status: 'conflict', remoteSha: remote.sha };
+      if (response.status === 409 || response.status === 422) return { status: 'conflict', remoteSha: null };
       if (!response.ok) return { status: 'pending', reason: 'remote-unavailable' };
       const body = await response.json();
       return {
-        status: remote.exists ? 'synced' : 'created',
+        status: expectAbsent ? 'created' : 'synced',
         sha: body.content?.sha || body.sha || null
       };
     }
@@ -119,13 +154,25 @@
     async function deletePath(path) {
       const remote = await readRemote(path);
       if (!remote.exists) return { status: 'absent' };
+      return deletePathKnown(path, remote.sha);
+    }
+
+    async function deletePathKnown(path, sha, options = {}) {
+      if (!sha) return { status: 'conflict', remoteSha: null };
       const response = await request(path, {
         method: 'DELETE',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ message: `Complete ${path}`, sha: remote.sha, branch: settings.branch })
+        body: JSON.stringify({
+          message: options.message || `Delete ${path}`,
+          sha,
+          branch: settings.branch
+        })
       });
+      const limited = rateLimitStatus(response);
+      if (limited) return limited;
       if (response.status === 401 || response.status === 403) return { status: 'auth-error' };
-      if (response.status === 409) return { status: 'conflict', remoteSha: remote.sha };
+      if (response.status === 404) return { status: 'absent' };
+      if (response.status === 409 || response.status === 422) return { status: 'conflict', remoteSha: null };
       if (!response.ok) return { status: 'pending', reason: 'remote-unavailable' };
       return { status: 'deleted' };
     }
@@ -150,8 +197,10 @@
         };
         if (remote.exists) payload.sha = remote.sha;
         const response = await request(path, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+        const limited = rateLimitStatus(response);
+        if (limited) return limited;
         if (response.status === 401 || response.status === 403) return { status: 'auth-error' };
-        if (response.status === 409) return { status: 'conflict', remoteSha: remote.sha };
+        if (response.status === 409 || response.status === 422) return { status: 'conflict', remoteSha: remote.sha };
         if (!response.ok) return { status: 'pending', reason: 'remote-unavailable' };
         const body = await response.json();
         const sha = body.content?.sha || body.sha;
@@ -159,6 +208,7 @@
         return { status: remote.exists ? 'synced' : 'created', sha };
       } catch (error) {
         if (error?.code === 'AUTH_REQUIRED' || error?.code === 'AUTH_FAILED') return { status: 'auth-error' };
+        if (error?.code === 'RATE_LIMIT') return { status: 'rate-limit', resetAt: error.resetAt || null };
         return { status: 'pending', reason: 'offline' };
       }
     }
@@ -180,6 +230,8 @@
 
     async function listDirectory(path) {
       const response = await request(path, { method: 'GET' });
+      if (response.status === 404) return [];
+      throwIfRateLimited(response);
       if (response.status === 401 || response.status === 403) {
         const error = new Error('GitHub authentication failed');
         error.code = 'AUTH_FAILED';
@@ -373,7 +425,9 @@
       readProfileApp,
       writeProfileApp,
       writePath,
+      writePathKnown,
       deletePath,
+      deletePathKnown,
       pushRecord,
       pullRecord,
       status,
