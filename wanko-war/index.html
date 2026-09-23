@@ -81,11 +81,18 @@
     @keyframes allyBob{to{transform:scaleX(-1) translateY(-3px) rotate(2deg)}}
     #message{position:absolute;left:50%;top:11%;transform:translateX(-50%);padding:7px 13px;border:2px solid var(--line);border-radius:999px;background:rgba(255,255,255,.9);font-weight:900;z-index:6;opacity:0;transition:.18s;pointer-events:none;white-space:nowrap}
     #message.show{opacity:1}
-    #overlay{position:absolute;inset:0;z-index:20;display:none;place-items:center;background:rgba(255,248,234,.78);backdrop-filter:blur(5px)}
-    #overlay.show{display:grid}
-    .result{min-width:min(82vw,360px);text-align:center;background:white;border:3px solid var(--line);border-radius:24px;padding:24px;box-shadow:0 8px 0 var(--line)}
-    .result .emoji{font-size:64px}.result h2{font-size:30px;margin:8px 0}.result p{margin:0 0 16px;font-weight:700}
-    .restart{border:2.5px solid var(--line);border-radius:14px;background:#ffe58f;padding:10px 22px;font-weight:1000;box-shadow:0 4px 0 var(--line)}
+    #startOverlay,#overlay{position:absolute;inset:0;z-index:20;display:none;place-items:center;background:rgba(255,248,234,.82);backdrop-filter:blur(6px)}
+    #startOverlay.show,#overlay.show{display:grid}
+    .startCard,.result{width:min(88vw,390px);text-align:center;background:white;border:3px solid var(--line);border-radius:24px;padding:22px;box-shadow:0 8px 0 var(--line)}
+    .startCard .eyebrow{margin:0 0 5px;font-size:11px;font-weight:1000;letter-spacing:.18em;color:#746957}
+    .startCard h2,.result h2{font-size:30px;margin:6px 0}.result .emoji{font-size:64px}
+    .startPlayer{font-weight:900;margin:0 0 14px}.startProgress{font-weight:900;margin:4px 0 12px}.startElement{font-size:14px;margin:0 0 12px;color:#62594d}
+    .startStageSelect{width:100%;padding:11px;border:2px solid var(--line);border-radius:13px;background:#fff;font-weight:900;margin:0 0 12px}
+    .startActions,.resultActions{display:grid;gap:9px}
+    .primaryAction,.secondaryAction,.startLink{display:block;width:100%;border:2.5px solid var(--line);border-radius:14px;padding:11px 14px;font-weight:1000;box-shadow:0 4px 0 var(--line);text-decoration:none;color:var(--ink)}
+    .primaryAction{background:#ffe58f}.secondaryAction,.startLink{background:#fff}
+    .primaryAction:active,.secondaryAction:active,.startLink:active{transform:translateY(3px);box-shadow:0 1px 0 var(--line)}
+    .result p{margin:0 0 16px;font-weight:700}
     @media (max-width:560px) and (orientation:portrait){
       header{padding-bottom:5px}.home{width:36px;height:36px}.boneBox{padding:5px 9px}
       .base{bottom:17%;width:70px;height:96px}.unit{bottom:19%}
@@ -118,12 +125,30 @@
     <div id="units"></div>
     <div id="cannonFx"></div>
 
+    <div id="startOverlay">
+      <div class="startCard">
+        <p class="eyebrow">WANKO WAR</p>
+        <h2>わんこ大戦争</h2>
+        <p class="startPlayer" id="startPlayer">プレイヤー</p>
+        <p class="startProgress" id="startProgress">0 / 118 クリア</p>
+        <p class="startElement" id="startElement">つぎの元素を見つけよう</p>
+        <select class="startStageSelect" id="startStageSelect" aria-label="あそぶステージ"></select>
+        <div class="startActions">
+          <button class="primaryAction" id="startBattle">つづきから</button>
+          <a class="startLink" href="../wanko-library/?v=13">わんこ大図鑑</a>
+        </div>
+      </div>
+    </div>
+
     <div id="overlay">
       <div class="result">
         <div class="emoji" id="resultEmoji">🐶</div>
         <h2 id="resultTitle">しょうり！</h2>
         <p id="resultText">てきの基地をこわした！</p>
-        <button class="restart" id="restart">もういっかい</button>
+        <div class="resultActions">
+          <button class="primaryAction" id="resultPrimary">次のステージへ</button>
+          <button class="secondaryAction" id="resultSecondary">今日はやめる</button>
+        </div>
       </div>
     </div>
   </main>
@@ -167,6 +192,11 @@
   const bonesEl = document.getElementById('bones');
   const message = document.getElementById('message');
   const overlay = document.getElementById('overlay');
+  const startOverlay = document.getElementById('startOverlay');
+  const startStageSelect = document.getElementById('startStageSelect');
+  const startBattle = document.getElementById('startBattle');
+  const resultPrimary = document.getElementById('resultPrimary');
+  const resultSecondary = document.getElementById('resultSecondary');
   const cannonBtn = document.getElementById('cannonBtn');
   const chargeFill = document.getElementById('chargeFill');
   const cannonFx = document.getElementById('cannonFx');
@@ -190,7 +220,7 @@
     DOGS[id]={...character,...character.stats,sprite:character.placeholder,className:character.role};
   }
 
-  let entities=[], bones=180, running=true, last=performance.now(), time=0;
+  let entities=[], bones=180, running=false, last=performance.now(), time=0;
   let activeStage=null, spawnPlan=[], spawnCursor=0, progressState=null;
   const CANNON_CHARGE_TIME=10;
   const CANNON_DAMAGE=75;
@@ -423,11 +453,23 @@
       if(customDogUrl && customDogUrl.startsWith('blob:')) URL.revokeObjectURL(customDogUrl);
       customDogUrl=null;
 
-      const officialId=localStorage.getItem('wankoOfficialActiveId');
+      const selected=progressState?.selectedWanko||null;
       let w=null;
-      if(officialId && window.OfficialWankos){
-        w=await OfficialWankos.load(officialId);
-        if(w) customDogUrl=w.image;
+      if(selected?.source==='official'&&window.OfficialWankos){
+        w=await OfficialWankos.load(selected.id);
+        if(w)customDogUrl=w.image;
+      }
+      if(!w&&selected?.source==='custom'){
+        w=await WankoLibrary.getWanko(selected.id);
+        if(w)customDogUrl=WankoLibrary.blobUrl(w);
+      }
+
+      if(!w){
+        const officialId=localStorage.getItem('wankoOfficialActiveId');
+        if(officialId&&window.OfficialWankos){
+          w=await OfficialWankos.load(officialId);
+          if(w)customDogUrl=w.image;
+        }
       }
 
       if(!w){
@@ -490,18 +532,45 @@
     }
   }
 
+  function preferredStageId(state){
+    const selected=GameData.getStage(state.selectedStageId)||GameData.stages[0];
+    if(state.clearedStageIds.includes(selected.id)){
+      const next=GameData.stages[selected.sequence];
+      if(next)return next.id;
+    }
+    return selected.id;
+  }
+
   function renderStageOptions(state){
-    const current=activeStage?.id||state.selectedStageId;
+    const current=activeStage?.id||preferredStageId(state);
     stageSelect.replaceChildren();
+    startStageSelect.replaceChildren();
     for(const stage of GameData.stages){
       const previous=GameData.stages[stage.sequence-2];
       const unlocked=stage.sequence===1||state.clearedStageIds.includes(previous?.id);
       const element=GameData.getElementById(stage.elementId);
-      const option=document.createElement('option');option.value=stage.id;option.disabled=!unlocked;
-      option.textContent=unlocked?`${stage.id} ${element.symbol} ${element.nameJa}`:`${stage.id} 🔒 ???`;
-      stageSelect.appendChild(option);
+      for(const select of [stageSelect,startStageSelect]){
+        const option=document.createElement('option');option.value=stage.id;option.disabled=!unlocked;
+        option.textContent=unlocked?`${stage.id} ${element.symbol} ${element.nameJa}`:`${stage.id} 🔒 ???`;
+        select.appendChild(option);
+      }
     }
     stageSelect.value=current;
+    startStageSelect.value=current;
+  }
+
+  function showStartScreen(){
+    running=false;
+    overlay.classList.remove('show');
+    startOverlay.classList.add('show');
+    const state=progressState||window.WankoGameProgress.initialState();
+    renderStageOptions(state);
+    const stage=GameData.getStage(startStageSelect.value)||GameData.stages[0];
+    const element=GameData.getElementById(stage.elementId);
+    document.getElementById('startPlayer').textContent=playerBadge.textContent;
+    document.getElementById('startProgress').textContent=state.clearedStageIds.length+' / '+GameData.stages.length+' クリア';
+    document.getElementById('startElement').textContent=stage.id+'  '+element.symbol+'  '+element.nameJa;
+    updateUI();
   }
 
   async function refreshProgressState(){
@@ -513,6 +582,8 @@
     const stage=GameData.getStage(stageId);
     if(!stage)throw new Error('ステージが見つかりません');
     await Progress.startStage(stageId);
+    startOverlay.classList.remove('show');
+    overlay.classList.remove('show');
     activeStage=stage;spawnPlan=GameData.buildStagePlan(stageId);spawnCursor=0;
     enemyBase.maxHp=Math.round(stage.baseHp*stage.traits.enemyBaseHpScale);
     enemyBase.hp=enemyBase.maxHp;
@@ -537,15 +608,30 @@
     cannonBtn.querySelector('.cannonLabel').textContent=ready?'発射！':'わんこ砲';
   }
 
-  function finish(win){
-    if(!running)return; running=false;
+  async function finish(win){
+    if(!running)return;
+    running=false;
     document.getElementById('resultEmoji').textContent=win?'🐶🎉':'🏠💥';
-    document.getElementById('resultTitle').textContent=win?'しょうり！':'まけちゃった！';
-    document.getElementById('resultText').textContent=win?'てきの基地をこわした！':'もういちど作戦をかんがえよう';
-    overlay.classList.add('show');updateUI();
+    document.getElementById('resultTitle').textContent=win?'クリア！':'まけちゃった！';
+
     if(win&&activeStage){
-      Progress.completeStage(activeStage.id).then(async()=>{await refreshProgressState();queueProgressSync();}).catch(error=>console.warn('Stage progress save failed',error));
+      try{
+        await Progress.completeStage(activeStage.id);
+        await refreshProgressState();
+        queueProgressSync();
+      }catch(error){console.warn('Stage progress save failed',error);}
+      const element=GameData.getElementById(activeStage.elementId);
+      document.getElementById('resultText').textContent='今回発見した元素: '+element.symbol+' '+element.nameJa;
+      const nextStage=GameData.stages[activeStage.sequence]||null;
+      resultPrimary.textContent=nextStage?'次のステージへ':'スタートへ';
+      resultSecondary.textContent='今日はやめる';
+    }else{
+      document.getElementById('resultText').textContent='もういちど作戦をかんがえよう';
+      resultPrimary.textContent='もういっかい';
+      resultSecondary.textContent='スタートへ';
     }
+    overlay.classList.add('show');
+    updateUI();
   }
 
   function reset(){
@@ -597,22 +683,43 @@
     const requested=stageSelect.value;
     launchStage(requested).catch(error=>{console.warn('Stage selection failed',error);flash('このステージはまだあそべないよ');if(activeStage)stageSelect.value=activeStage.id;});
   });
+  startStageSelect.addEventListener('change',()=>{
+    const stage=GameData.getStage(startStageSelect.value);
+    const element=stage?GameData.getElementById(stage.elementId):null;
+    if(stage&&element)document.getElementById('startElement').textContent=stage.id+'  '+element.symbol+'  '+element.nameJa;
+  });
+  startBattle.addEventListener('click',()=>{
+    launchStage(startStageSelect.value).catch(error=>{console.warn('Stage start failed',error);flash('このステージはまだあそべないよ');});
+  });
   cannonBtn.addEventListener('click',fireCannon);
-  document.getElementById('restart').addEventListener('click',reset);
+  resultPrimary.addEventListener('click',()=>{
+    if(document.getElementById('resultTitle').textContent==='クリア！'){
+      const nextStage=activeStage?GameData.stages[activeStage.sequence]:null;
+      if(nextStage)launchStage(nextStage.id).catch(error=>console.warn('Next stage failed',error));
+      else showStartScreen();
+    }else reset();
+  });
+  resultSecondary.addEventListener('click',()=>{
+    if(progressSync)void progressSync.flush();
+    showStartScreen();
+  });
   window.addEventListener('resize',()=>entities.forEach(renderEntity));
   window.addEventListener('pagehide',()=>{if(progressSync)void progressSync.flush();});
   window.addEventListener('wanko-active-changed',loadCustomDog);
   window.addEventListener('wanko-library-changed',loadCustomDog);
   window.addEventListener('wanko-official-active-changed',loadCustomDog);
-  updateBaseUI();updateUI();loadCustomDog();
+  updateBaseUI();updateUI();
   (async()=>{
     try{
       await setupProfileProgress();
-      const state=progressState||await Progress.getState();
+      progressState=progressState||await Progress.getState();
       const requested=new URLSearchParams(location.search).get('stage');
-      const stageId=requested&&GameData.getStage(requested)&&await Progress.isStageUnlocked(requested)?requested:state.selectedStageId;
-      await launchStage(stageId);
-      setTimeout(()=>flash('右の基地から出撃！'),450);
+      if(requested&&GameData.getStage(requested)&&await Progress.isStageUnlocked(requested)){
+        progressState=await Progress.selectStage(requested);
+      }
+      await loadCustomDog();
+      await refreshProgressState();
+      showStartScreen();
       requestAnimationFrame(step);
     }catch(error){console.error('Wanko battle initialization failed',error);flash('ゲームを読みこめなかったよ');}
   })();
