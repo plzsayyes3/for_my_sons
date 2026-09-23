@@ -2,7 +2,7 @@
   {
     "id": "kids-3d-playgrand",
     "name": "3Dこうさく",
-    "url": "https://plzsayyes3.github.io/kids-3d-playgrand/",
+    "url": "./kids-3d-playgrand/?v=1",
     "icon": "./assets/kids-3d.svg",
     "description": "かたちをつくって、くっつけて、3Dにしよう"
   },
