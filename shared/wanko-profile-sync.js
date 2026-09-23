@@ -1,8 +1,8 @@
 ((root, factory) => {
-  const api = factory();
+  const api = factory(root);
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
   if (root) root.WankoProfileSync = api;
-})(typeof globalThis !== 'undefined' ? globalThis : this, () => {
+})(typeof globalThis !== 'undefined' ? globalThis : this, root => {
   const APP_ID = 'wanko-war';
   const SAVE_KEY = 'progress';
   const LEGACY_KEY = 'wankoGameProgressV1';
