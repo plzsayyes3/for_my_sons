@@ -191,6 +191,18 @@
       return { ok: true, repo: settings.owner + '/' + settings.repo, branch: settings.branch };
     }
 
+    async function readHouseholdSettings() {
+      const remote = await readRemote('settings/household.json');
+      if (!remote.exists) throw new Error('Household settings were not found');
+      const parsed = JSON.parse(new TextDecoder().decode(remote.content));
+      if (!parsed?.parentLock) throw new Error('Parent lock settings are missing');
+      return {
+        version: Number(parsed.version || 1),
+        parentLock: parsed.parentLock,
+        sha: remote.sha
+      };
+    }
+
     async function listProfiles() {
       const entries = await listDirectory('saves');
       const jsonFiles = entries.filter(item => item.type === 'file' && /[.]json$/i.test(item.name));
@@ -232,6 +244,7 @@
       readPath: readRemote,
       listDirectory,
       testConnection,
+      readHouseholdSettings,
       listProfiles,
       writePath,
       deletePath,
