@@ -3,7 +3,7 @@
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
   if (root) root.ForMySonsSaveStore = api;
 })(typeof globalThis !== 'undefined' ? globalThis : this, () => {
-  const PROFILE_ID_PATTERN = /^profile-[a-z0-9-]+$/;
+  const PROFILE_ID_PATTERN = /^[A-Za-z0-9][A-Za-z0-9_-]{0,99}$/;
 
   function assertSegment(value, name) {
     if (typeof value !== 'string' || !value || value === '.' || value === '..' || /[\\/\u0000]/.test(value)) {
@@ -83,6 +83,19 @@
       const identity = await currentIdentity(appId, saveKey);
       const record = await readRecord(identity);
       return record?.kind === 'json' ? cloneJson(record.value) : null;
+    }
+
+    async function put(profileId, appId, saveKey, value) {
+      const identity = { profileId, appId, saveKey };
+      assertIdentity(identity);
+      return writeRecord(identity, cloneJson(value), 'json', 'application/json', 'json');
+    }
+
+    async function get(profileId, appId, saveKey) {
+      const identity = { profileId, appId, saveKey };
+      assertIdentity(identity);
+      const record = await readRecord(identity);
+      return record?.kind === 'json' ? { ...record, value: cloneJson(record.value) } : null;
     }
 
     async function writeBinary(appId, saveKey, bytes, contentType, extension = 'bin') {
@@ -165,6 +178,8 @@
     return {
       writeJson,
       readJson,
+      put,
+      get,
       writeBinary,
       readBinary,
       readRecord,
