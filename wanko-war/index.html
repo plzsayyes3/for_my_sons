@@ -14,6 +14,8 @@
     header{display:flex;align-items:center;gap:10px;padding:max(8px,env(safe-area-inset-top)) 12px 7px;background:#fff9ee;border-bottom:3px solid var(--line);z-index:5}
     .home{display:grid;place-items:center;width:42px;height:42px;border:2px solid var(--line);border-radius:13px;background:white;color:var(--ink);text-decoration:none;font-size:21px;box-shadow:0 3px 0 var(--line)}
     h1{margin:0;font-size:clamp(18px,3vw,28px);letter-spacing:.04em;white-space:nowrap}
+    .playerBadge{max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;padding:5px 9px;border:1.5px solid rgba(51,47,41,.28);border-radius:999px;background:#fff;font-size:11px;font-weight:900}
+    .playerBadge[data-sync="local"]{opacity:.62}
     .spacer{flex:1}
     .boneBox{display:flex;align-items:center;gap:6px;padding:7px 11px;border:2px solid var(--line);border-radius:999px;background:var(--bone);font-weight:900;min-width:106px;justify-content:center}
     .boneBox b{font-variant-numeric:tabular-nums}
@@ -97,6 +99,7 @@
   <header>
     <a class="home" href="../" aria-label="ホームへ">⌂</a>
     <h1>わんこ大戦争</h1>
+    <span class="playerBadge" id="playerBadge">端末保存</span>
     <div class="spacer"></div>
     <select class="stageSelect" id="stageSelect" aria-label="元素ステージ"></select>
     <div class="boneBox" aria-label="ほね"><span>🦴</span><b id="bones">180</b></div>
@@ -143,12 +146,20 @@
   </footer>
 </div>
 
+<script src="../shared/for-my-sons-db.js?v=2"></script>
+<script src="../shared/profile-manager.js?v=2"></script>
+<script src="../shared/parent-lock.js?v=3"></script>
+<script src="../shared/save-store.js?v=2"></script>
+<script src="../shared/github-sync.js?v=7"></script>
+<script src="../shared/character-requests.js?v=1"></script>
+<script src="../shared/for-my-sons.js?v=6"></script>
 <script src="../shared/wanko-cloud-config.js"></script>
 <script src="../shared/wanko-cloud.js"></script>
 <script src="../shared/official-wankos.js?v=7"></script>
 <script src="../shared/wanko-library.js"></script>
 <script src="../shared/wanko-game-data.js?v=2"></script>
-<script src="../shared/wanko-game-progress.js?v=2"></script>
+<script src="../shared/wanko-game-progress.js?v=3"></script>
+<script src="../shared/wanko-profile-sync.js?v=1"></script>
 <script>
 (() => {
   const field = document.getElementById('field');
@@ -165,10 +176,12 @@
   const customDogCost = document.getElementById('customDogCost');
   const unlockedCards = document.getElementById('unlockedCards');
   const stageSelect = document.getElementById('stageSelect');
+  const playerBadge = document.getElementById('playerBadge');
   let customDogUrl = null;
 
   const GameData=window.WankoGameData;
-  const Progress=window.WankoGameProgress;
+  let Progress=window.WankoGameProgress;
+  let progressSync=null, sharedApi=null, sessionProfile=null;
   const DOGS={
     legacyBig:{cost:280,hp:310,damage:58,speed:25,range:50,cooldown:1.18,sprite:'🐩',className:'big'}
   };
@@ -197,6 +210,48 @@
   function flash(text){
     message.textContent=text; message.classList.add('show');
     clearTimeout(flash.t); flash.t=setTimeout(()=>message.classList.remove('show'),900);
+  }
+
+  function queueProgressSync(){
+    if(progressSync&&progressState)progressSync.schedule(progressState);
+  }
+
+  async function setupProfileProgress(){
+    if(!window.ForMySonsShared?.createForMySons||!window.WankoProfileSync?.createWankoProfileSync)return;
+    try{
+      sharedApi=await window.ForMySonsShared.createForMySons();
+      sessionProfile=await sharedApi.profile.current();
+      const label=sessionProfile?.label&&sessionProfile.label!=='profile-1'?sessionProfile.label:'未設定';
+      playerBadge.textContent=label;
+      const scopedProgress=window.WankoGameProgress.createProfileStore(sessionProfile.id,sharedApi.save,GameData);
+      const scopedSync=window.WankoProfileSync.createWankoProfileSync({
+        api:sharedApi,
+        profileId:sessionProfile.id,
+        definitions:GameData,
+        progressStore:scopedProgress,
+        legacyStorage:window.WankoLibrary,
+        confirmLegacy:async preview=>{
+          if(!window.confirm)return false;
+          const count=preview.clearedStageCount+preview.discoveredElementCount+preview.discoveredEnemyCount;
+          if(!count)return false;
+          return window.confirm(label+' に、この端末のこれまでのワンコ進行を引き継ぎますか？');
+        },
+        onStatus:status=>{
+          if(!playerBadge)return;
+          playerBadge.dataset.sync=status.state==='local-only'?'local':'cloud';
+          playerBadge.title=status.state==='local-only'?'端末には保存済み。GitHub同期は未完了です。':'プロフィールに保存中';
+        }
+      });
+      const initialized=await scopedSync.initialize();
+      Progress=scopedProgress;
+      progressSync=scopedSync;
+      progressState=initialized.state;
+      playerBadge.dataset.sync=initialized.remoteAvailable?'cloud':'local';
+    }catch(error){
+      console.warn('Profile wanko save setup failed; using legacy local progress.',error);
+      playerBadge.textContent='端末保存';
+      playerBadge.dataset.sync='local';
+    }
   }
 
   function createEntity(data,team){
@@ -233,7 +288,7 @@
     const character=GameData.getCharacter(event.enemyId);
     if(!character)return;
     if(!progressState?.discoveredCharacterIds.includes(event.enemyId)){
-      Progress.discoverCharacter(event.enemyId).then(refreshProgressState).catch(error=>console.warn('Enemy discovery save failed',error));
+      Progress.discoverCharacter(event.enemyId).then(async()=>{await refreshProgressState();queueProgressSync();}).catch(error=>console.warn('Enemy discovery save failed',error));
     }
     createEntity({...character,stats:event.stats,id:event.enemyId},'enemy');
   }
@@ -462,6 +517,7 @@
     enemyBase.maxHp=Math.round(stage.baseHp*stage.traits.enemyBaseHpScale);
     enemyBase.hp=enemyBase.maxHp;
     await refreshProgressState();
+    queueProgressSync();
     reset();
     const element=GameData.getElementById(stage.elementId);
     flash(`${stage.id} ${element.symbol} ${element.nameJa}`);
@@ -488,7 +544,7 @@
     document.getElementById('resultText').textContent=win?'てきの基地をこわした！':'もういちど作戦をかんがえよう';
     overlay.classList.add('show');updateUI();
     if(win&&activeStage){
-      Progress.completeStage(activeStage.id).then(refreshProgressState).catch(error=>console.warn('Stage progress save failed',error));
+      Progress.completeStage(activeStage.id).then(async()=>{await refreshProgressState();queueProgressSync();}).catch(error=>console.warn('Stage progress save failed',error));
     }
   }
 
@@ -544,13 +600,15 @@
   cannonBtn.addEventListener('click',fireCannon);
   document.getElementById('restart').addEventListener('click',reset);
   window.addEventListener('resize',()=>entities.forEach(renderEntity));
+  window.addEventListener('pagehide',()=>{if(progressSync)void progressSync.flush();});
   window.addEventListener('wanko-active-changed',loadCustomDog);
   window.addEventListener('wanko-library-changed',loadCustomDog);
   window.addEventListener('wanko-official-active-changed',loadCustomDog);
   updateBaseUI();updateUI();loadCustomDog();
   (async()=>{
     try{
-      const state=await Progress.getState();
+      await setupProfileProgress();
+      const state=progressState||await Progress.getState();
       const requested=new URLSearchParams(location.search).get('stage');
       const stageId=requested&&GameData.getStage(requested)&&await Progress.isStageUnlocked(requested)?requested:state.selectedStageId;
       await launchStage(stageId);
