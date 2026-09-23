@@ -123,6 +123,26 @@
     return expanded.map(({ at, enemyId }, sequence) => ({ at, enemyId, sequence }));
   }
 
+  function buildStagePlan(stageId) {
+    const stage = stageById.get(stageId);
+    if (!stage) return null;
+    const expanded = stage.enemyEvents.flatMap((sourceEvent, eventIndex) => {
+      const source = characters[sourceEvent.enemyId];
+      return Array.from({ length: sourceEvent.count }, (_, index) => ({
+        at: sourceEvent.at + index * sourceEvent.interval,
+        enemyId: sourceEvent.enemyId,
+        order: eventIndex,
+        stats: {
+          ...source.stats,
+          hp: Math.round(source.stats.hp * sourceEvent.hpScale),
+          damage: Math.round(source.stats.damage * sourceEvent.damageScale * 100) / 100
+        }
+      }));
+    });
+    expanded.sort((a, b) => a.at - b.at || a.order - b.order);
+    return expanded.map(({ order, ...event }, sequence) => ({ ...event, sequence }));
+  }
+
   function validateDefinitions() {
     const errors = [];
     if (elements.length !== 118 || stages.length !== 118) errors.push('expected 118 elements and stages');
@@ -147,6 +167,7 @@
     getStage: id => stageById.get(id) || null,
     getCharacter: id => characters[id] || null,
     expandEnemyEvents,
+    buildStagePlan,
     validateDefinitions
   };
 });

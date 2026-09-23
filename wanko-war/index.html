@@ -34,6 +34,7 @@
     .hpText{position:absolute;left:50%;bottom:-43px;transform:translateX(-50%);font-size:11px;font-weight:900;white-space:nowrap;text-shadow:0 1px #fff}
     #units{position:absolute;inset:0;z-index:3;pointer-events:none}
     .unit{position:absolute;bottom:17%;width:56px;height:64px;transform:translateX(-50%);display:flex;align-items:flex-end;justify-content:center;will-change:left,transform}
+    .unit.allyUnit .customSprite{transform:scaleX(-1);transform-origin:center}
     .unit .sprite{font-size:43px;line-height:1;filter:drop-shadow(0 3px 0 rgba(0,0,0,.16));transform-origin:50% 100%;animation:bob .42s ease-in-out infinite alternate}
     .unit.enemyUnit .sprite{font-size:40px;animation-duration:.54s}
     .unit.big .sprite{font-size:56px}.unit.fast .sprite{font-size:39px}
@@ -69,7 +70,11 @@
     .card:active:not(:disabled){transform:translateY(3px);box-shadow:0 1px 0 var(--line)}
     .card:disabled{opacity:.43;filter:grayscale(.4)}
     .card .dog{font-size:38px}.card .dog img{width:40px;height:40px;display:block;object-fit:contain}.card .name{font-size:12px;font-weight:1000;line-height:1.1}.card .cost{font-size:12px;font-weight:900;color:#6b532c;margin-top:4px}
+    .deck{max-height:158px;overflow-y:auto;overscroll-behavior:contain}
+    .stageSelect{max-width:min(34vw,220px);min-width:110px;padding:8px 9px;border:2px solid var(--line);border-radius:12px;background:#fff;font-weight:900}
     .unit .customSprite{width:50px;height:50px;object-fit:contain;display:block;filter:drop-shadow(0 3px 0 rgba(0,0,0,.16));transform-origin:50% 100%;animation:bob .42s ease-in-out infinite alternate}
+    .unit.allyUnit .customSprite{animation-name:allyBob}
+    @keyframes allyBob{to{transform:scaleX(-1) translateY(-3px) rotate(2deg)}}
     #message{position:absolute;left:50%;top:11%;transform:translateX(-50%);padding:7px 13px;border:2px solid var(--line);border-radius:999px;background:rgba(255,255,255,.9);font-weight:900;z-index:6;opacity:0;transition:.18s;pointer-events:none;white-space:nowrap}
     #message.show{opacity:1}
     #overlay{position:absolute;inset:0;z-index:20;display:none;place-items:center;background:rgba(255,248,234,.78);backdrop-filter:blur(5px)}
@@ -91,6 +96,7 @@
     <a class="home" href="../" aria-label="ホームへ">⌂</a>
     <h1>わんこ大戦争</h1>
     <div class="spacer"></div>
+    <select class="stageSelect" id="stageSelect" aria-label="元素ステージ"></select>
     <div class="boneBox" aria-label="ほね"><span>🦴</span><b id="bones">180</b></div>
   </header>
 
@@ -120,9 +126,10 @@
   <footer>
     <div class="controls">
       <div class="deck">
-        <button class="card" data-dog="shiba"><span class="dog">🐕</span><span><div class="name">しばわん</div><div class="cost">🦴 80</div></span></button>
-        <button class="card" data-dog="dash"><span class="dog">🐶</span><span><div class="name">ダッシュわん</div><div class="cost">🦴 150</div></span></button>
-        <button class="card" data-dog="big"><span class="dog">🐩</span><span><div class="name">でかわん</div><div class="cost">🦴 280</div></span></button>
+        <button class="card" data-dog="W01"><span class="dog">🐕</span><span><div class="name">しばわん</div><div class="cost">🦴 80</div></span></button>
+        <button class="card" data-dog="W02"><span class="dog">🐶</span><span><div class="name">ダッシュわん</div><div class="cost">🦴 150</div></span></button>
+        <button class="card" data-dog="legacyBig"><span class="dog">🐩</span><span><div class="name">でかわん</div><div class="cost">🦴 280</div></span></button>
+        <div id="unlockedCards" style="display:contents"></div>
         <button class="card" data-dog="custom" id="customDogCard" hidden><span class="dog" id="customDogThumb">🎨</span><span><div class="name" id="customDogName">うちのわんこ</div><div class="cost" id="customDogCost">🦴 180</div></span></button>
       </div>
       <button class="cannon" id="cannonBtn" disabled aria-label="わんこ砲">
@@ -138,6 +145,8 @@
 <script src="../shared/wanko-cloud.js"></script>
 <script src="../shared/official-wankos.js?v=3"></script>
 <script src="../shared/wanko-library.js"></script>
+<script src="../shared/wanko-game-data.js?v=1"></script>
+<script src="../shared/wanko-game-progress.js?v=1"></script>
 <script>
 (() => {
   const field = document.getElementById('field');
@@ -145,7 +154,6 @@
   const bonesEl = document.getElementById('bones');
   const message = document.getElementById('message');
   const overlay = document.getElementById('overlay');
-  const cards = [...document.querySelectorAll('.card')];
   const cannonBtn = document.getElementById('cannonBtn');
   const chargeFill = document.getElementById('chargeFill');
   const cannonFx = document.getElementById('cannonFx');
@@ -153,20 +161,22 @@
   const customDogThumb = document.getElementById('customDogThumb');
   const customDogName = document.getElementById('customDogName');
   const customDogCost = document.getElementById('customDogCost');
+  const unlockedCards = document.getElementById('unlockedCards');
+  const stageSelect = document.getElementById('stageSelect');
   let customDogUrl = null;
 
-  const DOGS = {
-    shiba:{cost:80,hp:115,damage:22,speed:42,range:43,cooldown:.72,sprite:'🐕',className:''},
-    dash:{cost:150,hp:82,damage:31,speed:76,range:42,cooldown:.58,sprite:'🐶',className:'fast'},
-    big:{cost:280,hp:310,damage:58,speed:25,range:50,cooldown:1.18,sprite:'🐩',className:'big'}
+  const GameData=window.WankoGameData;
+  const Progress=window.WankoGameProgress;
+  const DOGS={
+    legacyBig:{cost:280,hp:310,damage:58,speed:25,range:50,cooldown:1.18,sprite:'🐩',className:'big'}
   };
-  const FOES = [
-    {hp:90,damage:17,speed:31,range:39,cooldown:.9,sprite:'👾'},
-    {hp:145,damage:24,speed:23,range:42,cooldown:1.05,sprite:'👹'},
-    {hp:65,damage:13,speed:51,range:35,cooldown:.68,sprite:'🦹'}
-  ];
+  for(const id of Object.keys(GameData.characters).filter(id=>id.startsWith('W'))){
+    const character=GameData.getCharacter(id);
+    DOGS[id]={...character,...character.stats,sprite:character.placeholder,className:character.role};
+  }
 
-  let entities=[], bones=180, running=true, last=performance.now(), enemyTimer=1.8, time=0;
+  let entities=[], bones=180, running=true, last=performance.now(), time=0;
+  let activeStage=null, spawnPlan=[], spawnCursor=0, progressState=null;
   const CANNON_CHARGE_TIME=10;
   const CANNON_DAMAGE=75;
   const CANNON_KNOCKBACK=55;
@@ -188,21 +198,22 @@
   }
 
   function createEntity(data,team){
+    const stats=data.stats||data;
+    const sprite=data.placeholder||data.sprite||'🐾';
+    const imageUrl=data.imageUrl||data.artwork||null;
     const el=document.createElement('div');
-    el.className='unit '+(team==='enemy'?'enemyUnit ':'')+(data.className||'');
-    const visual=data.imageUrl
-      ? '<img class="customSprite" alt="" src="'+data.imageUrl+'">'
-      : '<div class="sprite">'+data.sprite+'</div>';
-    el.innerHTML='<div class="miniHp"><i></i></div>'+visual;
-    if(data.imageUrl){
-      const sprite=el.querySelector('.customSprite');
+    el.className='unit '+(team==='enemy'?'enemyUnit ':'allyUnit ')+(data.className||data.role||'');
+    const hpBar=document.createElement('div');hpBar.className='miniHp';
+    const hpFill=document.createElement('i');hpBar.appendChild(hpFill);el.appendChild(hpBar);
+    if(imageUrl){
+      const image=document.createElement('img');image.className='customSprite';image.alt='';image.src=imageUrl;
       const scale=Math.max(.6,Math.min(2,Number(data.renderScale)||1));
-      const size=50*scale;
-      sprite.style.width=size+'px';
-      sprite.style.height=size+'px';
+      image.style.width=(50*scale)+'px';image.style.height=(50*scale)+'px';el.appendChild(image);
+    }else{
+      const icon=document.createElement('div');icon.className='sprite';icon.textContent=sprite;el.appendChild(icon);
     }
     unitsLayer.appendChild(el);
-    const ent={...data,team,x:spawnX(team),hp:data.hp,maxHp:data.hp,attackClock:Math.random()*.2,el,dead:false};
+    const ent={...data,...stats,team,x:spawnX(team),hp:stats.hp,maxHp:stats.hp,attackClock:Math.random()*.2,el,dead:false};
     entities.push(ent);
     renderEntity(ent);
     return ent;
@@ -213,13 +224,13 @@
     const d=DOGS[type];
     if(!d){ flash('わんこを図鑑からえらんでね'); return; }
     if(bones<d.cost){ flash('🦴 がたりない！'); return; }
-    bones-=d.cost; createEntity(d,'ours'); updateUI();
+    bones-=d.cost; createEntity({...d,id:type},'ours'); updateUI();
   }
 
-  function spawnEnemy(){
-    const difficulty=Math.min(2,Math.floor(time/28));
-    const pool=FOES.slice(0,difficulty+1);
-    createEntity(pool[Math.floor(Math.random()*pool.length)],'enemy');
+  function spawnEnemy(event){
+    const character=GameData.getCharacter(event.enemyId);
+    if(!character)return;
+    createEntity({...character,stats:event.stats,id:event.enemyId},'enemy');
   }
 
   function renderEntity(e){
@@ -354,9 +365,59 @@
     }catch(error){console.warn('Custom wanko load failed',error);}
   }
 
+  function renderAllyCards(state){
+    unlockedCards.replaceChildren();
+    const unlockedIds=Object.keys(GameData.characters).filter(id=>id.startsWith('W')&&id!=='W01'&&id!=='W02');
+    for(const id of unlockedIds){
+      const character=GameData.getCharacter(id);
+      const isUnlocked=!character.unlockAfterStage||state.clearedStageIds.includes(character.unlockAfterStage);
+      if(!isUnlocked)continue;
+      const button=document.createElement('button');button.className='card';button.dataset.dog=id;
+      const thumb=document.createElement('span');thumb.className='dog';
+      if(character.artwork){const img=document.createElement('img');img.alt='';img.src=character.artwork;thumb.appendChild(img);}
+      else thumb.textContent=character.placeholder;
+      const details=document.createElement('span');
+      const name=document.createElement('div');name.className='name';name.textContent=character.name;
+      const cost=document.createElement('div');cost.className='cost';cost.textContent='🦴 '+character.stats.cost;
+      details.append(name,cost);button.append(thumb,details);unlockedCards.appendChild(button);
+    }
+  }
+
+  function renderStageOptions(state){
+    const current=activeStage?.id||state.selectedStageId;
+    stageSelect.replaceChildren();
+    for(const stage of GameData.stages){
+      const previous=GameData.stages[stage.sequence-2];
+      const unlocked=stage.sequence===1||state.clearedStageIds.includes(previous?.id);
+      const element=GameData.getElementById(stage.elementId);
+      const option=document.createElement('option');option.value=stage.id;option.disabled=!unlocked;
+      option.textContent=unlocked?`${stage.id} ${element.symbol} ${element.nameJa}`:`${stage.id} 🔒 ???`;
+      stageSelect.appendChild(option);
+    }
+    stageSelect.value=current;
+  }
+
+  async function refreshProgressState(){
+    progressState=await Progress.getState();
+    renderStageOptions(progressState);renderAllyCards(progressState);updateUI();
+  }
+
+  async function launchStage(stageId){
+    const stage=GameData.getStage(stageId);
+    if(!stage)throw new Error('ステージが見つかりません');
+    await Progress.startStage(stageId);
+    activeStage=stage;spawnPlan=GameData.buildStagePlan(stageId);spawnCursor=0;
+    enemyBase.maxHp=Math.round(stage.baseHp*stage.traits.enemyBaseHpScale);
+    enemyBase.hp=enemyBase.maxHp;
+    await refreshProgressState();
+    reset();
+    const element=GameData.getElementById(stage.elementId);
+    flash(`${stage.id} ${element.symbol} ${element.nameJa}`);
+  }
+
   function updateUI(){
     bonesEl.textContent=Math.floor(bones);
-    cards.forEach(c=>{
+    document.querySelectorAll('.card').forEach(c=>{
       const dog=DOGS[c.dataset.dog];
       c.disabled=!dog||!running||bones<dog.cost;
     });
@@ -374,11 +435,14 @@
     document.getElementById('resultTitle').textContent=win?'しょうり！':'まけちゃった！';
     document.getElementById('resultText').textContent=win?'てきの基地をこわした！':'もういちど作戦をかんがえよう';
     overlay.classList.add('show');updateUI();
+    if(win&&activeStage){
+      Progress.completeStage(activeStage.id).then(refreshProgressState).catch(error=>console.warn('Stage progress save failed',error));
+    }
   }
 
   function reset(){
     entities.forEach(e=>e.el.remove());entities=[];
-    bones=180;running=true;time=0;enemyTimer=1.7;cannonCharge=0;
+    bones=180;running=true;time=0;spawnCursor=0;cannonCharge=0;
     ourBase.hp=ourBase.maxHp;enemyBase.hp=enemyBase.maxHp;
     overlay.classList.remove('show');updateBaseUI();updateUI();flash('わんこを出そう！');
     last=performance.now();
@@ -388,10 +452,9 @@
     const dt=Math.min(.045,(now-last)/1000);last=now;
     if(running){
       time+=dt;
-      bones=Math.min(999,bones+18*dt);
+      bones=Math.min(999,bones+18*(activeStage?.traits.boneIncomeScale||1)*dt);
       cannonCharge=Math.min(CANNON_CHARGE_TIME,cannonCharge+dt);
-      enemyTimer-=dt;
-      if(enemyTimer<=0){spawnEnemy(); enemyTimer=Math.max(1.65,3.35-time*.018)+Math.random()*1.25;}
+      while(spawnCursor<spawnPlan.length&&spawnPlan[spawnCursor].at<=time){spawnEnemy(spawnPlan[spawnCursor]);spawnCursor++;}
 
       for(const e of entities){
         if(e.dead)continue;
@@ -418,15 +481,30 @@
   document.addEventListener('dblclick',(event)=>event.preventDefault(),{passive:false});
   document.addEventListener('gesturestart',(event)=>event.preventDefault(),{passive:false});
 
-  cards.forEach(c=>c.addEventListener('click',()=>spawnDog(c.dataset.dog)));
+  document.querySelector('.deck').addEventListener('click',event=>{
+    const card=event.target.closest('.card');if(card&&!card.disabled)spawnDog(card.dataset.dog);
+  });
+  stageSelect.addEventListener('change',()=>{
+    const requested=stageSelect.value;
+    launchStage(requested).catch(error=>{console.warn('Stage selection failed',error);flash('このステージはまだあそべないよ');if(activeStage)stageSelect.value=activeStage.id;});
+  });
   cannonBtn.addEventListener('click',fireCannon);
   document.getElementById('restart').addEventListener('click',reset);
   window.addEventListener('resize',()=>entities.forEach(renderEntity));
   window.addEventListener('wanko-active-changed',loadCustomDog);
   window.addEventListener('wanko-library-changed',loadCustomDog);
   window.addEventListener('wanko-official-active-changed',loadCustomDog);
-  updateBaseUI();updateUI();loadCustomDog();setTimeout(()=>flash('右の基地から出撃！'),450);
-  requestAnimationFrame(step);
+  updateBaseUI();updateUI();loadCustomDog();
+  (async()=>{
+    try{
+      const state=await Progress.getState();
+      const requested=new URLSearchParams(location.search).get('stage');
+      const stageId=requested&&GameData.getStage(requested)&&await Progress.isStageUnlocked(requested)?requested:state.selectedStageId;
+      await launchStage(stageId);
+      setTimeout(()=>flash('右の基地から出撃！'),450);
+      requestAnimationFrame(step);
+    }catch(error){console.error('Wanko battle initialization failed',error);flash('ゲームを読みこめなかったよ');}
+  })();
 })();
 </script>
 </body>

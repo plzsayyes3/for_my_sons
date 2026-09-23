@@ -94,3 +94,19 @@ test('expands repeated enemy spawns into deterministic chronological events', ()
     { at: 3, enemyId: 'E01', sequence: 3 }
   ]);
 });
+
+test('builds a stage spawn plan with scaled stats and no undeclared enemies', () => {
+  const first = game.buildStagePlan('S001');
+  assert.equal(first.length, 4);
+  assert.deepEqual(first.map(event => event.at), [3, 5.3, 17, 18.8]);
+  assert.ok(first.every(event => ['E01', 'E02'].includes(event.enemyId)));
+  assert.ok(first.every(event => event.stats.hp > 0 && event.stats.damage > 0));
+
+  const bossStage = game.buildStagePlan('S015');
+  const boss = bossStage.find(event => event.enemyId === 'B01');
+  assert.ok(boss);
+  assert.equal(boss.at, 34);
+  assert.equal(boss.stats.hp, 2915);
+  assert.equal(boss.stats.damage, 130.65);
+  assert.equal(game.buildStagePlan('missing'), null);
+});
