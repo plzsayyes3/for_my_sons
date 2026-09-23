@@ -4,8 +4,11 @@ const assert = require('node:assert/strict');
 const {
   SUPPORTED_FACTIONS,
   normalizeCharacterRequest,
-  requestPaths
+  requestPaths,
+  createCharacterRequestService,
+  prepareArtwork
 } = require('../shared/character-requests.js');
+const { createMemoryDatabase } = require('../shared/for-my-sons-db.js');
 
 test('normalizes a valid ally request without adding stats', () => {
   const request = normalizeCharacterRequest({
@@ -42,4 +45,33 @@ test('builds pending and completed paths from the request ID', () => {
     completedArtwork: 'character-requests/completed/request-abc123/artwork.webp',
     completedJson: 'character-requests/completed/request-abc123/request.json'
   });
+});
+
+test('creates a request locally before attempting synchronization', async () => {
+  const calls = [];
+  const service = createCharacterRequestService({
+    db: createMemoryDatabase(),
+    sync: { pushCharacterRequest: async () => calls.push('remote') }
+  });
+
+  const request = await service.create({
+    name: 'ねこわん',
+    faction: 'enemy',
+    artwork: new Uint8Array([1, 2, 3])
+  });
+
+  assert.equal(request.status, 'pending');
+  assert.equal(request.syncState, 'pending');
+  assert.deepEqual(calls, []);
+  assert.equal((await service.get(request.requestId)).name, 'ねこわん');
+});
+
+test('uses WebP when available and PNG when the browser encoder cannot produce WebP', async () => {
+  const source = { width: 512, height: 512 };
+  const webpBlob = { type: 'image/webp', size: 12 };
+  const pngBlob = { type: 'image/png', size: 12 };
+  const webp = await prepareArtwork(source, { encode: (_source, type) => type === 'image/webp' ? webpBlob : pngBlob });
+  assert.equal(webp.type, 'image/webp');
+  const png = await prepareArtwork(source, { encode: (_source, type) => type === 'image/png' ? pngBlob : null });
+  assert.equal(png.type, 'image/png');
 });

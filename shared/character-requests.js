@@ -52,7 +52,37 @@
     };
   }
 
-  function createCharacterRequestService({ db } = {}) {
+  async function defaultEncode(source, type, quality) {
+    if (typeof source?.toBlob === 'function') {
+      return new Promise(resolve => source.toBlob(resolve, type, quality));
+    }
+    if (typeof Blob !== 'undefined' && source instanceof Blob) {
+      return type === source.type ? source : null;
+    }
+    return null;
+  }
+
+  async function prepareArtwork(source, { encode = defaultEncode } = {}) {
+    const webp = await encode(source, 'image/webp', 0.86);
+    if (webp?.type === 'image/webp') return webp;
+    const png = await encode(source, 'image/png', 1);
+    if (png?.type === 'image/png') return png;
+    if (source != null) return source;
+    throw new TypeError('Artwork data is required');
+  }
+
+  function createRequestId() {
+    const uuid = typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function'
+      ? crypto.randomUUID()
+      : `${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
+    return `request-${uuid}`;
+  }
+
+  function contentTypeOf(artwork) {
+    return artwork?.type || 'image/png';
+  }
+
+  function createCharacterRequestService({ db, sync, clock = () => Date.now(), imageEncoder } = {}) {
     if (!db?.get || !db?.put || !db?.list) throw new TypeError('database adapter is required');
 
     async function get(requestId) {
@@ -66,13 +96,30 @@
       );
     }
 
-    return { get, listPending };
+    async function create({ requestId = createRequestId(), name, faction, artwork } = {}) {
+      const preparedArtwork = await prepareArtwork(artwork, { encode: imageEncoder || defaultEncode });
+      const createdAt = new Date(clock()).toISOString();
+      const metadata = normalizeCharacterRequest({ requestId, name, faction, createdAt });
+      const record = {
+        ...metadata,
+        artworkBlob: preparedArtwork,
+        artworkContentType: contentTypeOf(preparedArtwork),
+        syncState: 'pending',
+        lastError: null,
+        updatedAt: createdAt
+      };
+      await db.put('characterRequests', record, requestId);
+      return { ...record };
+    }
+
+    return { create, get, listPending, prepareArtwork };
   }
 
   return {
     SUPPORTED_FACTIONS,
     normalizeCharacterRequest,
     requestPaths,
+    prepareArtwork,
     createCharacterRequestService
   };
 });
