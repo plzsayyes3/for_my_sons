@@ -84,6 +84,13 @@
     "description": "右の基地からわんこを出して、敵の基地をこわそう"
   },
   {
+    "id": "wanko-gacha",
+    "name": "わんこガチャ",
+    "url": "./wanko-gacha/?v=1",
+    "icon": "./assets/wanko-gacha.svg?v=1",
+    "description": "タップでエネルギーをためて、自分のわんこを仲間にしよう"
+  },
+  {
     "id": "wanko-library",
     "name": "わんこ大図鑑",
     "url": "./wanko-library/?v=13",
