@@ -1,4 +1,4 @@
-const CACHE_NAME = 'for-my-sons-v43';
+const CACHE_NAME = 'for-my-sons-v44';
 const SHELL = [
   './',
   './index.html',
@@ -16,18 +16,19 @@ const SHELL = [
   './merge-block/index.html',
   './merge-block/styles.css?v=10',
   './merge-block/app.js?v=11',
-  './wanko-war/?v=11',
+  './wanko-war/?v=12',
   './wanko-war/index.html',
-  './wanko-library/?v=7',
+  './wanko-library/?v=8',
   './wanko-library/index.html',
   './official-wankos/futsuu-no-wanko.wanko.json?v=3',
   './official-wankos/naganeko.wanko.json?v=2',
   './official-wankos/inusensha.wanko.json?v=1',
+  './official-wankos/nen-o-kometa-snake.wanko.json?v=1',
   './wanko-cloud/?v=1',
   './wanko-cloud/index.html',
   './shared/wanko-cloud-config.js',
   './shared/wanko-cloud.js',
-  './shared/official-wankos.js?v=3',
+  './shared/official-wankos.js?v=4',
   './shared/wanko-library.js',
   './shared/wanko-game-data.js?v=2',
   './shared/wanko-game-progress.js?v=2',
@@ -53,6 +54,7 @@ const SHELL = [
   './assets/official-wankos/futsuu-no-wanko.svg?v=2',
   './assets/official-wankos/naganeko.svg?v=1',
   './assets/official-wankos/inusensha.webp?v=1',
+  './assets/official-wankos/nen-o-kometa-snake.png?v=1',
   './assets/paint.svg'
 ];
 
