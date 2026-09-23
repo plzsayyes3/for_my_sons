@@ -65,6 +65,14 @@
     tokenInput.placeholder = 'Fine-grained PAT';
     tokenInput.setAttribute('aria-label', 'GitHub Token');
 
+    const tokenField = make(documentRef, 'div');
+    tokenField.className = 'settings-token-field';
+    const showToken = make(documentRef, 'button', 'Show');
+    showToken.type = 'button';
+    showToken.className = 'settings-token-toggle';
+    showToken.setAttribute('aria-pressed', 'false');
+    tokenField.append(tokenInput, showToken);
+
     const tokenActions = make(documentRef, 'div');
     tokenActions.className = 'settings-actions';
     const saveToken = make(documentRef, 'button', 'Tokenを保存');
@@ -78,7 +86,7 @@
 
     const tokenHint = make(documentRef, 'p', 'Fine-grained PAT: Repository access は For-My-Sons-save、Contents は Read and write を推奨。');
     tokenHint.className = 'settings-message';
-    githubSection.append(tokenState, tokenInput, tokenActions, connectionState, tokenHint);
+    githubSection.append(tokenState, tokenField, tokenActions, connectionState, tokenHint);
 
     const playerSection = make(documentRef, 'section');
     playerSection.className = 'settings-section';
@@ -219,6 +227,13 @@
       locked.hidden = false;
       if (previousFocus?.focus) previousFocus.focus();
     }
+
+    showToken.addEventListener('click', () => {
+      const visible = tokenInput.type === 'text';
+      tokenInput.type = visible ? 'password' : 'text';
+      showToken.textContent = visible ? 'Show' : 'Hide';
+      showToken.setAttribute('aria-pressed', visible ? 'false' : 'true');
+    });
 
     close.addEventListener('click', closePanel);
     container.addEventListener('click', event => {
