@@ -17,7 +17,8 @@
     selectedStageId: 'S001',
     discoveredElementIds: [],
     discoveredCharacterIds: [],
-    clearedStageIds: []
+    clearedStageIds: [],
+    selectedWanko: null
   });
 
   function normalizeState(raw, definitions) {
@@ -40,7 +41,14 @@
         .filter(id => characterById[id]?.faction === 'enemy')
     )].sort();
     const selectedStageId = stageById.has(value.selectedStageId) ? value.selectedStageId : INITIAL_STATE.selectedStageId;
-    return { selectedStageId, discoveredElementIds, discoveredCharacterIds, clearedStageIds };
+    const rawWanko = value.selectedWanko;
+    const selectedWanko = rawWanko
+      && (rawWanko.source === 'official' || rawWanko.source === 'custom')
+      && typeof rawWanko.id === 'string'
+      && rawWanko.id.trim()
+      ? { source: rawWanko.source, id: rawWanko.id.trim().slice(0, 120) }
+      : null;
+    return { selectedStageId, discoveredElementIds, discoveredCharacterIds, clearedStageIds, selectedWanko };
   }
 
   function mergeStates(left, right, definitions) {
@@ -53,7 +61,8 @@
       selectedStageId,
       discoveredElementIds: [...a.discoveredElementIds, ...b.discoveredElementIds],
       discoveredCharacterIds: [...a.discoveredCharacterIds, ...b.discoveredCharacterIds],
-      clearedStageIds: [...a.clearedStageIds, ...b.clearedStageIds]
+      clearedStageIds: [...a.clearedStageIds, ...b.clearedStageIds],
+      selectedWanko: a.selectedWanko || b.selectedWanko
     }, definitions);
   }
 
@@ -145,6 +154,17 @@
       });
     }
 
+    async function setSelectedWanko(selection) {
+      return writeState(current => ({
+        ...current,
+        selectedWanko: selection
+          && (selection.source === 'official' || selection.source === 'custom')
+          && typeof selection.id === 'string'
+          ? { source: selection.source, id: selection.id }
+          : null
+      }));
+    }
+
     async function importState(raw) {
       const next = normalize(raw);
       await storage.setMeta(META_KEY, next);
@@ -166,6 +186,7 @@
       discoverCharacter,
       startStage,
       completeStage,
+      setSelectedWanko,
       importState,
       isStageUnlocked,
       isCharacterUnlocked
