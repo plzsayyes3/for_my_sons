@@ -1,4 +1,4 @@
-const CACHE_NAME = 'for-my-sons-v50';
+const CACHE_NAME = 'for-my-sons-v51';
 const SHELL = [
   './',
   './index.html',
@@ -10,10 +10,10 @@ const SHELL = [
   './shared/profile-manager.js?v=2',
   './shared/parent-lock.js?v=3',
   './shared/save-store.js?v=1',
-  './shared/github-sync.js?v=4',
+  './shared/github-sync.js?v=5',
   './shared/character-requests.js?v=1',
   './shared/for-my-sons.js?v=4',
-  './shared/settings-view.js?v=3',
+  './shared/settings-view.js?v=4',
   './shared/for-my-sons.css?v=2',
   './piano/?v=14',
   './piano/index.html?v=14',
