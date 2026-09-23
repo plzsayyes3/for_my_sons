@@ -131,3 +131,18 @@
 @media (max-width: 560px) {
   .parent-settings-card { width: 96vw; }
 }
+
+
+.settings-token-field {
+  position: relative;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 8px;
+  align-items: center;
+}
+
+.settings-token-field .settings-token-toggle {
+  min-width: 68px;
+  margin: 0;
+  background: rgba(15, 23, 42, .08);
+}
