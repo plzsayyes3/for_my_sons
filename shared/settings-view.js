@@ -72,12 +72,22 @@
     saveConfig.type = 'button';
     const syncButton = make(documentRef, 'button', '手動同期');
     syncButton.type = 'button';
+    const restoreAppLabel = make(documentRef, 'label', '復元するアプリID');
+    const restoreAppInput = make(documentRef, 'input');
+    restoreAppInput.type = 'text';
+    restoreAppInput.autocomplete = 'off';
+    restoreAppLabel.append(restoreAppInput);
+    const restoreKeyLabel = make(documentRef, 'label', '復元する保存キー');
+    const restoreKeyInput = make(documentRef, 'input');
+    restoreKeyInput.type = 'text';
+    restoreKeyInput.autocomplete = 'off';
+    restoreKeyLabel.append(restoreKeyInput);
     const restoreButton = make(documentRef, 'button', 'バックアップ復元');
     restoreButton.type = 'button';
     const status = make(documentRef, 'p', '同期状況: 未確認');
     status.className = 'sync-status';
 
-    controls.append(profileLabel, avatarLabel, repoLabel, tokenLabel, saveConfig, syncButton, restoreButton, status);
+    controls.append(profileLabel, avatarLabel, repoLabel, tokenLabel, saveConfig, syncButton, restoreAppLabel, restoreKeyLabel, restoreButton, status);
     panel.append(heading, close, pinLabel, unlock, message, controls);
     container.append(panel);
 
@@ -152,8 +162,21 @@
       await api.sync.push();
       await refresh();
     });
-    restoreButton.addEventListener('click', () => {
-      message.textContent = '復元するデータを選択してください';
+    restoreButton.addEventListener('click', async () => {
+      const appId = restoreAppInput.value.trim();
+      const saveKey = restoreKeyInput.value.trim();
+      if (!appId || !saveKey) {
+        message.textContent = '復元するアプリIDと保存キーを入力してください';
+        return;
+      }
+      try {
+        const current = await api.profile.current();
+        await api.sync.restore({ profileId: current.id, appId, saveKey });
+        message.textContent = 'バックアップから復元しました';
+        await refresh();
+      } catch {
+        message.textContent = 'バックアップを復元できませんでした';
+      }
     });
 
     return { open, close: closePanel, refresh };

@@ -30,4 +30,5 @@ test('settings renderer uses textContent for untrusted labels', () => {
   const source = fs.readFileSync(path.join(root, 'shared/settings-view.js'), 'utf8');
   assert.match(source, /\.textContent\s*=/);
   assert.doesNotMatch(source, /\.innerHTML\s*=/);
+  assert.match(source, /api\.sync\.restore/);
 });
