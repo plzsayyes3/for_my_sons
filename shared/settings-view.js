@@ -60,6 +60,8 @@
     const tokenInput = make(documentRef, 'input');
     tokenInput.type = 'password';
     tokenInput.autocomplete = 'off';
+    tokenInput.autocapitalize = 'none';
+    tokenInput.spellcheck = false;
     tokenInput.placeholder = 'Fine-grained PAT';
     tokenInput.setAttribute('aria-label', 'GitHub Token');
 
@@ -160,7 +162,9 @@
         connectionState.textContent = '✓ ' + connection.repo + ' に接続しました';
         await populateProfiles(profiles);
       } catch (error) {
-        if (error?.code === 'TOKEN_INVALID') {
+        if (error?.code === 'TOKEN_FORMAT') {
+          connectionState.textContent = 'Tokenに全角文字や不可視文字が混ざっています。GitHubのToken文字列だけを貼り付け直してください。';
+        } else if (error?.code === 'TOKEN_INVALID') {
           connectionState.textContent = 'Tokenが無効か期限切れです。新しいTokenを登録してください。';
         } else if (error?.code === 'REPO_NOT_VISIBLE') {
           connectionState.textContent = 'Tokenは有効ですが、For-My-Sons-save を見られません。Repository access と Contents 権限を確認してください。';
