@@ -6,7 +6,6 @@
   const SETTINGS_KEY = 'parentLock';
   const ITERATIONS = 120000;
   const PIN_PATTERN = /^\d{4,12}$/;
-  const DEFAULT_PIN_SHA256 = '19ba8f5f4e20ba594f69db1f795202a63fb3b995f5ec39bd89af6e29e826d2b6';
 
   function bytesToBase64(bytes) {
     if (typeof Buffer !== 'undefined') return Buffer.from(bytes).toString('base64');
@@ -71,16 +70,36 @@
       const value = String(pin);
       if (!PIN_PATTERN.test(value)) return false;
       const saved = await record();
-      if (!saved) {
-        const digest = new Uint8Array(await cryptoProvider.subtle.digest('SHA-256', new TextEncoder().encode(value)));
-        const expected = Uint8Array.from(DEFAULT_PIN_SHA256.match(/.{2}/g).map(byte => parseInt(byte, 16)));
-        unlocked = equalBytes(digest, expected);
-        if (unlocked) await setPin(value);
-        return unlocked;
-      }
+      if (!saved) return false;
       const derived = await derive(value, base64ToBytes(saved.salt), saved.iterations);
       unlocked = equalBytes(derived, base64ToBytes(saved.hash));
       return unlocked;
+    }
+
+    function validateRecord(value) {
+      if (!value || value.algorithm !== 'PBKDF2-SHA-256') throw new TypeError('Invalid parent lock record');
+      if (!Number.isInteger(Number(value.iterations)) || Number(value.iterations) < 10000) throw new TypeError('Invalid parent lock iterations');
+      if (typeof value.salt !== 'string' || typeof value.hash !== 'string') throw new TypeError('Invalid parent lock hash');
+      base64ToBytes(value.salt);
+      base64ToBytes(value.hash);
+      return {
+        algorithm: 'PBKDF2-SHA-256',
+        iterations: Number(value.iterations),
+        salt: value.salt,
+        hash: value.hash
+      };
+    }
+
+    async function importRecord(value) {
+      const normalized = validateRecord(value);
+      await db.put('settings', normalized, SETTINGS_KEY);
+      unlocked = false;
+      return true;
+    }
+
+    async function exportRecord() {
+      const saved = await record();
+      return saved ? { ...saved } : null;
     }
 
     return {
@@ -89,10 +108,9 @@
       verify,
       isUnlocked: () => unlocked,
       lock: () => { unlocked = false; },
-      async exportRecordForTest() {
-        const saved = await record();
-        return saved ? { ...saved } : null;
-      }
+      importRecord,
+      exportRecord,
+      exportRecordForTest: exportRecord
     };
   }
 
