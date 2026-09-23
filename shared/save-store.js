@@ -113,12 +113,12 @@
       return { ...next };
     }
 
-    async function listPending(profileId) {
+    async function listPending(profileId, options = {}) {
       const selectedProfileId = profileId || (await profileManager.current()).id;
       if (!PROFILE_ID_PATTERN.test(selectedProfileId)) throw new TypeError('Invalid profile ID');
       return (await db.list('saves'))
         .filter(record => record.profileId === selectedProfileId && (record.dirty || record.syncState === 'pending'))
-        .map(({ value, ...record }) => record);
+        .map(record => options.includeValues ? { ...record } : (({ value, ...withoutValue }) => withoutValue)(record));
     }
 
     async function createSnapshot(identity) {

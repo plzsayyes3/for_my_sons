@@ -132,7 +132,14 @@
       return { configured: Boolean(settings.owner && settings.repo), pending: pending.length, state: pending.length ? 'pending' : 'idle' };
     }
 
-    return { readRemote, pushRecord, pullRecord, status, encodeBase64, decodeBase64 };
+    function configure(next = {}) {
+      if (next.owner) settings.owner = String(next.owner);
+      if (next.repo) settings.repo = String(next.repo);
+      if (next.branch) settings.branch = String(next.branch);
+      return { owner: settings.owner, repo: settings.repo, branch: settings.branch };
+    }
+
+    return { readRemote, pushRecord, pullRecord, status, configure, encodeBase64, decodeBase64 };
   }
 
   return { createGithubSync, encodeBase64, decodeBase64 };
