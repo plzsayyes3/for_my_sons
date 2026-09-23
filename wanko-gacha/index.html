@@ -1,0 +1,255 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<meta name="theme-color" content="#f6efe3">
+<title>わんこガチャ</title>
+<style>
+:root{--ink:#28231e;--line:#342f29;--paper:#f7f0e4;--card:#fffaf2;--gold:#f1c94d;--gold2:#ffe88a;--muted:#7d7164}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;min-height:100%;background:radial-gradient(circle at 18% -5%,rgba(255,230,148,.65),transparent 34%),linear-gradient(#f9f2e7,#f3eadb);color:var(--ink);font-family:-apple-system,BlinkMacSystemFont,"Hiragino Sans","Yu Gothic",system-ui,sans-serif;-webkit-text-size-adjust:100%;user-select:none}
+body{min-height:100svh}button,a{font:inherit}button{color:inherit}
+header{position:sticky;top:0;z-index:20;display:flex;align-items:center;gap:10px;padding:calc(env(safe-area-inset-top) + 9px) 12px 9px;background:rgba(255,250,241,.91);backdrop-filter:blur(16px);border-bottom:2px solid rgba(52,47,41,.22)}
+.back{width:40px;height:40px;display:grid;place-items:center;text-decoration:none;color:var(--ink);border:2px solid var(--line);border-radius:13px;background:white;box-shadow:0 3px 0 var(--line);font-size:22px;font-weight:1000}
+header h1{margin:0;font-size:20px;letter-spacing:.03em}.sampleBadge{margin-left:auto;padding:5px 8px;border-radius:999px;background:#efe8dc;border:1px solid #d7cab9;font-size:10px;font-weight:1000;letter-spacing:.08em}
+main{width:min(100%,720px);margin:auto;padding:14px 12px calc(env(safe-area-inset-bottom) + 28px)}
+.wallet{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-bottom:11px}.walletCard{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:10px 12px;border:2px solid var(--line);border-radius:16px;background:rgba(255,255,255,.82);box-shadow:0 3px 0 var(--line)}
+.walletCard span{font-size:12px;font-weight:900;color:var(--muted)}.walletCard b{font-size:20px;font-variant-numeric:tabular-nums}
+.machine{position:relative;overflow:hidden;border:3px solid var(--line);border-radius:26px;background:linear-gradient(180deg,#cae8ef 0 45%,#dbe8b4 45% 52%,#f3d883 52% 100%);box-shadow:0 7px 0 var(--line);min-height:340px;padding:18px 16px 16px}
+.machine:before,.machine:after{content:"";position:absolute;border-radius:50%;background:rgba(255,255,255,.58)}.machine:before{width:130px;height:55px;left:-20px;top:36px}.machine:after{width:110px;height:45px;right:-18px;top:70px}
+.machineTitle{position:relative;z-index:2;text-align:center}.machineTitle .small{font-size:11px;font-weight:1000;letter-spacing:.2em}.machineTitle h2{margin:2px 0 0;font-size:31px;letter-spacing:.04em}.machineTitle p{margin:5px 0 0;font-size:12px;font-weight:800}
+.gachaStage{position:relative;height:166px;margin-top:4px;display:grid;place-items:center}.ring{position:absolute;width:155px;height:155px;border:3px dashed rgba(52,47,41,.25);border-radius:50%;animation:spin 13s linear infinite}.chargeHalo{position:absolute;width:178px;height:178px;border-radius:50%;background:conic-gradient(#ffd84f var(--charge,0deg),rgba(255,255,255,.18) 0);opacity:.12;transform:rotate(-90deg);transition:opacity .2s}.chargeHalo:after{content:"";position:absolute;inset:9px;border-radius:50%;background:rgba(255,250,238,.78)}
+.machineBody{position:relative;width:128px;height:124px;border:3px solid var(--line);border-radius:42px 42px 22px 22px;background:#fff9ee;box-shadow:inset 0 -20px rgba(241,201,77,.3),0 5px 0 rgba(52,47,41,.2);display:grid;place-items:center;z-index:2}
+.window{width:78px;height:65px;border:3px solid var(--line);border-radius:50%;background:radial-gradient(circle at 38% 30%,#fff,#e9f6f8 66%,#c0dde5);display:grid;place-items:center;font-size:35px;font-weight:1000;box-shadow:inset 0 0 0 7px rgba(255,255,255,.65)}
+.tapPad{position:absolute;right:-31px;bottom:4px;width:64px;height:64px;border:3px solid var(--line);border-radius:50%;background:radial-gradient(circle at 42% 34%,#fff3a8 0 17%,#f2c94c 18% 70%,#dba62e 71%);box-shadow:0 4px 0 rgba(52,47,41,.28);touch-action:manipulation;cursor:pointer;z-index:5;display:grid;place-items:center;font-size:11px;font-weight:1000;letter-spacing:.04em;transition:transform .08s,filter .15s,box-shadow .15s}.tapPad:active{transform:scale(.88)}.machine.charging .chargeHalo{opacity:.92;filter:drop-shadow(0 0 16px rgba(255,213,72,.72))}.machine.charging .machineBody{animation:chargePulse .55s ease-in-out infinite alternate}.machine.charging .window{box-shadow:inset 0 0 0 7px rgba(255,255,255,.7),0 0 24px rgba(255,220,75,.55)}.machine.charging .tapPad{filter:brightness(1.1);box-shadow:0 0 0 6px rgba(255,232,117,.38),0 4px 0 rgba(52,47,41,.28);animation:tapInvite .42s ease-in-out infinite alternate}.machine.drawing .machineBody{animation:shake .09s linear infinite}.machine.drawing .window{animation:flash .16s ease-in-out infinite alternate}.chargeStatus{min-height:18px;margin:1px 0 8px;text-align:center;font-size:12px;font-weight:1000;color:#5f554a;letter-spacing:.03em}
+.actions{display:grid;gap:9px;position:relative;z-index:3}.drawButton,.medalButton{width:100%;border:2.5px solid var(--line);border-radius:15px;padding:12px 14px;font-weight:1000;box-shadow:0 4px 0 var(--line)}.drawButton{background:var(--gold2);font-size:17px}.medalButton{background:#fffdf8;font-size:14px}.drawButton:active,.medalButton:active{transform:translateY(3px);box-shadow:0 1px 0 var(--line)}.drawButton:disabled,.medalButton:disabled{opacity:.45;filter:grayscale(.4)}
+.rule{margin:14px 0 0;padding:12px 13px;border:2px solid var(--line);border-radius:17px;background:#fffaf2;display:grid;grid-template-columns:auto 1fr;gap:10px;align-items:center}.ruleIcon{width:42px;height:42px;display:grid;place-items:center;border-radius:13px;background:#efe6d9;font-size:22px}.rule b{display:block;font-size:13px;margin-bottom:2px}.rule span{display:block;font-size:11px;line-height:1.45;color:#665d54;font-weight:700}
+.sectionHead{display:flex;align-items:end;justify-content:space-between;margin:20px 3px 10px}.sectionHead h3{margin:0;font-size:17px}.sectionHead span{font-size:11px;font-weight:800;color:var(--muted)}
+.collection{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}.character{position:relative;overflow:hidden;border:2px solid var(--line);border-radius:19px;background:var(--card);box-shadow:0 4px 0 var(--line)}.character .art{aspect-ratio:1.2;display:grid;place-items:center;padding:13px;background:linear-gradient(#cce9ef 0 68%,#cadb95 68%)}.character img{width:100%;height:100%;object-fit:contain;filter:drop-shadow(0 4px 1px rgba(0,0,0,.16))}.character .info{padding:9px 10px 11px}.character .name{font-size:13px;font-weight:1000;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.tag{display:inline-flex;margin-top:6px;padding:4px 7px;border-radius:999px;font-size:9px;font-weight:1000}.tag.owned{background:#f4cd58}.tag.trial{background:#e6dfd4;color:#6d6256}.character.isOwned{outline:3px solid rgba(241,201,77,.7);outline-offset:-3px}
+.reset{display:block;margin:17px auto 0;border:0;background:none;text-decoration:underline;color:#786d62;font-size:11px;font-weight:800;padding:8px}
+.resultLayer{position:fixed;inset:0;z-index:60;display:none;place-items:center;padding:20px;background:rgba(38,32,26,.42);backdrop-filter:blur(7px)}.resultLayer.show{display:grid}.resultCard{position:relative;width:min(88vw,360px);border:3px solid var(--line);border-radius:28px;background:#fffaf2;box-shadow:0 9px 0 var(--line);padding:18px;text-align:center;animation:pop .38s cubic-bezier(.18,.89,.32,1.28)}.burst{position:absolute;inset:-60px;z-index:-1;background:repeating-conic-gradient(from 0deg,rgba(255,225,102,.8) 0 10deg,transparent 10deg 20deg);border-radius:50%;animation:spin 11s linear infinite}.resultBadge{display:inline-flex;padding:5px 11px;border:2px solid var(--line);border-radius:999px;background:#f7d45c;font-size:13px;font-weight:1000}.resultArt{height:190px;display:grid;place-items:center;margin:5px 0}.resultArt img{max-width:88%;max-height:180px;object-fit:contain;filter:drop-shadow(0 6px 1px rgba(0,0,0,.15))}.resultCard h2{font-size:25px;margin:2px 0 4px}.resultCard p{margin:0 0 14px;font-size:12px;font-weight:800;color:#665d54}.closeResult{width:100%;border:2.5px solid var(--line);border-radius:14px;background:#ffe88a;padding:11px;font-weight:1000;box-shadow:0 4px 0 var(--line)}.closeResult:active{transform:translateY(3px);box-shadow:0 1px 0 var(--line)}
+
+.fxLayer{position:fixed;inset:0;z-index:50;pointer-events:none;overflow:hidden}
+.screenFlash{position:absolute;inset:0;opacity:0;background:radial-gradient(circle at 50% 45%,#fff 0 10%,#fff5a8 18%,rgba(255,214,72,.65) 35%,transparent 72%)}
+.screenFlash.play{animation:screenFlash .72s ease-out}
+.rayBurst{position:absolute;left:50%;top:48%;width:190vmax;height:190vmax;transform:translate(-50%,-50%) scale(.25);opacity:0;border-radius:50%;background:repeating-conic-gradient(from 0deg,rgba(255,233,122,.88) 0 4deg,transparent 4deg 12deg)}
+.rayBurst.play{animation:rayBurst .9s cubic-bezier(.2,.8,.2,1)}
+.flyingOrb{position:absolute;width:74px;height:74px;left:50%;top:51%;transform:translate(-50%,-50%) scale(.2);opacity:0;filter:drop-shadow(0 0 18px rgba(255,223,85,.95));will-change:transform,opacity}
+.flyingOrb.play{animation:orbLaunch .86s cubic-bezier(.18,.75,.2,1)}
+.fxParticle{position:absolute;width:28px;height:28px;left:50%;top:48%;opacity:0;will-change:transform,opacity;filter:drop-shadow(0 2px 2px rgba(52,47,41,.18))}
+.fxParticle.star{width:34px;height:34px}.fxParticle.confetti{width:17px;height:26px}
+.fxParticle.play{animation:particleFly var(--dur,.92s) cubic-bezier(.17,.67,.3,1) var(--delay,0s) forwards}
+.resultLayer.newDraw .resultCard{animation:resultNew .55s cubic-bezier(.17,.95,.3,1.22)}
+.resultLayer.newDraw .resultCard:after{content:"";position:absolute;inset:-9px;border-radius:34px;border:4px solid rgba(255,214,72,.9);box-shadow:0 0 28px 10px rgba(255,222,88,.5);animation:halo 1s ease-out forwards;pointer-events:none}
+.resultLayer.newDraw .resultBadge{animation:newBadge .55s .12s cubic-bezier(.17,.95,.3,1.4) both}
+.resultLayer.duplicateDraw .resultCard{animation:resultDuplicate .42s ease-out}
+.machine.drawing:after{content:"";position:absolute;inset:0;background:linear-gradient(115deg,transparent 0 36%,rgba(255,255,255,.75) 43%,transparent 51%);transform:translateX(-130%);animation:machineSweep .62s ease-in-out infinite}
+@keyframes screenFlash{0%{opacity:0}24%{opacity:1}100%{opacity:0}}
+@keyframes rayBurst{0%{opacity:0;transform:translate(-50%,-50%) scale(.2) rotate(0)}30%{opacity:.9}100%{opacity:0;transform:translate(-50%,-50%) scale(1.05) rotate(18deg)}}
+@keyframes orbLaunch{0%{opacity:0;transform:translate(-50%,90%) scale(.2) rotate(-40deg)}20%{opacity:1}58%{transform:translate(-50%,-70%) scale(1.15) rotate(80deg)}100%{opacity:0;transform:translate(-50%,-210%) scale(1.75) rotate(190deg)}}
+@keyframes particleFly{0%{opacity:0;transform:translate(-50%,-50%) scale(.2) rotate(0)}12%{opacity:1}100%{opacity:0;transform:translate(calc(-50% + var(--x)),calc(-50% + var(--y))) scale(var(--s,1)) rotate(var(--r,180deg))}}
+@keyframes resultNew{0%{transform:scale(.45) rotate(-5deg);opacity:0}58%{transform:scale(1.07) rotate(1deg);opacity:1}100%{transform:scale(1) rotate(0)}}
+@keyframes resultDuplicate{0%{transform:scale(.75);opacity:0}65%{transform:scale(1.03);opacity:1}100%{transform:scale(1)}}
+@keyframes halo{0%{opacity:1;transform:scale(.8)}100%{opacity:0;transform:scale(1.18)}}
+@keyframes newBadge{0%{transform:scale(.2) rotate(-14deg);opacity:0}100%{transform:scale(1) rotate(-3deg);opacity:1}}
+@keyframes machineSweep{to{transform:translateX(130%)}}@keyframes chargePulse{from{transform:scale(.98)}to{transform:scale(1.055)}}@keyframes tapInvite{from{transform:scale(.96)}to{transform:scale(1.07)}}
+@keyframes spin{to{transform:rotate(360deg)}}@keyframes shake{25%{transform:translateX(-3px) rotate(-1deg)}75%{transform:translateX(3px) rotate(1deg)}}@keyframes flash{to{background:#fff3a8;transform:scale(1.04)}}@keyframes pop{from{transform:scale(.55) rotate(-4deg);opacity:0}to{transform:scale(1);opacity:1}}
+@media(min-width:620px){.collection{grid-template-columns:repeat(4,minmax(0,1fr))}.machine{min-height:360px}.gachaStage{height:180px}}@media(max-width:380px){header h1{font-size:18px}.machineTitle h2{font-size:27px}.machine{padding-left:12px;padding-right:12px}.collection{gap:8px}}@media(prefers-reduced-motion:reduce){*{animation-duration:.001ms!important;animation-iteration-count:1!important}}
+</style>
+</head>
+<body>
+<header><a class="back" href="../" aria-label="ホームへ">‹</a><h1>わんこガチャ</h1></header>
+<main>
+<section class="wallet" aria-label="もちもの">
+  <div class="walletCard"><span>🎫 ガチャ券</span><b id="tickets">3</b></div>
+  <div class="walletCard"><span>⭐ 元素メダル</span><b id="medals">240</b></div>
+</section>
+<section class="machine" id="machine">
+  <div class="machineTitle"><div class="small">MY WANKO GACHA</div><h2>じぶんのわんこガチャ</h2><p>つくったわんこが、なかまになる！</p></div>
+  <div class="gachaStage"><div class="chargeHalo" id="chargeHalo"></div><div class="ring"></div><div class="machineBody"><div class="window" id="windowMark">?</div><button class="tapPad" id="tapPad" type="button" aria-label="排出を早める">タップ!</button></div></div>
+  <div class="chargeStatus" id="chargeStatus">押すと4秒後に排出。連打すると早くなる！</div>
+  <div class="actions">
+    <button class="drawButton" id="ticketDraw">🎫 ガチャ券で 1回ひく</button>
+    <button class="medalButton" id="medalDraw">⭐ 100メダルで 1回ひく</button>
+  </div>
+</section>
+<section class="rule"><div class="ruleIcon">🐾</div><div><b>まだ引いていないわんこも、1体だけお試しできる</b><span>ガチャで正式に仲間にすると、複数の自作わんこをデッキに入れられる想定です。</span></div></section>
+<div class="sectionHead"><h3>つくったわんこ</h3><span id="ownedCount">1 / 4 なかま</span></div>
+<section class="collection" id="collection"></section>
+
+</main>
+<div class="fxLayer" id="fxLayer" aria-hidden="true"></div>
+<div class="resultLayer" id="resultLayer" role="dialog" aria-modal="true" aria-labelledby="resultName">
+  <div class="resultCard" id="resultCard"><div class="burst"></div><div class="resultBadge" id="resultBadge">NEW!</div><div class="resultArt"><img id="resultImage" alt=""></div><h2 id="resultName">わんこ</h2><p id="resultText">なかまになった！</p><button class="closeResult" id="closeResult">やった！</button></div>
+</div>
+<script>
+(() => {
+  const initial=[
+    {id:'paint-a',name:'いぬせんしゃ',image:'../assets/official-wankos/inusensha.webp?v=1',owned:true},
+    {id:'paint-b',name:'クリオネン',image:'../assets/official-wankos/kurionen.webp?v=1',owned:false},
+    {id:'paint-c',name:'ねんをこめたヘビ',image:'../assets/official-wankos/nen-o-kometa-snake.png?v=1',owned:false},
+    {id:'paint-d',name:'ばくはつだま',image:'../assets/official-wankos/bakuhatsu-dama.png?v=1',owned:false}
+  ];
+  let characters=initial.map(x=>({...x})),tickets=3,medals=240,drawing=false;
+  const machine=document.getElementById('machine'),ticketEl=document.getElementById('tickets'),medalEl=document.getElementById('medals'),ticketDraw=document.getElementById('ticketDraw'),medalDraw=document.getElementById('medalDraw'),collection=document.getElementById('collection'),ownedCount=document.getElementById('ownedCount'),layer=document.getElementById('resultLayer'),resultBadge=document.getElementById('resultBadge'),resultImage=document.getElementById('resultImage'),resultName=document.getElementById('resultName'),resultText=document.getElementById('resultText');
+  const fxLayer=document.getElementById('fxLayer'),chargeHalo=document.getElementById('chargeHalo'),chargeStatus=document.getElementById('chargeStatus'),tapPad=document.getElementById('tapPad');
+  function render(){
+    ticketEl.textContent=tickets;medalEl.textContent=medals;ticketDraw.disabled=drawing||tickets<1;medalDraw.disabled=drawing||medals<100;
+    const owned=characters.filter(x=>x.owned).length;ownedCount.textContent=owned+' / '+characters.length+' なかま';collection.replaceChildren();
+    for(const character of characters){
+      const card=document.createElement('article');card.className='character'+(character.owned?' isOwned':'');
+      const art=document.createElement('div');art.className='art';const img=document.createElement('img');img.src=character.image;img.alt='';art.appendChild(img);
+      const info=document.createElement('div');info.className='info';const name=document.createElement('div');name.className='name';name.textContent=character.name;
+      const tag=document.createElement('span');tag.className='tag '+(character.owned?'owned':'trial');tag.textContent=character.owned?'なかま':'お試し候補';
+      info.append(name,tag);card.append(art,info);collection.appendChild(card);
+    }
+  }
+  function addFxNode(className,src=null){
+    const node=src?document.createElement('img'):document.createElement('div');
+    node.className=className;if(src){node.src=src;node.alt='';}fxLayer.appendChild(node);return node;
+  }
+  function playIntroFx(){
+    const flash=addFxNode('screenFlash play');
+    const rays=addFxNode('rayBurst play');
+    const orb=addFxNode('flyingOrb play','../assets/gacha-effects/orb.svg?v=1');
+    setTimeout(()=>{flash.remove();rays.remove();orb.remove()},1100);
+  }
+  function celebrate(isNew){
+    const total=isNew?34:16;
+    const sources=['../assets/gacha-effects/star.svg?v=1','../assets/gacha-effects/spark.svg?v=1','../assets/gacha-effects/confetti.svg?v=1'];
+    for(let i=0;i<total;i++){
+      const type=i%3===2?'confetti':'star';
+      const node=addFxNode('fxParticle '+type,sources[i%3]);
+      const angle=Math.random()*Math.PI*2;
+      const dist=(isNew?150:105)+Math.random()*(isNew?170:100);
+      const x=Math.cos(angle)*dist,y=Math.sin(angle)*dist;
+      node.style.setProperty('--x',x.toFixed(1)+'px');
+      node.style.setProperty('--y',y.toFixed(1)+'px');
+      node.style.setProperty('--r',(Math.round(Math.random()*520-260))+'deg');
+      node.style.setProperty('--s',(0.65+Math.random()*0.95).toFixed(2));
+      node.style.setProperty('--dur',(0.72+Math.random()*0.7).toFixed(2)+'s');
+      node.style.setProperty('--delay',(Math.random()*0.16).toFixed(2)+'s');
+      requestAnimationFrame(()=>node.classList.add('play'));
+      setTimeout(()=>node.remove(),1700);
+    }
+    if(isNew){
+      const flash=addFxNode('screenFlash play');
+      const rays=addFxNode('rayBurst play');
+      setTimeout(()=>{flash.remove();rays.remove()},1000);
+    }
+    try{navigator.vibrate?.(isNew?[40,35,75]:[35])}catch{}
+  }
+
+  function chooseCharacter(){const notOwned=characters.filter(x=>!x.owned);const pool=Math.random()<.72&&notOwned.length?notOwned:characters;return pool[Math.floor(Math.random()*pool.length)]}
+  let armedDraw=null,countdownRaf=0,remainingMs=0,lastShownTenth=-1;
+  const BASE_WAIT_MS=4000;
+  const TAP_REDUCTION_MS=200;
+
+  function burstTapFx(){
+    const node=addFxNode('fxParticle star','../assets/gacha-effects/spark.svg?v=1');
+    const angle=Math.random()*Math.PI*2,dist=45+Math.random()*55;
+    node.style.left='73%';node.style.top='43%';
+    node.style.setProperty('--x',(Math.cos(angle)*dist).toFixed(1)+'px');
+    node.style.setProperty('--y',(Math.sin(angle)*dist).toFixed(1)+'px');
+    node.style.setProperty('--r',(Math.round(Math.random()*240-120))+'deg');
+    node.style.setProperty('--s',(0.55+Math.random()*.45).toFixed(2));
+    node.style.setProperty('--dur','0.42s');
+    requestAnimationFrame(()=>node.classList.add('play'));
+    setTimeout(()=>node.remove(),650);
+  }
+
+  function renderCountdown(){
+    const elapsed=BASE_WAIT_MS-remainingMs;
+    const p=Math.max(0,Math.min(1,elapsed/BASE_WAIT_MS));
+    chargeHalo.style.setProperty('--charge',(p*360).toFixed(1)+'deg');
+    const tenths=Math.ceil(Math.max(0,remainingMs)/100);
+    if(tenths!==lastShownTenth){
+      lastShownTenth=tenths;
+      chargeStatus.textContent=(remainingMs/1000).toFixed(1)+'秒　タップで -0.2秒';
+      document.getElementById('windowMark').textContent=p<.35?'·':p<.7?'✦':'★';
+    }
+  }
+
+  function finishCharge(){
+    if(!armedDraw)return;
+    cancelAnimationFrame(countdownRaf);
+    const {character,wasOwned}=armedDraw;
+    armedDraw=null;
+    remainingMs=0;
+    machine.classList.remove('charging');machine.classList.add('drawing');
+    tapPad.disabled=true;
+    chargeHalo.style.setProperty('--charge','360deg');
+    chargeStatus.textContent='でてくる！';
+    document.getElementById('windowMark').textContent='★';
+    playIntroFx();
+    try{navigator.vibrate?.([30,30,70])}catch{}
+    setTimeout(()=>{
+      character.owned=true;
+      machine.classList.remove('drawing');
+      chargeHalo.style.setProperty('--charge','0deg');
+      tapPad.textContent='タップ!';tapPad.disabled=false;
+      document.getElementById('windowMark').textContent='?';
+      chargeStatus.textContent='押すと4秒後に排出。連打すると早くなる！';
+      resultBadge.textContent=wasOwned?'GET!':'NEW!';
+      resultBadge.style.background=wasOwned?'#e9e1d6':'#f7d45c';
+      resultImage.src=character.image;
+      resultName.textContent=character.name;
+      resultText.textContent=wasOwned?'もう持っているわんこ！ かぶり時の処理はこれから決める。':'なかまになった！ これで正式にデッキへ入れられる。';
+      layer.classList.remove('newDraw','duplicateDraw');
+      layer.classList.add(wasOwned?'duplicateDraw':'newDraw');
+      layer.classList.add('show');
+      celebrate(!wasOwned);
+      drawing=false;
+      lastShownTenth=-1;
+      render();
+    },620);
+  }
+
+  function startCountdown(){
+    let previous=performance.now();
+    function tick(now){
+      const dt=now-previous;
+      previous=now;
+      remainingMs=Math.max(0,remainingMs-dt);
+      renderCountdown();
+      if(remainingMs<=0){finishCharge();return}
+      countdownRaf=requestAnimationFrame(tick);
+    }
+    countdownRaf=requestAnimationFrame(tick);
+  }
+
+  function draw(kind){
+    if(drawing)return;
+    if(kind==='ticket'&&tickets<1)return;
+    if(kind==='medal'&&medals<100)return;
+    drawing=true;
+    if(kind==='ticket')tickets-=1;else medals-=100;
+    render();
+    const character=chooseCharacter(),wasOwned=character.owned;
+    armedDraw={character,wasOwned};
+    remainingMs=BASE_WAIT_MS;
+    lastShownTenth=-1;
+    machine.classList.add('charging');machine.classList.remove('drawing');
+    chargeHalo.style.setProperty('--charge','0deg');
+    document.getElementById('windowMark').textContent='·';
+    tapPad.textContent='連打!';
+    chargeStatus.textContent='4.0秒　タップで -0.2秒';
+    try{navigator.vibrate?.(18)}catch{}
+    startCountdown();
+  }
+
+  tapPad.addEventListener('click',()=>{
+    if(!armedDraw||remainingMs<=0)return;
+    remainingMs=Math.max(0,remainingMs-TAP_REDUCTION_MS);
+    burstTapFx();
+    try{navigator.vibrate?.(10)}catch{}
+    renderCountdown();
+    if(remainingMs<=0)finishCharge();
+  });
+  ticketDraw.addEventListener('click',()=>draw('ticket'));medalDraw.addEventListener('click',()=>draw('medal'));document.getElementById('closeResult').addEventListener('click',()=>{layer.classList.remove('show','newDraw','duplicateDraw')});layer.addEventListener('click',e=>{if(e.target===layer)layer.classList.remove('show','newDraw','duplicateDraw')});
+  document.addEventListener('gesturestart',e=>e.preventDefault(),{passive:false});render();
+})();
+</script>
+</body>
+</html>
