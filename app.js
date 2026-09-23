@@ -63,7 +63,8 @@ async function setupSharedProfile() {
     window.ForMySons = api;
     const updateIndicator = async () => {
       const profile = await api.profile.current();
-      indicator.textContent = `現在: ${profile.label}`;
+      const unset = profile.id === 'profile-1' && profile.label === 'profile-1';
+      indicator.textContent = `プレイヤー: ${unset ? '未設定' : profile.label}`;
     };
     await updateIndicator();
     window.ForMySonsSettings = window.ForMySonsSettingsView.renderSettings(settingsPanel, api);
