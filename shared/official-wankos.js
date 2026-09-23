@@ -9,6 +9,11 @@
       id: "naganeko",
       name: "長ねこ",
       path: "../official-wankos/naganeko.wanko.json?v=2"
+    },
+    {
+      id: "inusensha",
+      name: "いぬせんしゃ",
+      path: "../official-wankos/inusensha.wanko.json?v=1"
     }
   ];
   const cache = new Map();
