@@ -1,0 +1,24 @@
+{
+  "format": "for-my-sons-wanko",
+  "version": 2,
+  "id": "bakuhatsu-dama",
+  "name": "爆発玉",
+  "faction": "ally",
+  "createdAt": "2026-09-23T10:50:24.471Z",
+  "imagePath": "../assets/official-wankos/bakuhatsu-dama.png?v=1",
+  "renderScale": 1,
+  "stats": {
+    "cost": 90,
+    "hp": 80,
+    "damage": 150,
+    "speed": 38,
+    "range": 58,
+    "cooldown": 0.9
+  },
+  "behavior": {
+    "selfDestruct": true,
+    "splashRadius": 72,
+    "maxTargets": 3,
+    "explosionParticles": true
+  }
+}

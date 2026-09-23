@@ -44,10 +44,12 @@
     .enemyUnit .miniHp i{background:#df776b}
     .unit.attack .sprite{animation:attack .16s ease-out}
     .unit.hit .sprite{animation:hit .15s ease-out}
+    .explosion-particle{position:absolute;width:8px;height:8px;border-radius:50%;background:#f6a623;box-shadow:0 0 5px 2px #ffdf67;animation:explode .46s ease-out forwards;z-index:13;pointer-events:none}
     .damage{position:absolute;font-weight:1000;font-size:16px;color:#c33;text-shadow:0 2px white;animation:float .55s ease-out forwards;pointer-events:none;z-index:10}
     @keyframes bob{to{transform:translateY(-3px) rotate(-2deg)}}
     @keyframes attack{50%{transform:translateX(-8px) scale(1.12)}}
     @keyframes hit{50%{transform:translateX(5px) rotate(7deg)}}
+    @keyframes explode{to{transform:translate(var(--dx),var(--dy)) scale(.1);opacity:0}}
     @keyframes float{to{transform:translateY(-32px) scale(.85);opacity:0}}
     footer{padding:9px 10px max(10px,env(safe-area-inset-bottom));background:#fff9ee;border-top:3px solid var(--line);z-index:5}
     .controls{display:flex;gap:8px;max-width:860px;margin:auto;align-items:stretch}
@@ -143,7 +145,7 @@
 
 <script src="../shared/wanko-cloud-config.js"></script>
 <script src="../shared/wanko-cloud.js"></script>
-<script src="../shared/official-wankos.js?v=4"></script>
+<script src="../shared/official-wankos.js?v=6"></script>
 <script src="../shared/wanko-library.js"></script>
 <script src="../shared/wanko-game-data.js?v=2"></script>
 <script src="../shared/wanko-game-progress.js?v=2"></script>
@@ -258,13 +260,59 @@
     return best ? {unit:best,dist:bestDist,x:best.x} : {base,dist:bd,x:bx};
   }
 
+  function removeEntity(entity){
+    if(entity.dead)return;
+    entity.dead=true;
+    entity.el.style.opacity='0';
+    entity.el.style.transform='translateX(-50%) scale(.3)';
+    setTimeout(()=>entity.el.remove(),180);
+  }
+
+  function createExplosionParticles(entity){
+    if(!entity.behavior?.explosionParticles)return;
+    const count=14;
+    for(let i=0;i<count;i++){
+      const particle=document.createElement('i');
+      particle.className='explosion-particle';
+      const angle=(Math.PI*2*i/count)+(Math.random()-.5)*.35;
+      const distance=28+Math.random()*46;
+      particle.style.left=screenX(entity.x)+'px';
+      particle.style.bottom='20%';
+      particle.style.setProperty('--dx',`${Math.cos(angle)*distance}px`);
+      particle.style.setProperty('--dy',`${Math.sin(angle)*distance}px`);
+      particle.style.animationDelay=`${Math.random()*.06}s`;
+      unitsLayer.appendChild(particle);
+      setTimeout(()=>particle.remove(),560);
+    }
+  }
+
+  function attackTargets(attacker,primary){
+    const behavior=attacker.behavior||{};
+    if(!primary.unit||!Number(behavior.splashRadius))return [primary];
+    const maxTargets=Math.max(1,Number(behavior.maxTargets)||1);
+    const radius=Number(behavior.splashRadius);
+    return entities
+      .filter(entity=>!entity.dead&&entity.team!==attacker.team&&Math.abs(entity.x-primary.x)<=radius)
+      .sort((a,b)=>Math.abs(a.x-primary.x)-Math.abs(b.x-primary.x))
+      .slice(0,maxTargets)
+      .map(unit=>({unit,dist:Math.abs(unit.x-attacker.x),x:unit.x}));
+  }
+
+  function performAttack(attacker,primary){
+    for(const target of attackTargets(attacker,primary))damageTarget(attacker,target,attacker.damage);
+    if(attacker.behavior?.selfDestruct){
+      createExplosionParticles(attacker);
+      removeEntity(attacker);
+    }
+  }
+
   function damageTarget(attacker,target,amount){
     if(target.unit){
       const u=target.unit;
       u.hp-=amount;
       u.el.classList.remove('hit'); void u.el.offsetWidth; u.el.classList.add('hit');
       popDamage(u.x,amount);
-      if(u.hp<=0){u.dead=true;u.el.style.opacity='0';u.el.style.transform='translateX(-50%) scale(.3)';setTimeout(()=>u.el.remove(),180);}
+      if(u.hp<=0)removeEntity(u);
     }else{
       target.base.hp-=amount;
       popDamage(target.x,amount);
@@ -357,6 +405,7 @@
         cooldown:Number(stats.cooldown)||.72,
         imageUrl:customDogUrl,
         renderScale:Number(w.renderScale)||1,
+        behavior:w.behavior||{},
         className:'custom'
       };
       customDogCard.hidden=false;
@@ -467,7 +516,8 @@
           if(e.attackClock<=0){
             e.attackClock=e.cooldown;
             e.el.classList.remove('attack');void e.el.offsetWidth;e.el.classList.add('attack');
-            damageTarget(e,target,e.damage);
+            performAttack(e,target);
+            if(e.dead)continue;
           }
         }else{
           const dir=e.team==='ours'?-1:1;
