@@ -31,6 +31,12 @@
       name: "爆発玉",
       faction: "ally",
       path: "../official-wankos/bakuhatsu-dama.wanko.json?v=1"
+    },
+    {
+      id: "hammer",
+      name: "ハンマー",
+      faction: "ally",
+      path: "../official-wankos/hammer.wanko.json?v=1"
     }
   ];
   const cache = new Map();
