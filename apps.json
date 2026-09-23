@@ -79,14 +79,14 @@
   {
     "id": "wanko-war",
     "name": "わんこ大戦争",
-    "url": "./wanko-war/?v=7",
+    "url": "./wanko-war/?v=8",
     "icon": "./assets/wanko-war.svg?v=1",
     "description": "右の基地からわんこを出して、敵の基地をこわそう"
   },
   {
     "id": "wanko-library",
     "name": "わんこ図鑑",
-    "url": "./wanko-library/?v=3",
+    "url": "./wanko-library/?v=4",
     "icon": "./assets/wanko-library.svg?v=1",
     "description": "描いたわんこを残して、バトルで使おう"
   },
