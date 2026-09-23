@@ -82,7 +82,8 @@
         async status() { return sync.status(); },
         async configure(next = {}) {
           if (Object.prototype.hasOwnProperty.call(next, 'token')) {
-            await db.put('settings', { key: 'githubToken', value: String(next.token || '') }, 'githubToken');
+            const normalizedToken = String(next.token || '').replace(/\s+/gu, '');
+            await db.put('settings', { key: 'githubToken', value: normalizedToken }, 'githubToken');
           }
           const result = sync.configure(next);
           dispatch('for-my-sons-sync-changed', result);
