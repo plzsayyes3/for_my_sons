@@ -1,0 +1,66 @@
+((root, factory) => {
+  const api = factory();
+  if (typeof module !== 'undefined' && module.exports) module.exports = api;
+  if (root) root.WankoLibraryView = api;
+})(typeof globalThis !== 'undefined' ? globalThis : this, () => {
+  function buildAllyCards(characters, progress) {
+    const cleared = new Set(progress?.clearedStageIds || []);
+    return Object.values(characters)
+      .filter(character => character.faction === 'ally')
+      .sort((a, b) => a.id.localeCompare(b.id))
+      .map(character => ({
+        id: character.id,
+        name: character.name,
+        faction: character.faction,
+        role: character.role,
+        placeholder: character.artwork ? null : character.placeholder,
+        artwork: character.artwork,
+        characterStatus: character.artwork ? 'official' : 'placeholder',
+        unlocked: !character.unlockAfterStage || cleared.has(character.unlockAfterStage),
+        unlockAfterStage: character.unlockAfterStage,
+        stats: { ...character.stats },
+        legacyWankoId: character.legacyWankoId
+      }));
+  }
+
+  function buildEnemyCards(characters, progress) {
+    const discovered = new Set(progress?.discoveredCharacterIds || []);
+    return Object.values(characters)
+      .filter(character => character.faction === 'enemy')
+      .sort((a, b) => (a.kind === b.kind ? a.id.localeCompare(b.id) : (a.kind === 'boss' ? 1 : -1)))
+      .map(character => {
+        const found = discovered.has(character.id);
+        return {
+          id: character.id,
+          kind: character.kind,
+          discovered: found,
+          name: found ? character.name : 'まだひみつ',
+          placeholder: found ? (character.artwork ? null : character.placeholder) : '❔',
+          artwork: found ? character.artwork : null,
+          characterStatus: found ? (character.artwork ? 'official' : 'placeholder') : 'undiscovered'
+        };
+      });
+  }
+
+  function buildElementCards(stages, elements, progress) {
+    const discovered = new Set(progress?.discoveredElementIds || []);
+    const cleared = new Set(progress?.clearedStageIds || []);
+    const byId = new Map(elements.map(element => [Number(element.id), element]));
+    return [...stages]
+      .sort((a, b) => a.sequence - b.sequence)
+      .map(stage => {
+        const element = byId.get(Number(stage.elementId));
+        const found = Boolean(element && discovered.has(Number(element.id)));
+        return {
+          stageId: stage.id,
+          discovered: found,
+          cleared: cleared.has(stage.id),
+          symbol: found ? element.symbol : null,
+          name: found ? element.nameJa : '???',
+          atomicNumber: found ? element.atomicNumber : null
+        };
+      });
+  }
+
+  return { buildAllyCards, buildEnemyCards, buildElementCards };
+});
