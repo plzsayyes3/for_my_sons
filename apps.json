@@ -77,6 +77,13 @@
     "description": "2〜3個の色ブロックを落とし、中心重力でつなげるマージパズル"
   },
   {
+    "id": "wanko-war",
+    "name": "わんこ大戦争",
+    "url": "./wanko-war/?v=1",
+    "icon": "./assets/wanko-war.svg?v=1",
+    "description": "右の基地からわんこを出して、敵の基地をこわそう"
+  },
+  {
     "id": "paint",
     "name": "ペイント",
     "url": "./paint/?v=3",
