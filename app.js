@@ -62,3 +62,24 @@ if ('serviceWorker' in navigator) {
       });
   });
 }
+
+let recentWankoObjectUrl = null;
+async function renderRecentWanko() {
+  if (!window.WankoLibrary) return;
+  try {
+    const wanko = await WankoLibrary.getLatestWanko();
+    const panel = document.querySelector('#recent-wanko');
+    if (!panel) return;
+    if (!wanko) { panel.hidden = true; return; }
+    panel.hidden = false;
+    document.querySelector('#recent-wanko-name').textContent = wanko.name || 'うちのわんこ';
+    if (recentWankoObjectUrl) URL.revokeObjectURL(recentWankoObjectUrl);
+    recentWankoObjectUrl = WankoLibrary.blobUrl(wanko);
+    document.querySelector('#recent-wanko-image').src = recentWankoObjectUrl;
+  } catch (error) {
+    console.warn('Recent wanko render failed.', error);
+  }
+}
+window.addEventListener('wanko-library-changed', renderRecentWanko);
+window.addEventListener('wanko-active-changed', renderRecentWanko);
+renderRecentWanko();
