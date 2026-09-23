@@ -74,7 +74,9 @@
     const connectionState = make(documentRef, 'p', '接続: 未確認');
     connectionState.className = 'settings-status';
 
-    githubSection.append(tokenState, tokenInput, tokenActions, connectionState);
+    const tokenHint = make(documentRef, 'p', 'Fine-grained PAT: Repository access は For-My-Sons-save、Contents は Read and write を推奨。');
+    tokenHint.className = 'settings-message';
+    githubSection.append(tokenState, tokenInput, tokenActions, connectionState, tokenHint);
 
     const playerSection = make(documentRef, 'section');
     playerSection.className = 'settings-section';
@@ -157,8 +159,18 @@
         const profiles = await api.sync.listProfiles();
         connectionState.textContent = '✓ ' + connection.repo + ' に接続しました';
         await populateProfiles(profiles);
-      } catch {
-        connectionState.textContent = '接続できませんでした。Tokenや家庭設定を確認してください。';
+      } catch (error) {
+        if (error?.code === 'TOKEN_INVALID') {
+          connectionState.textContent = 'Tokenが無効か期限切れです。新しいTokenを登録してください。';
+        } else if (error?.code === 'REPO_NOT_VISIBLE') {
+          connectionState.textContent = 'Tokenは有効ですが、For-My-Sons-save を見られません。Repository access と Contents 権限を確認してください。';
+        } else if (error?.code === 'TOKEN_FORBIDDEN') {
+          connectionState.textContent = 'GitHubに拒否されました。少し待ってから再確認するかToken権限を確認してください。';
+        } else if (error?.code === 'AUTH_REQUIRED') {
+          connectionState.textContent = 'Tokenが未設定です。';
+        } else {
+          connectionState.textContent = '接続できませんでした: ' + (error?.message || '不明なエラー');
+        }
         profileSelect.disabled = true;
         chooseProfile.disabled = true;
       }
