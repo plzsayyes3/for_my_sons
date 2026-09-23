@@ -77,25 +77,11 @@
     "description": "2〜3個の色ブロックを落とし、中心重力でつなげるマージパズル"
   },
   {
-    "id": "wanko-war",
-    "name": "わんこ大戦争",
-    "url": "./wanko-war/?v=18",
+    "id": "wanko",
+    "name": "わんこ",
+    "url": "./wanko/?v=1",
     "icon": "./assets/wanko-war.svg?v=1",
-    "description": "右の基地からわんこを出して、敵の基地をこわそう"
-  },
-  {
-    "id": "wanko-gacha",
-    "name": "わんこガチャ",
-    "url": "./wanko-gacha/?v=1",
-    "icon": "./assets/wanko-gacha.svg?v=1",
-    "description": "タップでエネルギーをためて、自分のわんこを仲間にしよう"
-  },
-  {
-    "id": "wanko-library",
-    "name": "わんこ大図鑑",
-    "url": "./wanko-library/?v=13",
-    "icon": "./assets/wanko-library.svg?v=1",
-    "description": "なかま・てき・元素を集めて、わんこ大図鑑を完成させよう"
+    "description": "プロフィール・ゲーム・ガチャ・図鑑をまとめたわんこのトップ"
   },
   {
     "id": "paint",
