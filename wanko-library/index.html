@@ -14,7 +14,7 @@ main{width:min(100%,900px);margin:auto;padding:18px 14px calc(env(safe-area-inse
 .grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}@media(min-width:650px){.grid{grid-template-columns:repeat(4,minmax(0,1fr))}}
 .card{position:relative;border:2px solid #332f29;border-radius:20px;background:#fffaf2;overflow:hidden;box-shadow:0 5px 0 #332f29}
 .card.active{outline:4px solid #f2c84b;outline-offset:2px}.thumb{aspect-ratio:1;display:grid;place-items:center;background:linear-gradient(#cce9ef 0 65%,#c6d891 65%);padding:12px}.thumb img{width:100%;height:100%;object-fit:contain;filter:drop-shadow(0 4px 1px rgba(0,0,0,.18))}
-.info{padding:10px}.name{font-weight:900;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.date{font-size:10px;color:#7b7066;margin-top:3px}.use{width:100%;margin-top:8px;border:0;border-radius:11px;background:#332f29;color:white;padding:9px;font-weight:900}.active .use{background:#f0c63d;color:#332f29}
+.info{padding:10px}.name{font-weight:900;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.date{font-size:10px;color:#7b7066;margin-top:3px}.badge{display:inline-flex;margin-top:5px;padding:3px 7px;border-radius:999px;background:#f0c63d;color:#332f29;font-size:9px;font-weight:900}.use{width:100%;margin-top:8px;border:0;border-radius:11px;background:#332f29;color:white;padding:9px;font-weight:900}.active .use{background:#f0c63d;color:#332f29}
 .new{display:inline-flex;margin-bottom:14px;padding:10px 14px;border-radius:13px;background:#332f29;color:white;font-weight:900}
 </style>
 </head>
@@ -23,22 +23,53 @@ main{width:min(100%,900px);margin:auto;padding:18px 14px calc(env(safe-area-inse
 <main><a class="new" href="../paint/?wanko=1">＋ 新しいわんこを描く</a><div id="content"></div></main>
 <script src="../shared/wanko-cloud-config.js"></script>
 <script src="../shared/wanko-cloud.js"></script>
+<script src="../shared/official-wankos.js"></script>
 <script src="../shared/wanko-library.js"></script>
 <script>
 (async()=>{
  const content=document.getElementById('content'), status=document.getElementById('status');
  async function render(){
-  const [list,active,state]=await Promise.all([WankoLibrary.listWankos(),WankoLibrary.getActiveWanko(),WankoLibrary.syncState()]);
+  const [list,active,state,officials]=await Promise.all([
+    WankoLibrary.listWankos(),
+    WankoLibrary.getActiveWanko(),
+    WankoLibrary.syncState(),
+    window.OfficialWankos?OfficialWankos.list():[]
+  ]);
   status.textContent=!state.configured?'📱 この端末に保存':(!state.authenticated?'☁️ ログイン':(state.pending?'☁️ 同期待ち '+state.pending:'☁️ 保存済み'));
-  if(!list.length){content.innerHTML='<div class="empty"><b>🐶</b>まだわんこがいないよ<br>ペイントで描いてみよう</div>';return;}
+  let officialActiveId=localStorage.getItem('wankoOfficialActiveId');
+  if(!officialActiveId && !active && officials.length){
+    officialActiveId=officials[0].id;
+    localStorage.setItem('wankoOfficialActiveId',officialActiveId);
+  }
+  if(!list.length && !officials.length){content.innerHTML='<div class="empty"><b>🐶</b>まだわんこがいないよ<br>ペイントで描いてみよう</div>';return;}
   const grid=document.createElement('div');grid.className='grid';
+
+  for(const w of officials){
+   const isActive=officialActiveId===w.id;
+   const card=document.createElement('article');card.className='card'+(isActive?' active':'');
+   card.innerHTML='<div class="thumb"><img alt=""></div><div class="info"><div class="name"></div><div class="date">みんなで使えるキャラ</div><span class="badge">正式わんこ</span><button class="use">'+(isActive?'バトルで使用中':'このわんこを使う')+'</button></div>';
+   card.querySelector('img').src=w.image;card.querySelector('.name').textContent=w.name;
+   card.querySelector('.use').onclick=async()=>{
+     localStorage.setItem('wankoOfficialActiveId',w.id);
+     window.dispatchEvent(new CustomEvent('wanko-official-active-changed',{detail:{id:w.id}}));
+     render();
+   };
+   grid.appendChild(card);
+  }
+
   for(const w of list){
-   const card=document.createElement('article');card.className='card'+(active?.id===w.id?' active':'');
+   const isActive=!officialActiveId && active?.id===w.id;
+   const card=document.createElement('article');card.className='card'+(isActive?' active':'');
    const url=WankoLibrary.blobUrl(w);
-   card.innerHTML='<div class="thumb"><img alt=""></div><div class="info"><div class="name"></div><div class="date"></div><button class="use">'+(active?.id===w.id?'バトルで使用中':'このわんこを使う')+'</button></div>';
+   card.innerHTML='<div class="thumb"><img alt=""></div><div class="info"><div class="name"></div><div class="date"></div><button class="use">'+(isActive?'バトルで使用中':'このわんこを使う')+'</button></div>';
    card.querySelector('img').src=url;card.querySelector('.name').textContent=w.name;
    card.querySelector('.date').textContent=new Date(w.createdAt).toLocaleDateString('ja-JP');
-   card.querySelector('.use').onclick=async()=>{await WankoLibrary.setActiveWanko(w.id);render();};
+   card.querySelector('.use').onclick=async()=>{
+     localStorage.removeItem('wankoOfficialActiveId');
+     await WankoLibrary.setActiveWanko(w.id);
+     window.dispatchEvent(new CustomEvent('wanko-official-active-changed',{detail:{id:null}}));
+     render();
+   };
    grid.appendChild(card);
   }
   content.replaceChildren(grid);
