@@ -111,3 +111,36 @@ test('restores binary records through the binary repository path', async () => {
   assert.match(calls[0].url, /\/files\/kids-3d\/model-stl\.stl$/);
   assert.deepEqual([...((await store.readBinary('kids-3d', 'model-stl')).bytes)], [7, 6, 5]);
 });
+
+
+test('merges wanko app data into an existing profile save without dropping legacy fields', async () => {
+  const existing = {
+    version: 1,
+    profileId: 'child-a',
+    displayName: 'Child A',
+    profileOrder: 1,
+    revision: 4,
+    stageProgress: { unlockedStage: 1, clearedStages: [], bestResults: {} },
+    wallet: { elementMedals: 3, gachaTickets: 1 }
+  };
+  const calls = [];
+  const { sync } = await setup(async (url, options) => {
+    calls.push({ url, options });
+    if (options.method === 'GET') {
+      return response(200, { content: Buffer.from(JSON.stringify(existing)).toString('base64'), sha: 'sha-old' });
+    }
+    return response(200, { content: { sha: 'sha-new' } });
+  });
+  const result = await sync.writeProfileApp('child-a', 'wanko-war', {
+    dataVersion: 1,
+    progress: { selectedStageId: 'S002', discoveredElementIds: [1], discoveredCharacterIds: [], clearedStageIds: ['S001'] }
+  });
+  assert.equal(result.status, 'synced');
+  const put = calls.find(call => call.options.method === 'PUT');
+  const payload = JSON.parse(put.options.body);
+  const saved = JSON.parse(Buffer.from(payload.content, 'base64').toString('utf8'));
+  assert.equal(saved.profileId, 'child-a');
+  assert.equal(saved.wallet.elementMedals, 3);
+  assert.equal(saved.revision, 5);
+  assert.equal(saved.apps['wanko-war'].progress.selectedStageId, 'S002');
+});
