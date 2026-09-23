@@ -1,4 +1,4 @@
-const CACHE_NAME = 'for-my-sons-v31';
+const CACHE_NAME = 'for-my-sons-v32';
 const SHELL = [
   './',
   './index.html',
@@ -16,6 +16,8 @@ const SHELL = [
   './merge-block/index.html',
   './merge-block/styles.css?v=10',
   './merge-block/app.js?v=11',
+  './wanko-war/?v=1',
+  './wanko-war/index.html',
   './paint/?v=3',
   './paint/index.html',
   './paint/styles.css?v=3',
@@ -32,6 +34,7 @@ const SHELL = [
   './assets/space-survival.svg',
   './assets/split-puzzle.svg',
   './assets/merge-block.svg?v=2',
+  './assets/wanko-war.svg?v=1',
   './assets/paint.svg'
 ];
 
