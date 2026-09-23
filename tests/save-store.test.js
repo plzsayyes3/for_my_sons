@@ -70,3 +70,13 @@ test('rejects malformed JSON and unsafe save segments', async () => {
   await assert.rejects(() => store.writeJson('../paint', 'canvas', {}), /path/i);
   await assert.rejects(() => store.writeBinary('paint', '../canvas', Uint8Array.from([1]), 'application/octet-stream'), /path/i);
 });
+
+
+test('supports profile IDs loaded from the private save repository', async () => {
+  const { profiles, store } = await setup();
+  await profiles.upsert({ id: 'child-a', label: 'Child A' });
+  await profiles.setCurrent('child-a');
+  await store.writeJson('wanko-war', 'progress', { clearedStageIds: ['S001'] });
+  assert.deepEqual(await store.readJson('wanko-war', 'progress'), { clearedStageIds: ['S001'] });
+  assert.equal((await store.get('child-a', 'wanko-war', 'progress')).profileId, 'child-a');
+});
