@@ -1,4 +1,4 @@
-const CACHE_NAME = 'for-my-sons-v56';
+const CACHE_NAME = 'for-my-sons-v57';
 const SHELL = [
   './',
   './index.html',
@@ -12,12 +12,12 @@ const SHELL = [
   './shared/save-store.js?v=2',
   './shared/github-sync.js?v=7',
   './shared/character-requests.js?v=1',
-  './shared/for-my-sons.js?v=6',
+  './shared/for-my-sons.js?v=7',
   './shared/settings-view.js?v=6',
   './shared/for-my-sons.css?v=3',
-  './kids-3d-playgrand/?v=1',
-  './kids-3d-playgrand/index.html?v=1',
-  './kids-3d-playgrand/manual.html?v=1',
+  './kids-3d-playgrand/?v=2',
+  './kids-3d-playgrand/index.html?v=2',
+  './kids-3d-playgrand/manual.html?v=2',
   './piano/?v=14',
   './piano/index.html?v=14',
   './split-puzzle/?v=6',
