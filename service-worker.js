@@ -32,6 +32,7 @@ const SHELL = [
   './official-wankos/naganeko.wanko.json?v=2',
   './official-wankos/inusensha.wanko.json?v=1',
   './official-wankos/kurionen.wanko.json?v=1',
+  './official-wankos/nen-o-kometa-snake.wanko.json?v=1',
   './wanko-cloud/?v=1',
   './wanko-cloud/index.html',
   './shared/wanko-cloud-config.js',
@@ -63,6 +64,7 @@ const SHELL = [
   './assets/official-wankos/naganeko.svg?v=1',
   './assets/official-wankos/inusensha.webp?v=1',
   './assets/official-wankos/kurionen.webp?v=1',
+  './assets/official-wankos/nen-o-kometa-snake.png?v=1',
   './assets/paint.svg'
 ];
 

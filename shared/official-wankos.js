@@ -19,6 +19,12 @@
       id: "kurionen",
       name: "クリオネン",
       path: "../official-wankos/kurionen.wanko.json?v=1"
+    },
+    {
+      id: "nen-o-kometa-snake",
+      name: "念を込めたスネーク",
+      faction: "ally",
+      path: "../official-wankos/nen-o-kometa-snake.wanko.json?v=1"
     }
   ];
   const cache = new Map();
@@ -37,6 +43,7 @@
       name: source.name || meta.name,
       createdAt: source.createdAt,
       image: source.imagePath || source.image,
+      faction: source.faction || meta.faction || "ally",
       stats: source.stats || {},
       renderScale: Number(source.renderScale) || 1,
       official: true
