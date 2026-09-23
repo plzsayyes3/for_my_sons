@@ -3,40 +3,40 @@
     {
       id: "futsuu-no-wanko",
       name: "ふつうのわんこ",
-      path: "../official-wankos/futsuu-no-wanko.wanko.json?v=3"
+      path: "../official-wankos/futsuu-no-wanko.wanko.json?v=4"
     },
     {
       id: "naganeko",
       name: "長ねこ",
-      path: "../official-wankos/naganeko.wanko.json?v=2"
+      path: "../official-wankos/naganeko.wanko.json?v=3"
     },
     {
       id: "inusensha",
       name: "いぬせんしゃ",
-      path: "../official-wankos/inusensha.wanko.json?v=1"
+      path: "../official-wankos/inusensha.wanko.json?v=2"
     },
     {
       id: "kurionen",
       name: "クリオネン",
-      path: "../official-wankos/kurionen.wanko.json?v=1"
+      path: "../official-wankos/kurionen.wanko.json?v=2"
     },
     {
       id: "nen-o-kometa-snake",
       name: "念を込めたスネーク",
       faction: "ally",
-      path: "../official-wankos/nen-o-kometa-snake.wanko.json?v=1"
+      path: "../official-wankos/nen-o-kometa-snake.wanko.json?v=2"
     },
     {
       id: "bakuhatsu-dama",
       name: "爆発玉",
       faction: "ally",
-      path: "../official-wankos/bakuhatsu-dama.wanko.json?v=1"
+      path: "../official-wankos/bakuhatsu-dama.wanko.json?v=2"
     },
     {
       id: "hammer",
       name: "ハンマー",
       faction: "ally",
-      path: "../official-wankos/hammer.wanko.json?v=1"
+      path: "../official-wankos/hammer.wanko.json?v=2"
     }
   ];
   const cache = new Map();
