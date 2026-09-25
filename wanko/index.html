@@ -28,11 +28,12 @@ main{width:min(100%,700px);margin:auto;padding:2px 14px calc(env(safe-area-inset
 .action:active{transform:translateY(3px);box-shadow:0 2px 0 var(--line)}
 .action.start{background:var(--gold)}
 .action.gacha{background:#fff7dd}
+.action.mini{background:#eaf4da}
 .action .icon{font-size:40px;text-align:center}.action .name{font-size:20px;font-weight:1000}.action .desc{font-size:11px;font-weight:800;color:#6e645a;margin-top:3px}.arrow{font-size:25px;font-weight:1000}
 .utility{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:14px}
 .utility a{display:block;text-align:center;text-decoration:none;border:2px solid var(--line);border-radius:15px;background:#fff;padding:11px;font-size:13px;font-weight:1000;box-shadow:0 3px 0 var(--line)}
 #settingsHost{position:relative;z-index:100}
-@media(min-width:620px){.actions{grid-template-columns:1.25fr .75fr}.action{min-height:112px}.utility{width:60%;margin-left:auto;margin-right:auto}}
+@media(min-width:620px){.actions{grid-template-columns:repeat(3,minmax(0,1fr))}.action{min-height:112px}.utility{width:60%;margin-left:auto;margin-right:auto}}
 </style>
 <link rel="stylesheet" href="../shared/for-my-sons.css?v=3">
 </head>
@@ -64,6 +65,11 @@ main{width:min(100%,700px);margin:auto;padding:2px 14px calc(env(safe-area-inset
     <a class="action gacha" href="../wanko-gacha/?v=3">
       <div class="icon">⭐</div>
       <div><div class="name">ガチャ</div><div class="desc">自分のわんこを仲間にする</div></div>
+      <div class="arrow">›</div>
+    </a>
+    <a class="action mini" href="../wanko-mini/addition/?v=1">
+      <div class="icon">➕</div>
+      <div><div class="name">ミニゲーム</div><div class="desc">たしざんで🐾ポイントをためる</div></div>
       <div class="arrow">›</div>
     </a>
   </section>
