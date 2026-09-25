@@ -2,7 +2,7 @@
   const api = factory();
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
   if (!root) return;
-  const exported = { createProgressStore: api.createProgressStore, createProfileStore: api.createProfileStore, mergeStates: api.mergeStates, normalizeState: api.normalizeState, walletFromState: api.walletFromState };
+  const exported = { createProgressStore: api.createProgressStore, createProfileStore: api.createProfileStore, mergeStates: api.mergeStates, normalizeState: api.normalizeState, walletFromState: api.walletFromState, starsFromState: api.starsFromState };
   if (root.WankoLibrary && root.WankoGameData) {
     const store = api.createProgressStore({
       getMeta: () => root.WankoLibrary.getMeta('wankoGameProgressV1'),
@@ -20,6 +20,7 @@
     clearedStageIds: [],
     selectedWanko: null,
     ownedWankoIds: [],
+    wankoDuplicateDraws: {},
     economy: {
       pointEarned: {},
       pointSpent: {},
@@ -49,6 +50,34 @@
 
   function sumCounterMap(map) {
     return Object.values(normalizeCounterMap(map)).reduce((sum, value) => sum + value, 0);
+  }
+
+  function normalizeWankoCounterMap(raw) {
+    const source = raw && typeof raw === 'object' && !Array.isArray(raw) ? raw : {};
+    const result = {};
+    for (const [wankoId, counters] of Object.entries(source)) {
+      const id = typeof wankoId === 'string' ? wankoId.trim().slice(0, 120) : '';
+      if (!id || !/^[A-Za-z0-9:_-]{1,120}$/.test(id)) continue;
+      const normalized = normalizeCounterMap(counters);
+      if (Object.keys(normalized).length) result[id] = normalized;
+    }
+    return result;
+  }
+
+  function mergeWankoCounterMaps(left, right) {
+    const a = normalizeWankoCounterMap(left);
+    const b = normalizeWankoCounterMap(right);
+    const result = { ...a };
+    for (const [wankoId, counters] of Object.entries(b)) {
+      result[wankoId] = mergeCounterMaps(result[wankoId], counters);
+    }
+    return result;
+  }
+
+  function starsFromState(state, wankoId) {
+    const id = typeof wankoId === 'string' ? wankoId.trim() : '';
+    if (!id || !Array.isArray(state?.ownedWankoIds) || !state.ownedWankoIds.includes(id)) return 0;
+    return 1 + sumCounterMap(state?.wankoDuplicateDraws?.[id]);
   }
 
   function walletFromState(state) {
@@ -91,6 +120,11 @@
         .filter(id => typeof id === 'string' && id.trim())
         .map(id => id.trim().slice(0, 120))
     )].sort();
+    const duplicateSource = normalizeWankoCounterMap(value.wankoDuplicateDraws);
+    const wankoDuplicateDraws = {};
+    for (const id of ownedWankoIds) {
+      if (duplicateSource[id]) wankoDuplicateDraws[id] = duplicateSource[id];
+    }
     const economySource = value.economy && typeof value.economy === 'object' && !Array.isArray(value.economy)
       ? value.economy
       : {};
@@ -100,7 +134,7 @@
       ticketEarned: normalizeCounterMap(economySource.ticketEarned),
       ticketSpent: normalizeCounterMap(economySource.ticketSpent)
     };
-    return { selectedStageId, discoveredElementIds, discoveredCharacterIds, clearedStageIds, selectedWanko, ownedWankoIds, economy };
+    return { selectedStageId, discoveredElementIds, discoveredCharacterIds, clearedStageIds, selectedWanko, ownedWankoIds, wankoDuplicateDraws, economy };
   }
 
   function mergeStates(left, right, definitions) {
@@ -116,6 +150,7 @@
       clearedStageIds: [...a.clearedStageIds, ...b.clearedStageIds],
       selectedWanko: a.selectedWanko || b.selectedWanko,
       ownedWankoIds: [...a.ownedWankoIds, ...b.ownedWankoIds],
+      wankoDuplicateDraws: mergeWankoCounterMaps(a.wankoDuplicateDraws, b.wankoDuplicateDraws),
       economy: {
         pointEarned: mergeCounterMaps(a.economy.pointEarned, b.economy.pointEarned),
         pointSpent: mergeCounterMaps(a.economy.pointSpent, b.economy.pointSpent),
@@ -238,6 +273,35 @@
       return (await readState()).ownedWankoIds.includes(id);
     }
 
+    async function recordDuplicateWankoDraw(wankoId, deviceId, refundPoints = 10) {
+      const id = typeof wankoId === 'string' ? wankoId.trim().slice(0, 120) : '';
+      const device = safeDeviceId(deviceId);
+      const refund = Math.max(0, Math.floor(Number(refundPoints) || 0));
+      if (!id) throw new TypeError('wankoId is required');
+      return writeState(current => {
+        if (!current.ownedWankoIds.includes(id)) throw new Error('Wanko is not owned');
+        const counters = current.wankoDuplicateDraws[id] || {};
+        return {
+          ...current,
+          wankoDuplicateDraws: {
+            ...current.wankoDuplicateDraws,
+            [id]: { ...counters, [device]: (counters[device] || 0) + 1 }
+          },
+          economy: refund > 0 ? {
+            ...current.economy,
+            pointEarned: {
+              ...current.economy.pointEarned,
+              [device]: (current.economy.pointEarned[device] || 0) + refund
+            }
+          } : current.economy
+        };
+      });
+    }
+
+    async function getWankoStars(wankoId) {
+      return starsFromState(await readState(), wankoId);
+    }
+
     function safeDeviceId(deviceId) {
       const id = typeof deviceId === 'string' ? deviceId.trim() : '';
       if (!/^[A-Za-z0-9_-]{1,80}$/.test(id)) throw new TypeError('deviceId is invalid');
@@ -328,6 +392,8 @@
       setSelectedWanko,
       ownWanko,
       isWankoOwned,
+      recordDuplicateWankoDraw,
+      getWankoStars,
       awardPoints,
       exchangePointsForTicket,
       spendGachaTicket,
@@ -346,5 +412,5 @@
     }, definitions);
   }
 
-  return { createProgressStore, createProfileStore, mergeStates, normalizeState, walletFromState, initialState: () => JSON.parse(JSON.stringify(INITIAL_STATE)) };
+  return { createProgressStore, createProfileStore, mergeStates, normalizeState, walletFromState, starsFromState, initialState: () => JSON.parse(JSON.stringify(INITIAL_STATE)) };
 });
