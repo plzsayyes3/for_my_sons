@@ -1,0 +1,308 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<meta name="theme-color" content="#f6efe3">
+<title>かけざんストリーク</title>
+<style>
+:root{--ink:#29251f;--line:#332f29;--paper:#f7f0e4;--gold:#ffe27a;--card:#fffaf2;--muted:#74695c;--good:#dff1cf;--bad:#ffe0d9;--purple:#eee3f6}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;min-height:100%;background:linear-gradient(#fff9ef,#f3eadc);color:var(--ink);font-family:-apple-system,BlinkMacSystemFont,"Hiragino Sans","Yu Gothic",system-ui,sans-serif;-webkit-text-size-adjust:100%;user-select:none}
+button,a{font:inherit;color:inherit}
+body{min-height:100svh}
+header{display:flex;align-items:center;gap:9px;padding:calc(env(safe-area-inset-top) + 9px) 11px 9px;background:rgba(255,250,242,.94);border-bottom:2px solid rgba(51,47,41,.18)}
+.back{width:40px;height:40px;display:grid;place-items:center;text-decoration:none;border:2px solid var(--line);border-radius:13px;background:#fff;box-shadow:0 3px 0 var(--line);font-size:22px;font-weight:1000}
+header h1{margin:0;font-size:19px;white-space:nowrap}.spacer{flex:1}
+.pill{display:flex;align-items:center;gap:4px;min-width:62px;justify-content:center;padding:6px 8px;border:1.5px solid var(--line);border-radius:999px;background:#fff7cf;font-size:11px;font-weight:1000}
+.player{max-width:96px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;background:#fff}
+main{width:min(100%,640px);margin:auto;padding:14px 12px calc(env(safe-area-inset-bottom) + 28px)}
+.panel{border:3px solid var(--line);border-radius:24px;background:var(--card);box-shadow:0 6px 0 var(--line);padding:17px}.panel[hidden]{display:none}
+.hero{text-align:center;padding:8px 4px 5px}.heroIcon{font-size:64px;line-height:1}.hero h2{margin:7px 0 5px;font-size:29px}.hero p{margin:0;color:var(--muted);font-size:12px;font-weight:800;line-height:1.55}
+.ruleBox{margin-top:15px;border:2px solid var(--line);border-radius:17px;background:#fff;padding:12px}
+.ruleTitle{font-size:14px;font-weight:1000}.ruleText{margin-top:5px;font-size:11px;line-height:1.6;font-weight:800;color:#665d53}
+.milestones{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-top:10px}.milestone{padding:7px 5px;border-radius:10px;background:var(--purple);text-align:center;font-size:10px;font-weight:1000}.milestone b{display:block;font-size:15px;margin-bottom:2px}
+.startButton,.againButton,.menuButton{width:100%;min-height:50px;border:2.5px solid var(--line);border-radius:15px;font-weight:1000;box-shadow:0 4px 0 var(--line)}
+.startButton,.againButton{margin-top:15px;background:var(--gold);font-size:17px}.menuButton{display:grid;place-items:center;margin-top:9px;background:#fff;text-decoration:none;font-size:14px}
+.startButton:active,.againButton:active,.menuButton:active{transform:translateY(3px);box-shadow:0 1px 0 var(--line)}
+.topline{display:flex;align-items:center;gap:9px;margin-bottom:12px}.progress{flex:1;height:12px;border:2px solid var(--line);border-radius:999px;background:#fff;overflow:hidden}.progressFill{height:100%;width:0;background:var(--gold);transition:width .2s}.counter{font-size:12px;font-weight:1000;min-width:55px;text-align:right}
+.streakRow{display:grid;grid-template-columns:1fr 1fr 1fr;gap:7px;margin-bottom:12px}.stat{padding:8px 5px;border:1.5px solid var(--line);border-radius:12px;background:#fff;text-align:center}.stat span{display:block;font-size:9px;font-weight:900;color:var(--muted)}.stat b{display:block;margin-top:2px;font-size:18px}
+.question{text-align:center;padding:12px 0 7px}.equation{font-size:clamp(45px,14vw,72px);font-weight:1000;letter-spacing:.02em;font-variant-numeric:tabular-nums}.possible{margin-top:6px;font-size:12px;font-weight:900;color:#7a6850;min-height:18px}
+.answerDisplay{margin:10px auto 8px;width:min(100%,330px);min-height:66px;display:grid;place-items:center;border:3px solid var(--line);border-radius:18px;background:#fff;font-size:34px;font-weight:1000;font-variant-numeric:tabular-nums}.answerDisplay.empty{color:#c6b8a7}
+.feedback{min-height:29px;text-align:center;font-size:13px;font-weight:1000;padding:4px}.feedback.good{color:#365d28}.feedback.bad{color:#9a3e31}
+.keypad{width:min(100%,360px);margin:7px auto 0;display:grid;grid-template-columns:repeat(3,1fr);gap:8px}.key{min-height:54px;border:2px solid var(--line);border-radius:15px;background:#fff;font-size:23px;font-weight:1000;box-shadow:0 3px 0 var(--line)}.key:active{transform:translateY(2px);box-shadow:0 1px 0 var(--line)}.key.action{font-size:14px;background:#eee6da}.key.submit{background:var(--gold);font-size:16px}
+.result{text-align:center}.resultIcon{font-size:72px}.result h2{margin:5px 0 2px;font-size:28px}.earned{font-size:40px;font-weight:1000;margin:8px 0}.result p{margin:5px 0;color:var(--muted);font-size:12px;font-weight:800;line-height:1.5}.perfect{margin:12px 0;padding:10px;border-radius:13px;background:#fff2b5;border:1.5px solid var(--line);font-size:12px;font-weight:1000}
+@media(max-width:420px){header h1{font-size:17px}.player{display:none}.panel{padding:14px}.equation{font-size:46px}.key{min-height:50px}.milestones{grid-template-columns:repeat(2,1fr)}}
+@media(prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+<header>
+  <a class="back" href="../?v=2" aria-label="ミニゲームへ">‹</a>
+  <h1>かけざんストリーク</h1>
+  <div class="spacer"></div>
+  <span class="pill player" id="playerBadge">読込中</span>
+  <span class="pill">🐾 <b id="walletPoints">0</b></span>
+</header>
+<main>
+  <section class="panel" id="introPanel">
+    <div class="hero">
+      <div class="heroIcon">✖️🔥</div>
+      <h2>99もん れんぞくチャレンジ</h2>
+      <p>1〜9のかけざん。れんぞく正解が続くほど、1問でもらえるポイントが増えます。</p>
+    </div>
+    <div class="ruleBox">
+      <div class="ruleTitle">🔥 ストリークボーナス</div>
+      <div class="ruleText">正解は最低1pt。11問連続正解するごとに、次の段階で1問あたりのポイントが+1。まちがえるとストリークは0に戻り、同じ問題にもう一度挑戦します。</div>
+      <div class="milestones">
+        <div class="milestone"><b>1〜11</b>1pt / 問</div>
+        <div class="milestone"><b>12〜22</b>2pt / 問</div>
+        <div class="milestone"><b>23〜33</b>3pt / 問</div>
+        <div class="milestone"><b>45〜55</b>5pt / 問</div>
+        <div class="milestone"><b>67〜77</b>7pt / 問</div>
+        <div class="milestone"><b>89〜99</b>9pt / 問</div>
+      </div>
+      <div class="ruleText">✨ 99問を一度も間違えずに正解すると <b>495pt</b>。</div>
+    </div>
+    <button class="startButton" id="startButton" type="button">99もん スタート</button>
+  </section>
+
+  <section class="panel" id="gamePanel" hidden>
+    <div class="topline">
+      <div class="progress" aria-label="進み具合"><div class="progressFill" id="progressFill"></div></div>
+      <div class="counter" id="counter">1 / 99</div>
+    </div>
+    <div class="streakRow">
+      <div class="stat"><span>れんぞく</span><b id="streak">0🔥</b></div>
+      <div class="stat"><span>つぎの正解</span><b id="nextPoints">+1pt</b></div>
+      <div class="stat"><span>今回</span><b id="sessionPoints">0pt</b></div>
+    </div>
+    <div class="question">
+      <div class="equation" id="equation">3 × 4 = ?</div>
+      <div class="possible" id="possible">正解すると +1pt</div>
+    </div>
+    <div class="answerDisplay empty" id="answerDisplay" aria-live="polite">こたえ</div>
+    <div class="feedback" id="feedback" aria-live="polite"></div>
+    <div class="keypad" id="keypad" aria-label="数字キーボード">
+      <button class="key" type="button" data-digit="1">1</button>
+      <button class="key" type="button" data-digit="2">2</button>
+      <button class="key" type="button" data-digit="3">3</button>
+      <button class="key" type="button" data-digit="4">4</button>
+      <button class="key" type="button" data-digit="5">5</button>
+      <button class="key" type="button" data-digit="6">6</button>
+      <button class="key" type="button" data-digit="7">7</button>
+      <button class="key" type="button" data-digit="8">8</button>
+      <button class="key" type="button" data-digit="9">9</button>
+      <button class="key action" type="button" id="backspaceButton" aria-label="1文字消す">⌫</button>
+      <button class="key" type="button" data-digit="0">0</button>
+      <button class="key submit" type="button" id="submitButton">こたえる</button>
+    </div>
+  </section>
+
+  <section class="panel result" id="resultPanel" hidden>
+    <div class="resultIcon">🔥🐶🎉</div>
+    <h2>99もん クリア！</h2>
+    <div class="earned" id="earnedPoints">+0pt</div>
+    <p id="resultDetail">獲得ポイントは正解するたびに保存されています。</p>
+    <div class="perfect" id="perfectMessage" hidden>✨ 99問ノーミス！ 495pt フルゲット！</div>
+    <button class="againButton" id="againButton" type="button">もう1回</button>
+    <a class="menuButton" href="../?v=2">ミニゲームにもどる</a>
+  </section>
+</main>
+
+<script src="../../shared/for-my-sons-db.js?v=2"></script>
+<script src="../../shared/profile-manager.js?v=2"></script>
+<script src="../../shared/parent-lock.js?v=3"></script>
+<script src="../../shared/save-store.js?v=2"></script>
+<script src="../../shared/github-sync.js?v=8"></script>
+<script src="../../shared/character-requests.js?v=1"></script>
+<script src="../../shared/for-my-sons.js?v=9"></script>
+<script src="../../shared/wanko-library.js"></script>
+<script src="../../shared/wanko-game-data.js?v=2"></script>
+<script src="../../shared/wanko-game-progress.js?v=6"></script>
+<script src="../../shared/wanko-profile-sync.js?v=1"></script>
+<script src="../../shared/wanko-mini-multiplication.js?v=1"></script>
+<script>
+(() => {
+  const introPanel=document.getElementById('introPanel');
+  const gamePanel=document.getElementById('gamePanel');
+  const resultPanel=document.getElementById('resultPanel');
+  const startButton=document.getElementById('startButton');
+  const againButton=document.getElementById('againButton');
+  const playerBadge=document.getElementById('playerBadge');
+  const walletPoints=document.getElementById('walletPoints');
+  const progressFill=document.getElementById('progressFill');
+  const counter=document.getElementById('counter');
+  const streakEl=document.getElementById('streak');
+  const nextPointsEl=document.getElementById('nextPoints');
+  const sessionPointsEl=document.getElementById('sessionPoints');
+  const equation=document.getElementById('equation');
+  const possible=document.getElementById('possible');
+  const answerDisplay=document.getElementById('answerDisplay');
+  const feedback=document.getElementById('feedback');
+  const submitButton=document.getElementById('submitButton');
+  const backspaceButton=document.getElementById('backspaceButton');
+  const keypad=document.getElementById('keypad');
+  const earnedPoints=document.getElementById('earnedPoints');
+  const resultDetail=document.getElementById('resultDetail');
+  const perfectMessage=document.getElementById('perfectMessage');
+
+  let Progress=window.WankoGameProgress;
+  let progressSync=null,progressState=null,sharedApi=null,sessionProfile=null;
+  let round=[],index=0,answerText='',streak=0,bestStreak=0,totalScore=0,mistakes=0,locked=false,roundFinished=false;
+
+  function getEconomyDeviceId(){
+    const key='wankoEconomyDeviceId';
+    let id=localStorage.getItem(key);
+    if(!id){
+      const bytes=new Uint8Array(12);
+      crypto.getRandomValues(bytes);
+      id='d-'+[...bytes].map(value=>value.toString(16).padStart(2,'0')).join('');
+      localStorage.setItem(key,id);
+    }
+    return id;
+  }
+  const economyDeviceId=getEconomyDeviceId();
+
+  function queueProgressSync(){
+    if(progressSync&&progressState)progressSync.schedule(progressState);
+  }
+
+  async function setupProfile(){
+    try{
+      sharedApi=await window.ForMySonsShared.createForMySons();
+      sessionProfile=await sharedApi.profile.current();
+      const label=sessionProfile?.label&&sessionProfile.label!=='profile-1'?sessionProfile.label:'未設定';
+      playerBadge.textContent=label;
+      const scopedProgress=window.WankoGameProgress.createProfileStore(sessionProfile.id,sharedApi.save,window.WankoGameData);
+      const scopedSync=window.WankoProfileSync.createWankoProfileSync({
+        api:sharedApi,profileId:sessionProfile.id,definitions:window.WankoGameData,
+        progressStore:scopedProgress,legacyStorage:window.WankoLibrary,confirmLegacy:async()=>false,
+        onStatus:status=>{playerBadge.dataset.sync=status.state==='local-only'?'local':'cloud'}
+      });
+      const initialized=await scopedSync.initialize();
+      Progress=scopedProgress;progressSync=scopedSync;progressState=initialized.state;
+    }catch(error){
+      console.warn('Multiplication profile setup failed; using local progress.',error);
+      progressState=await Progress.getState();
+      playerBadge.textContent='端末保存';
+    }
+    updateWallet();
+  }
+
+  function updateWallet(){
+    walletPoints.textContent=window.WankoGameProgress.walletFromState(progressState||{}).points;
+  }
+
+  function nextAward(){
+    return window.WankoMiniMultiplication.pointsForStreak(streak+1);
+  }
+
+  function renderQuestion(){
+    const question=round[index];
+    answerText='';
+    locked=false;
+    counter.textContent=(index+1)+' / '+round.length;
+    progressFill.style.width=(index/round.length*100)+'%';
+    streakEl.textContent=streak+'🔥';
+    nextPointsEl.textContent='+'+nextAward()+'pt';
+    sessionPointsEl.textContent=totalScore+'pt';
+    equation.textContent=question.a+' × '+question.b+' = ?';
+    possible.textContent='正解すると +'+nextAward()+'pt';
+    feedback.textContent='';
+    feedback.className='feedback';
+    renderAnswer();
+  }
+
+  function renderAnswer(){
+    answerDisplay.textContent=answerText||'こたえ';
+    answerDisplay.classList.toggle('empty',!answerText);
+  }
+
+  function startRound(){
+    round=window.WankoMiniMultiplication.createRound(99);
+    index=0;answerText='';streak=0;bestStreak=0;totalScore=0;mistakes=0;locked=false;roundFinished=false;
+    perfectMessage.hidden=true;
+    introPanel.hidden=true;resultPanel.hidden=true;gamePanel.hidden=false;
+    renderQuestion();
+  }
+
+  function addDigit(digit){
+    if(locked||answerText.length>=3)return;
+    if(answerText==='0')answerText='';
+    answerText+=digit;
+    renderAnswer();
+  }
+
+  async function finishRound(){
+    if(roundFinished)return;
+    roundFinished=true;locked=true;
+    progressFill.style.width='100%';
+    gamePanel.hidden=true;resultPanel.hidden=false;
+    earnedPoints.textContent='+'+totalScore+'pt';
+    resultDetail.textContent='最高 '+bestStreak+'問連続正解 ／ ミス '+mistakes+'回。獲得ポイントは正解するたびに保存済みです。';
+    perfectMessage.hidden=!(mistakes===0&&bestStreak===99);
+    if(progressSync)void progressSync.flush();
+  }
+
+  async function submitAnswer(){
+    if(locked||!answerText)return;
+    const question=round[index];
+    const value=Number(answerText);
+    if(value!==question.answer){
+      mistakes++;
+      streak=0;
+      answerText='';
+      renderAnswer();
+      streakEl.textContent='0🔥';
+      nextPointsEl.textContent='+1pt';
+      possible.textContent='ストリークが0にもどった。正解すると +1pt';
+      feedback.textContent='ちがうよ。同じ問題でもういちど！';
+      feedback.className='feedback bad';
+      try{navigator.vibrate?.(25)}catch{}
+      return;
+    }
+
+    locked=true;
+    streak++;
+    bestStreak=Math.max(bestStreak,streak);
+    const points=window.WankoMiniMultiplication.pointsForStreak(streak);
+    totalScore+=points;
+    feedback.textContent='せいかい！ +'+points+'pt　'+streak+'問れんぞく！';
+    feedback.className='feedback good';
+    streakEl.textContent=streak+'🔥';
+    sessionPointsEl.textContent=totalScore+'pt';
+    try{navigator.vibrate?.([15,18,30])}catch{}
+
+    try{
+      progressState=await Progress.awardPoints(points,economyDeviceId);
+      queueProgressSync();
+      updateWallet();
+    }catch(error){
+      console.warn('Multiplication point save failed',error);
+      feedback.textContent='せいかい！ ただしポイント保存を確認できませんでした。';
+    }
+
+    setTimeout(()=>{
+      index++;
+      if(index>=round.length){void finishRound();return}
+      renderQuestion();
+    },360);
+  }
+
+  keypad.addEventListener('click',event=>{
+    const button=event.target.closest('button');
+    if(button?.dataset.digit!==undefined)addDigit(button.dataset.digit);
+  });
+  backspaceButton.addEventListener('click',()=>{if(!locked){answerText=answerText.slice(0,-1);renderAnswer()}});
+  submitButton.addEventListener('click',()=>void submitAnswer());
+  startButton.addEventListener('click',startRound);
+  againButton.addEventListener('click',startRound);
+  window.addEventListener('pagehide',()=>{if(progressSync)void progressSync.flush()});
+  document.addEventListener('gesturestart',event=>event.preventDefault(),{passive:false});
+
+  setupProfile().catch(error=>{console.error(error);playerBadge.textContent='端末保存'});
+})();
+</script>
+</body>
+</html>
