@@ -11,7 +11,16 @@
     { id: 'three-three', label: '3桁 + 3桁', maxPoints: 5, minA: 100, maxA: 999, minB: 100, maxB: 999 }
   ]);
 
+  const COURSES = Object.freeze([
+    { id: 'ant', name: '蟻', emoji: '🐜', sizeLabel: 'ちいさい', levelId: 'one-one' },
+    { id: 'mouse', name: 'ネズミ', emoji: '🐭', sizeLabel: 'すこし大きい', levelId: 'two-one' },
+    { id: 'dog', name: '犬', emoji: '🐕', sizeLabel: 'もっと大きい', levelId: 'two-two' },
+    { id: 'elephant', name: 'ゾウ', emoji: '🐘', sizeLabel: 'かなり大きい', levelId: 'three-one' },
+    { id: 'blue-whale', name: 'シロナガスクジラ', emoji: '🐋', sizeLabel: 'いちばん大きい', levelId: 'three-three' }
+  ]);
+
   const LEVEL_BY_ID = new Map(LEVELS.map(level => [level.id, level]));
+  const COURSE_BY_ID = new Map(COURSES.map(course => [course.id, course]));
 
   function clampRandom(random) {
     const value = Number(random());
@@ -59,22 +68,30 @@
     return result;
   }
 
-  function createRound(random = Math.random) {
-    const levelIds = LEVELS.flatMap(level => [level.id, level.id]);
+  function createCourseRound(courseId, count = 10, random = Math.random) {
+    const course = COURSE_BY_ID.get(courseId);
+    if (!course) throw new Error('Unknown addition course: ' + courseId);
+    const total = Math.max(1, Math.min(50, Math.floor(Number(count) || 10)));
     const used = new Set();
-    return shuffle(levelIds, random).map(levelId => {
-      let question = createQuestion(levelId, random);
-      let key = levelId + ':' + question.a + '+' + question.b;
+    const result = [];
+    for (let index = 0; index < total; index++) {
+      let question = createQuestion(course.levelId, random);
+      let key = question.a + '+' + question.b;
       let attempts = 0;
-      while (used.has(key) && attempts < 20) {
-        question = createQuestion(levelId, random);
-        key = levelId + ':' + question.a + '+' + question.b;
+      while (used.has(key) && attempts < 30) {
+        question = createQuestion(course.levelId, random);
+        key = question.a + '+' + question.b;
         attempts++;
       }
       used.add(key);
-      return question;
-    });
+      result.push({ ...question, courseId: course.id, courseName: course.name, courseEmoji: course.emoji });
+    }
+    return result;
   }
 
-  return { LEVELS, scoreQuestion, createQuestion, createRound };
+  function createRound(random = Math.random) {
+    return createCourseRound('ant', 10, random);
+  }
+
+  return { LEVELS, COURSES, scoreQuestion, createQuestion, createCourseRound, createRound };
 });
