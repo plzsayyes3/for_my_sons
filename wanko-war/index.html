@@ -19,6 +19,10 @@
     .spacer{flex:1}
     .boneBox{display:flex;align-items:center;gap:6px;padding:7px 11px;border:2px solid var(--line);border-radius:999px;background:var(--bone);font-weight:900;min-width:106px;justify-content:center}
     .boneBox b{font-variant-numeric:tabular-nums}
+    .pointBox{display:flex;align-items:center;gap:5px;padding:7px 9px;border:2px solid var(--line);border-radius:999px;background:#fff4bd;font-weight:1000;min-width:78px;justify-content:center}
+    .pointBox b{font-variant-numeric:tabular-nums}
+    .pointGain{position:absolute;font-weight:1000;font-size:18px;color:#7a5a00;text-shadow:0 2px #fff;animation:pointFloat .75s ease-out forwards;pointer-events:none;z-index:11}
+    @keyframes pointFloat{0%{transform:translateY(0) scale(.8);opacity:0}18%{opacity:1;transform:translateY(-4px) scale(1.15)}100%{transform:translateY(-42px) scale(.9);opacity:0}}
     #field{position:relative;overflow:hidden;min-height:0;background:linear-gradient(var(--sky) 0 67%,#d9e5a8 67% 75%,var(--grass) 75%);touch-action:manipulation}
     #field:before{content:"";position:absolute;left:0;right:0;bottom:0;height:24%;background:repeating-linear-gradient(0deg,rgba(77,99,46,.05) 0 2px,transparent 2px 9px)}
     .cloud{position:absolute;font-size:clamp(28px,6vw,54px);opacity:.75;filter:grayscale(1) brightness(2)}
@@ -94,7 +98,7 @@
     .primaryAction:active,.secondaryAction:active,.startLink:active{transform:translateY(3px);box-shadow:0 1px 0 var(--line)}
     .result p{margin:0 0 16px;font-weight:700}
     @media (max-width:560px) and (orientation:portrait){
-      header{padding-bottom:5px}.home{width:36px;height:36px}.boneBox{padding:5px 9px}
+      header{padding-bottom:5px}.home{width:36px;height:36px}.boneBox{padding:5px 8px;min-width:80px}.pointBox{padding:5px 7px;min-width:64px}
       .base{bottom:17%;width:70px;height:96px}.unit{bottom:19%}
       footer{padding-top:7px}.card{min-height:67px;padding:5px}.card .dog{font-size:32px}.card .name{font-size:11px}
       .controls{gap:6px}.cannon{width:78px;flex-basis:78px;padding:5px 3px}.chargeTrack{width:62px}.cannonIcon{font-size:27px}
@@ -109,6 +113,7 @@
     <span class="playerBadge" id="playerBadge">端末保存</span>
     <div class="spacer"></div>
     <select class="stageSelect" id="stageSelect" aria-label="元素ステージ"></select>
+    <div class="pointBox" aria-label="わんこポイント"><span>🐾</span><b id="wankoPoints">0</b></div>
     <div class="boneBox" aria-label="ほね"><span>🦴</span><b id="bones">180</b></div>
   </header>
 
@@ -185,13 +190,14 @@
 <script src="../shared/official-wankos.js?v=7"></script>
 <script src="../shared/wanko-library.js"></script>
 <script src="../shared/wanko-game-data.js?v=2"></script>
-<script src="../shared/wanko-game-progress.js?v=5"></script>
+<script src="../shared/wanko-game-progress.js?v=6"></script>
 <script src="../shared/wanko-profile-sync.js?v=1"></script>
 <script>
 (() => {
   const field = document.getElementById('field');
   const unitsLayer = document.getElementById('units');
   const bonesEl = document.getElementById('bones');
+  const wankoPointsEl = document.getElementById('wankoPoints');
   const message = document.getElementById('message');
   const overlay = document.getElementById('overlay');
   const startOverlay = document.getElementById('startOverlay');
@@ -216,6 +222,19 @@
   const GameData=window.WankoGameData;
   let Progress=window.WankoGameProgress;
   let progressSync=null, sharedApi=null, sessionProfile=null;
+  function getEconomyDeviceId(){
+    const key='wankoEconomyDeviceId';
+    let id=localStorage.getItem(key);
+    if(!id){
+      const bytes=new Uint8Array(12);
+      crypto.getRandomValues(bytes);
+      id='d-'+[...bytes].map(value=>value.toString(16).padStart(2,'0')).join('');
+      localStorage.setItem(key,id);
+    }
+    return id;
+  }
+  const economyDeviceId=getEconomyDeviceId();
+  const STRONG_ENEMY_ROLES=new Set(['tank','attacker','heavy']);
   const DOGS={
     legacyBig:{cost:280,hp:310,damage:58,speed:25,range:50,cooldown:1.18,sprite:'🐩',className:'big'}
   };
@@ -248,6 +267,35 @@
 
   function queueProgressSync(){
     if(progressSync&&progressState)progressSync.schedule(progressState);
+  }
+
+  function enemyPointReward(entity){
+    const character=GameData.getCharacter(entity?.id);
+    if(character?.kind==='boss')return 10;
+    if(STRONG_ENEMY_ROLES.has(character?.role))return 3;
+    return 1;
+  }
+
+  function popPoint(entity,amount){
+    const el=document.createElement('div');
+    el.className='pointGain';
+    el.textContent='🐾 +'+amount;
+    el.style.left=(screenX(entity.x)-18)+'px';
+    el.style.bottom='38%';
+    unitsLayer.appendChild(el);
+    setTimeout(()=>el.remove(),820);
+  }
+
+  function awardEnemyPoints(entity){
+    if(!entity||entity.team!=='enemy'||entity.rewarded)return;
+    entity.rewarded=true;
+    const amount=enemyPointReward(entity);
+    popPoint(entity,amount);
+    void Progress.awardPoints(amount,economyDeviceId).then(state=>{
+      progressState=state;
+      updateUI();
+      queueProgressSync();
+    }).catch(error=>console.warn('Wanko point save failed',error));
   }
 
   async function setupProfileProgress(){
@@ -357,6 +405,13 @@
     setTimeout(()=>entity.el.remove(),180);
   }
 
+  function defeatEntity(entity){
+    if(!entity||entity.dead)return;
+    const reward=entity.team==='enemy';
+    removeEntity(entity);
+    if(reward)awardEnemyPoints(entity);
+  }
+
   function createExplosionParticles(entity){
     if(!entity.behavior?.explosionParticles)return;
     const count=14;
@@ -401,7 +456,7 @@
       u.hp-=amount;
       u.el.classList.remove('hit'); void u.el.offsetWidth; u.el.classList.add('hit');
       popDamage(u.x,amount);
-      if(u.hp<=0)removeEntity(u);
+      if(u.hp<=0)defeatEntity(u);
     }else{
       target.base.hp-=amount;
       popDamage(target.x,amount);
@@ -431,10 +486,7 @@
       e.el.classList.remove('hit');void e.el.offsetWidth;e.el.classList.add('hit');
       popDamage(e.x,CANNON_DAMAGE);
       if(e.hp<=0){
-        e.dead=true;
-        e.el.style.opacity='0';
-        e.el.style.transform='translateX(-50%) scale(.3)';
-        setTimeout(()=>e.el.remove(),180);
+        defeatEntity(e);
       }else{
         renderEntity(e);
       }
@@ -624,6 +676,8 @@
 
   function updateUI(){
     bonesEl.textContent=Math.floor(bones);
+    const wallet=window.WankoGameProgress.walletFromState(progressState||{});
+    wankoPointsEl.textContent=wallet.points;
     document.querySelectorAll('.card').forEach(c=>{
       const dog=DOGS[c.dataset.dog];
       c.disabled=!dog||!running||bones<dog.cost;
