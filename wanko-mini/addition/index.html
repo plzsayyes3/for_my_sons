@@ -22,13 +22,19 @@ main{width:min(100%,640px);margin:auto;padding:14px 12px calc(env(safe-area-inse
 .panel[hidden]{display:none}
 .hero{text-align:center;padding:8px 4px 5px}
 .heroIcon{font-size:64px;line-height:1}.hero h2{margin:7px 0 5px;font-size:29px}.hero p{margin:0;color:var(--muted);font-size:12px;font-weight:800;line-height:1.55}
-.rules{margin:15px 0 0;display:grid;gap:7px}
-.rule{display:grid;grid-template-columns:88px 1fr;gap:8px;align-items:center;padding:8px 10px;border:1.5px solid #d8cbbb;border-radius:13px;background:#fff;font-size:11px}
-.rule b{font-size:12px}.rule span{color:#665d53;font-weight:800}
-.startButton,.againButton,.gachaButton{width:100%;min-height:50px;border:2.5px solid var(--line);border-radius:15px;font-weight:1000;box-shadow:0 4px 0 var(--line)}
-.startButton,.againButton{margin-top:15px;background:var(--gold);font-size:17px}
-.gachaButton{display:grid;place-items:center;margin-top:9px;background:#fff;text-decoration:none;font-size:14px}
-.startButton:active,.againButton:active,.gachaButton:active{transform:translateY(3px);box-shadow:0 1px 0 var(--line)}
+.courseHint{display:flex;justify-content:space-between;align-items:center;gap:8px;margin:15px 3px 7px;font-size:10px;font-weight:1000;color:var(--muted);letter-spacing:.04em}
+.courseList{display:grid;gap:8px}
+.course{width:100%;min-height:78px;display:grid;grid-template-columns:108px minmax(0,1fr) auto;align-items:center;gap:10px;border:2px solid var(--line);border-radius:17px;background:#fff;padding:7px 11px;text-align:left;box-shadow:0 3px 0 var(--line);cursor:pointer}
+.course:active{transform:translateY(2px);box-shadow:0 1px 0 var(--line)}
+.course.selected{background:#fff3b8;outline:3px solid rgba(243,194,44,.45);outline-offset:-3px}
+.animalStage{height:64px;display:flex;align-items:flex-end;justify-content:center;border-bottom:2px solid #d9ccbb;overflow:visible}
+.animal{display:block;line-height:.88;transform-origin:bottom center}
+.animal.ant{font-size:24px}.animal.mouse{font-size:34px}.animal.dog{font-size:44px}.animal.elephant{font-size:56px}.animal.whale{font-size:72px}
+.courseName{font-size:16px;font-weight:1000}.courseMath{margin-top:3px;font-size:11px;font-weight:900;color:#6c6155}.courseArrow{font-size:22px;font-weight:1000}
+.startButton,.againButton,.gachaButton,.courseButton{width:100%;min-height:50px;border:2.5px solid var(--line);border-radius:15px;font-weight:1000;box-shadow:0 4px 0 var(--line)}
+.startButton,.againButton{margin-top:15px;background:var(--gold);font-size:17px}.startButton:disabled{opacity:.42;filter:grayscale(.35);box-shadow:0 2px 0 var(--line)}
+.gachaButton,.courseButton{display:grid;place-items:center;margin-top:9px;background:#fff;text-decoration:none;font-size:14px}.courseButton{cursor:pointer}
+.startButton:not(:disabled):active,.againButton:active,.gachaButton:active,.courseButton:active{transform:translateY(3px);box-shadow:0 1px 0 var(--line)}
 .topline{display:flex;align-items:center;gap:9px;margin-bottom:13px}.progress{flex:1;height:12px;border:2px solid var(--line);border-radius:999px;background:#fff;overflow:hidden}.progressFill{height:100%;width:0;background:var(--gold);transition:width .2s}.counter{font-size:12px;font-weight:1000;min-width:45px;text-align:right}
 .scoreRow{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:12px;font-size:12px;font-weight:900;color:var(--muted)}.scoreRow strong{font-size:17px;color:var(--ink)}
 .levelBadge{display:inline-flex;padding:5px 9px;border:1.5px solid var(--line);border-radius:999px;background:#fff;font-size:11px;font-weight:1000}
@@ -37,7 +43,7 @@ main{width:min(100%,640px);margin:auto;padding:14px 12px calc(env(safe-area-inse
 .feedback{min-height:28px;text-align:center;font-size:13px;font-weight:1000;padding:4px}.feedback.good{color:#365d28}.feedback.bad{color:#9a3e31}
 .keypad{width:min(100%,360px);margin:7px auto 0;display:grid;grid-template-columns:repeat(3,1fr);gap:8px}.key{min-height:54px;border:2px solid var(--line);border-radius:15px;background:#fff;font-size:23px;font-weight:1000;box-shadow:0 3px 0 var(--line)}.key:active{transform:translateY(2px);box-shadow:0 1px 0 var(--line)}.key.action{font-size:14px;background:#eee6da}.key.submit{background:var(--gold);font-size:16px}
 .result{text-align:center}.resultIcon{font-size:72px}.result h2{margin:5px 0 2px;font-size:28px}.earned{font-size:40px;font-weight:1000;margin:8px 0}.result p{margin:5px 0;color:var(--muted);font-size:12px;font-weight:800;line-height:1.5}.breakdown{margin:14px 0 0;display:grid;gap:6px;text-align:left}.breakRow{display:flex;justify-content:space-between;gap:8px;padding:8px 10px;border-radius:11px;background:#fff;border:1px solid #ddd0bf;font-size:11px;font-weight:900}
-@media(max-width:420px){header h1{font-size:17px}.player{display:none}.panel{padding:14px}.rule{grid-template-columns:76px 1fr}.equation{font-size:43px}.key{min-height:50px}}
+@media(max-width:420px){header h1{font-size:17px}.player{display:none}.panel{padding:14px}.course{grid-template-columns:88px minmax(0,1fr) auto;padding-left:7px}.animalStage{height:58px}.animal.ant{font-size:22px}.animal.mouse{font-size:30px}.animal.dog{font-size:39px}.animal.elephant{font-size:49px}.animal.whale{font-size:62px}.equation{font-size:43px}.key{min-height:50px}}
 @media(prefers-reduced-motion:reduce){*{transition:none!important}}
 </style>
 </head>
@@ -53,17 +59,33 @@ main{width:min(100%,640px);margin:auto;padding:14px 12px calc(env(safe-area-inse
   <section class="panel" id="introPanel">
     <div class="hero">
       <div class="heroIcon">➕🐶</div>
-      <h2>たしざん 10もん</h2>
-      <p>5しゅるいを2もんずつ。まちがえても、なおして最後まで進めます。</p>
+      <h2>コースをえらぼう</h2>
+      <p>からだが大きいどうぶつほど、むずかしいたしざん。どのコースも10もんです。</p>
     </div>
-    <div class="rules" aria-label="点数ルール">
-      <div class="rule"><b>1桁 + 1桁</b><span>ミスなし 1pt ／ ミスしたら 0pt</span></div>
-      <div class="rule"><b>2桁 + 1桁</b><span>なおして正解すれば 1pt</span></div>
-      <div class="rule"><b>2桁 + 2桁</b><span>ミスなし 2pt ／ ミスあり 1pt</span></div>
-      <div class="rule"><b>3桁 + 1桁</b><span>ミスなし 3pt ／ ミスあり 1pt</span></div>
-      <div class="rule"><b>3桁 + 3桁</b><span>5pt → ミスごとに1pt減る（最低1pt）</span></div>
+    <div class="courseHint"><span>かんたん</span><span>からだの大きさ = むずかしさ</span><span>むずかしい</span></div>
+    <div class="courseList" id="courseList" aria-label="たしざんコース">
+      <button class="course" type="button" data-course="ant">
+        <span class="animalStage"><span class="animal ant">🐜</span></span>
+        <span><span class="courseName">蟻コース</span><span class="courseMath">1桁 + 1桁</span></span><span class="courseArrow">›</span>
+      </button>
+      <button class="course" type="button" data-course="mouse">
+        <span class="animalStage"><span class="animal mouse">🐭</span></span>
+        <span><span class="courseName">ネズミコース</span><span class="courseMath">2桁 + 1桁</span></span><span class="courseArrow">›</span>
+      </button>
+      <button class="course" type="button" data-course="dog">
+        <span class="animalStage"><span class="animal dog">🐕</span></span>
+        <span><span class="courseName">犬コース</span><span class="courseMath">2桁 + 2桁</span></span><span class="courseArrow">›</span>
+      </button>
+      <button class="course" type="button" data-course="elephant">
+        <span class="animalStage"><span class="animal elephant">🐘</span></span>
+        <span><span class="courseName">ゾウコース</span><span class="courseMath">3桁 + 1桁</span></span><span class="courseArrow">›</span>
+      </button>
+      <button class="course" type="button" data-course="blue-whale">
+        <span class="animalStage"><span class="animal whale">🐋</span></span>
+        <span><span class="courseName">シロナガスクジラコース</span><span class="courseMath">3桁 + 3桁</span></span><span class="courseArrow">›</span>
+      </button>
     </div>
-    <button class="startButton" id="startButton" type="button">10もん スタート</button>
+    <button class="startButton" id="startButton" type="button" disabled>コースをえらんでね</button>
   </section>
 
   <section class="panel" id="gamePanel" hidden>
@@ -100,7 +122,8 @@ main{width:min(100%,640px);margin:auto;padding:14px 12px calc(env(safe-area-inse
     <div class="earned" id="earnedPoints">+0pt</div>
     <p id="saveStatus">わんこポイントに追加しています…</p>
     <div class="breakdown" id="breakdown"></div>
-    <button class="againButton" id="againButton" type="button">もう1しゅう</button>
+    <button class="againButton" id="againButton" type="button">おなじコースをもう1しゅう</button>
+    <button class="courseButton" id="courseButton" type="button">コースをえらびなおす</button>
     <a class="gachaButton" href="../../wanko-gacha/?v=3">ガチャを見にいく</a>
   </section>
 </main>
@@ -116,7 +139,7 @@ main{width:min(100%,640px);margin:auto;padding:14px 12px calc(env(safe-area-inse
 <script src="../../shared/wanko-game-data.js?v=2"></script>
 <script src="../../shared/wanko-game-progress.js?v=6"></script>
 <script src="../../shared/wanko-profile-sync.js?v=1"></script>
-<script src="../../shared/wanko-mini-addition.js?v=1"></script>
+<script src="../../shared/wanko-mini-addition.js?v=2"></script>
 <script>
 (() => {
   const introPanel=document.getElementById('introPanel');
@@ -124,6 +147,8 @@ main{width:min(100%,640px);margin:auto;padding:14px 12px calc(env(safe-area-inse
   const resultPanel=document.getElementById('resultPanel');
   const startButton=document.getElementById('startButton');
   const againButton=document.getElementById('againButton');
+  const courseButton=document.getElementById('courseButton');
+  const courseList=document.getElementById('courseList');
   const playerBadge=document.getElementById('playerBadge');
   const walletPoints=document.getElementById('walletPoints');
   const progressFill=document.getElementById('progressFill');
@@ -143,7 +168,7 @@ main{width:min(100%,640px);margin:auto;padding:14px 12px calc(env(safe-area-inse
 
   let Progress=window.WankoGameProgress;
   let progressSync=null,progressState=null,sharedApi=null,sessionProfile=null;
-  let round=[],index=0,answerText='',mistakes=0,totalScore=0,results=[],locked=false,roundFinished=false;
+  let round=[],index=0,answerText='',mistakes=0,totalScore=0,results=[],locked=false,roundFinished=false,selectedCourseId=null;
 
   function getEconomyDeviceId(){
     const key='wankoEconomyDeviceId';
@@ -214,7 +239,8 @@ main{width:min(100%,640px);margin:auto;padding:14px 12px calc(env(safe-area-inse
     mistakes=0;
     counter.textContent=(index+1)+' / '+round.length;
     progressFill.style.width=(index/round.length*100)+'%';
-    levelBadge.textContent=question.label;
+    const course=selectedCourse();
+    levelBadge.textContent=(course?course.emoji+' '+course.name+'　':'')+question.label;
     scoreEl.textContent=totalScore+'pt';
     equation.textContent=question.a+' + '+question.b+' = ?';
     possible.textContent=currentScoreText();
@@ -229,8 +255,27 @@ main{width:min(100%,640px);margin:auto;padding:14px 12px calc(env(safe-area-inse
     answerDisplay.classList.toggle('empty',!answerText);
   }
 
+  function selectedCourse(){
+    return window.WankoMiniAddition.COURSES.find(course=>course.id===selectedCourseId)||null;
+  }
+
+  function chooseCourse(courseId){
+    const course=window.WankoMiniAddition.COURSES.find(item=>item.id===courseId);
+    if(!course)return;
+    selectedCourseId=course.id;
+    courseList.querySelectorAll('.course').forEach(button=>{
+      const selected=button.dataset.course===course.id;
+      button.classList.toggle('selected',selected);
+      button.setAttribute('aria-pressed',selected?'true':'false');
+    });
+    startButton.disabled=false;
+    startButton.textContent=course.emoji+' '+course.name+'コースをスタート';
+  }
+
   function startRound(){
-    round=window.WankoMiniAddition.createRound();
+    const course=selectedCourse();
+    if(!course)return;
+    round=window.WankoMiniAddition.createCourseRound(course.id,10);
     index=0;answerText='';mistakes=0;totalScore=0;results=[];locked=false;roundFinished=false;
     introPanel.hidden=true;
     resultPanel.hidden=true;
@@ -252,6 +297,9 @@ main{width:min(100%,640px);margin:auto;padding:14px 12px calc(env(safe-area-inse
     progressFill.style.width='100%';
     gamePanel.hidden=true;
     resultPanel.hidden=false;
+    const course=selectedCourse();
+    document.querySelector('.resultIcon').textContent=(course?.emoji||'🐶')+'🎉';
+    document.querySelector('#resultPanel h2').textContent=(course?.name||'')+'コース クリア！';
     earnedPoints.textContent='+'+totalScore+'pt';
     breakdown.replaceChildren();
     for(const item of results){
@@ -310,8 +358,17 @@ main{width:min(100%,640px);margin:auto;padding:14px 12px calc(env(safe-area-inse
   });
   backspaceButton.addEventListener('click',()=>{if(!locked){answerText=answerText.slice(0,-1);renderAnswer()}});
   submitButton.addEventListener('click',submitAnswer);
+  courseList.addEventListener('click',event=>{
+    const button=event.target.closest('.course');
+    if(button)chooseCourse(button.dataset.course);
+  });
   startButton.addEventListener('click',startRound);
   againButton.addEventListener('click',startRound);
+  courseButton.addEventListener('click',()=>{
+    resultPanel.hidden=true;
+    gamePanel.hidden=true;
+    introPanel.hidden=false;
+  });
   window.addEventListener('pagehide',()=>{if(progressSync)void progressSync.flush()});
   document.addEventListener('gesturestart',event=>event.preventDefault(),{passive:false});
 
