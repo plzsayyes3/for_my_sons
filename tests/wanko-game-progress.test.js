@@ -1,7 +1,7 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const game = require('../shared/wanko-game-data.js');
-const { createProgressStore, createProfileStore } = require('../shared/wanko-game-progress.js');
+const { createProgressStore, createProfileStore, mergeStates } = require('../shared/wanko-game-progress.js');
 
 function memoryStorage(initialValue = null) {
   let value = initialValue;
@@ -127,4 +127,14 @@ test('persists gacha-owned custom wankos and merges ownership safely', async () 
   assert.deepEqual((await store.getState()).ownedWankoIds, ['drawing-1', 'drawing-2']);
   assert.equal(await store.isWankoOwned('drawing-1'), true);
   assert.equal(await store.isWankoOwned('missing'), false);
+});
+
+
+test('merges gacha ownership by union across devices', () => {
+  const merged = mergeStates(
+    { ownedWankoIds: ['drawing-a'] },
+    { ownedWankoIds: ['drawing-b', 'drawing-a'] },
+    game
+  );
+  assert.deepEqual(merged.ownedWankoIds, ['drawing-a', 'drawing-b']);
 });
