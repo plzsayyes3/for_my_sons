@@ -210,14 +210,14 @@ main{width:min(100%,640px);margin:auto;padding:14px 12px calc(env(safe-area-inse
 
   function renderQuestion(){
     const question=round[index];
+    answerText='';
+    mistakes=0;
     counter.textContent=(index+1)+' / '+round.length;
     progressFill.style.width=(index/round.length*100)+'%';
     levelBadge.textContent=question.label;
     scoreEl.textContent=totalScore+'pt';
     equation.textContent=question.a+' + '+question.b+' = ?';
     possible.textContent=currentScoreText();
-    answerText='';
-    mistakes=0;
     renderAnswer();
     feedback.textContent='';
     feedback.className='feedback';
