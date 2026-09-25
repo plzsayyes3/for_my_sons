@@ -35,7 +35,7 @@ main{width:min(100%,900px);margin:auto;padding:18px 14px calc(env(safe-area-inse
 <script src="../shared/official-wankos.js?v=7"></script>
 <script src="../shared/wanko-library.js"></script>
 <script src="../shared/wanko-game-data.js?v=2"></script>
-<script src="../shared/wanko-game-progress.js?v=6"></script>
+<script src="../shared/wanko-game-progress.js?v=7"></script>
 <script src="../shared/wanko-profile-sync.js?v=1"></script>
 <script src="../shared/wanko-library-view.js?v=2"></script>
 <script>
@@ -111,10 +111,18 @@ main{width:min(100%,900px);margin:auto;padding:18px 14px calc(env(safe-area-inse
    }
    for(const w of list){
     const isActive=!officialActiveId&&active?.id===w.id;
-    grid.appendChild(makeCard({name:w.name,image:WankoLibrary.blobUrl(w),subtitle:new Date(w.createdAt).toLocaleDateString('ja-JP'),active:isActive,onUse:async()=>{
-      localStorage.removeItem('wankoOfficialActiveId');await WankoLibrary.setActiveWanko(w.id);
-      window.dispatchEvent(new CustomEvent('wanko-official-active-changed',{detail:{id:null}}));render();
-    }}));
+    const stars=window.WankoGameProgress.starsFromState(progress,w.id);
+    grid.appendChild(makeCard({
+      name:w.name,
+      image:WankoLibrary.blobUrl(w),
+      subtitle:new Date(w.createdAt).toLocaleDateString('ja-JP'),
+      badge:stars?'なかま ★'+stars:'お試し',
+      active:isActive,
+      onUse:async()=>{
+        localStorage.removeItem('wankoOfficialActiveId');await WankoLibrary.setActiveWanko(w.id);
+        window.dispatchEvent(new CustomEvent('wanko-official-active-changed',{detail:{id:null}}));render();
+      }
+    }));
    }
    for(const card of WankoLibraryView.buildAllyCards(WankoGameData.characters,progress)){
     const subtitle=card.unlocked?(card.unlockAfterStage?'ステージ '+card.unlockAfterStage+' クリアで解放':'最初から使える'):'ステージ '+card.unlockAfterStage+' クリアで解放';
