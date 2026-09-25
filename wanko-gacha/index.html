@@ -327,15 +327,17 @@ main{width:min(100%,720px);margin:auto;padding:14px 12px calc(env(safe-area-inse
 
   async function draw(){
     if(drawing||!characters.length)return;
+    drawing=true;
+    render();
     try{
       progressState=await Progress.spendGachaTicket(economyDeviceId);
       queueProgressSync();
     }catch(error){
+      drawing=false;
       chargeStatus.textContent='ガチャ券がありません。20ポイントで交換できます。';
       render();
       return;
     }
-    drawing=true;
     render();
     const character=chooseCharacter(),wasOwned=character.owned;
     armedDraw={character,wasOwned};
