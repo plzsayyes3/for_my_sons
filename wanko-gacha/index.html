@@ -62,8 +62,8 @@ main{width:min(100%,720px);margin:auto;padding:14px 12px calc(env(safe-area-inse
 <header><a class="back" href="../wanko/?v=1" aria-label="わんこトップへ">‹</a><h1>わんこガチャ</h1><span class="playerBadge" id="playerBadge">読み込み中</span></header>
 <main>
 <section class="wallet" aria-label="もちもの">
-  <div class="walletCard"><span>🎫 ガチャ券</span><b id="tickets">3</b></div>
-  <div class="walletCard"><span>⭐ 元素メダル</span><b id="medals">240</b></div>
+  <div class="walletCard"><span>🎫 ガチャ券</span><b id="tickets">0</b></div>
+  <div class="walletCard"><span>🐾 わんこポイント</span><b id="points">0</b></div>
 </section>
 <section class="machine" id="machine">
   <div class="machineTitle"><div class="small">MY WANKO GACHA</div><h2>じぶんのわんこガチャ</h2><p>つくったわんこが、なかまになる！</p></div>
@@ -71,7 +71,7 @@ main{width:min(100%,720px);margin:auto;padding:14px 12px calc(env(safe-area-inse
   <div class="chargeStatus" id="chargeStatus">押すと4秒後に排出。連打すると早くなる！</div>
   <div class="actions">
     <button class="drawButton" id="ticketDraw">🎫 ガチャ券で 1回ひく</button>
-    <button class="medalButton" id="medalDraw">⭐ 100メダルで 1回ひく</button>
+    <button class="medalButton" id="exchangeButton">🐾 20ポイント → 🎫 1枚</button>
   </div>
 </section>
 <section class="rule"><div class="ruleIcon">🐾</div><div><b>まだ引いていないわんこも、1体だけお試しできる</b><span>ガチャで正式に仲間にすると、複数の自作わんこをデッキに入れられる想定です。</span></div></section>
@@ -94,15 +94,29 @@ main{width:min(100%,720px);margin:auto;padding:14px 12px calc(env(safe-area-inse
 <script src="../shared/wanko-cloud.js"></script>
 <script src="../shared/wanko-library.js"></script>
 <script src="../shared/wanko-game-data.js?v=2"></script>
-<script src="../shared/wanko-game-progress.js?v=5"></script>
+<script src="../shared/wanko-game-progress.js?v=6"></script>
 <script src="../shared/wanko-profile-sync.js?v=1"></script>
 <script>
 (() => {
-  let characters=[],tickets=3,medals=240,drawing=false;
+  let characters=[],drawing=false;
   let Progress=window.WankoGameProgress,progressSync=null,progressState=null,sharedApi=null,sessionProfile=null;
   const objectUrls=[];
-  const machine=document.getElementById('machine'),ticketEl=document.getElementById('tickets'),medalEl=document.getElementById('medals'),ticketDraw=document.getElementById('ticketDraw'),medalDraw=document.getElementById('medalDraw'),collection=document.getElementById('collection'),ownedCount=document.getElementById('ownedCount'),layer=document.getElementById('resultLayer'),resultBadge=document.getElementById('resultBadge'),resultImage=document.getElementById('resultImage'),resultName=document.getElementById('resultName'),resultText=document.getElementById('resultText');
+  const machine=document.getElementById('machine'),ticketEl=document.getElementById('tickets'),pointsEl=document.getElementById('points'),ticketDraw=document.getElementById('ticketDraw'),exchangeButton=document.getElementById('exchangeButton'),collection=document.getElementById('collection'),ownedCount=document.getElementById('ownedCount'),layer=document.getElementById('resultLayer'),resultBadge=document.getElementById('resultBadge'),resultImage=document.getElementById('resultImage'),resultName=document.getElementById('resultName'),resultText=document.getElementById('resultText');
   const fxLayer=document.getElementById('fxLayer'),chargeHalo=document.getElementById('chargeHalo'),chargeStatus=document.getElementById('chargeStatus'),tapPad=document.getElementById('tapPad'),playerBadge=document.getElementById('playerBadge');
+
+  function getEconomyDeviceId(){
+    const key='wankoEconomyDeviceId';
+    let id=localStorage.getItem(key);
+    if(!id){
+      const bytes=new Uint8Array(12);
+      crypto.getRandomValues(bytes);
+      id='d-'+[...bytes].map(value=>value.toString(16).padStart(2,'0')).join('');
+      localStorage.setItem(key,id);
+    }
+    return id;
+  }
+  const economyDeviceId=getEconomyDeviceId();
+  const TICKET_COST=20;
 
   function queueProgressSync(){
     if(progressSync&&progressState)progressSync.schedule(progressState);
@@ -154,11 +168,12 @@ main{width:min(100%,720px);margin:auto;padding:14px 12px calc(env(safe-area-inse
   }
 
   function render(){
-    ticketEl.textContent=tickets;
-    medalEl.textContent=medals;
+    const wallet=window.WankoGameProgress.walletFromState(progressState||{});
+    ticketEl.textContent=wallet.tickets;
+    pointsEl.textContent=wallet.points;
     const canDraw=characters.length>0;
-    ticketDraw.disabled=drawing||tickets<1||!canDraw;
-    medalDraw.disabled=drawing||medals<100||!canDraw;
+    ticketDraw.disabled=drawing||wallet.tickets<1||!canDraw;
+    exchangeButton.disabled=drawing||wallet.points<TICKET_COST;
     const owned=characters.filter(x=>x.owned).length;
     ownedCount.textContent=owned+' / '+characters.length+' なかま';
     collection.replaceChildren();
@@ -310,12 +325,17 @@ main{width:min(100%,720px);margin:auto;padding:14px 12px calc(env(safe-area-inse
     countdownRaf=requestAnimationFrame(tick);
   }
 
-  function draw(kind){
+  async function draw(){
     if(drawing||!characters.length)return;
-    if(kind==='ticket'&&tickets<1)return;
-    if(kind==='medal'&&medals<100)return;
+    try{
+      progressState=await Progress.spendGachaTicket(economyDeviceId);
+      queueProgressSync();
+    }catch(error){
+      chargeStatus.textContent='ガチャ券がありません。20ポイントで交換できます。';
+      render();
+      return;
+    }
     drawing=true;
-    if(kind==='ticket')tickets-=1;else medals-=100;
     render();
     const character=chooseCharacter(),wasOwned=character.owned;
     armedDraw={character,wasOwned};
@@ -338,8 +358,19 @@ main{width:min(100%,720px);margin:auto;padding:14px 12px calc(env(safe-area-inse
     renderCountdown();
     if(remainingMs<=0)finishCharge();
   });
-  ticketDraw.addEventListener('click',()=>draw('ticket'));
-  medalDraw.addEventListener('click',()=>draw('medal'));
+  ticketDraw.addEventListener('click',()=>void draw());
+  exchangeButton.addEventListener('click',async()=>{
+    if(drawing)return;
+    try{
+      progressState=await Progress.exchangePointsForTicket(TICKET_COST,economyDeviceId);
+      queueProgressSync();
+      chargeStatus.textContent='🎫 ガチャ券を1枚交換した！';
+      try{navigator.vibrate?.([20,30,40])}catch{}
+    }catch(error){
+      chargeStatus.textContent='ポイントが足りません。敵を倒してためよう！';
+    }
+    render();
+  });
   document.getElementById('closeResult').addEventListener('click',()=>layer.classList.remove('show','newDraw','duplicateDraw'));
   layer.addEventListener('click',event=>{if(event.target===layer)layer.classList.remove('show','newDraw','duplicateDraw')});
   window.addEventListener('pagehide',()=>{if(progressSync)void progressSync.flush();objectUrls.splice(0).forEach(url=>{try{URL.revokeObjectURL(url)}catch{}})});
