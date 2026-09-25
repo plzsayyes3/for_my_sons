@@ -47,8 +47,20 @@
   const elementById = new Map(elements.map(element => [element.id, element]));
   const elementBySymbol = new Map(elements.map(element => [element.symbol, element]));
 
-  function ally(id, name, role, placeholder, stats, unlockAfterStage = null, legacyWankoId = null) {
-    return { id, faction: 'ally', role, name, placeholder, artwork: null, stats, unlockAfterStage, legacyWankoId };
+  function ally(id, name, role, placeholder, stats, unlockAfterStage = null, legacyWankoId = null, options = {}) {
+    return {
+      id,
+      faction: 'ally',
+      role,
+      name,
+      placeholder,
+      artwork: options.artwork || null,
+      stats,
+      unlockAfterStage,
+      legacyWankoId,
+      renderScale: Number(options.renderScale) || 1,
+      behavior: options.behavior || {}
+    };
   }
   function foe(id, faction, name, role, placeholder, stats) {
     return { id, faction: faction === 'boss' ? 'enemy' : faction, kind: faction === 'boss' ? 'boss' : 'unit', role, name, placeholder, artwork: null, stats, unlockAfterStage: null, legacyWankoId: null };
@@ -62,6 +74,19 @@
     W06: ally('W06','ごりおしわん','attacker','🦍',{cost:320,hp:260,damage:94,speed:26,range:48,cooldown:1.25},'S050'),
     W07: ally('W07','おおきなわん','heavy','🐘',{cost:430,hp:720,damage:130,speed:18,range:58,cooldown:1.55},'S075'),
     W08: ally('W08','きつねわん','balanced','🦊',{cost:500,hp:420,damage:115,speed:45,range:78,cooldown:.78},'S100'),
+    W09: ally('W09','クリオネン','balanced','🪽',{cost:280,hp:190,damage:42,speed:42,range:48,cooldown:.85},'S015','kurionen',{
+      artwork:'../assets/official-wankos/kurionen.webp?v=1',renderScale:2
+    }),
+    W10: ally('W10','念を込めたスネーク','fast','🐍',{cost:180,hp:140,damage:30,speed:46,range:44,cooldown:.72},'S030','nen-o-kometa-snake',{
+      artwork:'../assets/official-wankos/nen-o-kometa-snake.png?v=1',renderScale:2
+    }),
+    W11: ally('W11','爆発玉','attacker','💣',{cost:90,hp:80,damage:150,speed:38,range:58,cooldown:.9},'S060','bakuhatsu-dama',{
+      artwork:'../assets/official-wankos/bakuhatsu-dama.png?v=1',renderScale:2,
+      behavior:{selfDestruct:true,splashRadius:72,maxTargets:3,explosionParticles:true}
+    }),
+    W12: ally('W12','ハンマー','attacker','🔨',{cost:180,hp:140,damage:30,speed:46,range:44,cooldown:.72},'S090','hammer',{
+      artwork:'../assets/official-wankos/hammer.png?v=1',renderScale:2
+    }),
     E01: foe('E01','enemy','ぷるぷる','basic','👾',{hp:90,damage:17,speed:31,range:39,cooldown:.9}),
     E02: foe('E02','enemy','おにわん','tank','👹',{hp:145,damage:24,speed:23,range:42,cooldown:1.05}),
     E03: foe('E03','enemy','かけぬけ','fast','🦹',{hp:65,damage:13,speed:51,range:35,cooldown:.68}),
@@ -148,7 +173,7 @@
     if (elements.length !== 118 || stages.length !== 118) errors.push('expected 118 elements and stages');
     if (new Set(elements.map(element => element.atomicNumber)).size !== 118) errors.push('duplicate atomic number');
     if (new Set(elements.map(element => element.symbol)).size !== 118) errors.push('duplicate element symbol');
-    if (Object.keys(characters).length !== 28) errors.push('expected 28 character slots');
+    if (Object.keys(characters).length !== 32) errors.push('expected 32 character slots');
     for (const stage of stages) {
       if (!elementById.has(stage.elementId)) errors.push(`${stage.id}: unknown element`);
       for (const event of stage.enemyEvents) {
