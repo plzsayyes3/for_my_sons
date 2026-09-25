@@ -35,13 +35,12 @@ test('exposes 念を込めたスネーク through the official catalog and PWA s
   const apps = JSON.parse(fs.readFileSync(path.join(root, 'apps.json'), 'utf8'));
 
   assert.match(catalog, new RegExp(`id: "${id}"`));
-  assert.match(warPage, /official-wankos\.js\?v=7/);
-  assert.match(libraryPage, /official-wankos\.js\?v=7/);
+  assert.match(warPage, /official-wankos\.js\?v=8/);
+  assert.match(libraryPage, /official-wankos\.js\?v=8/);
   assert.match(serviceWorker, new RegExp(`official-wankos/${id}\.wanko\.json\\?v=2`));
   assert.match(serviceWorker, new RegExp(`assets/official-wankos/${id}\.png\\?v=1`));
-  assert.match(serviceWorker, /official-wankos\.js\?v=7/);
-  assert.ok(apps.some(app => app.id === 'wanko-war' && /\?v=15$/.test(app.url)));
-  assert.ok(apps.some(app => app.id === 'wanko-library' && /\?v=11$/.test(app.url)));
+  assert.match(serviceWorker, /official-wankos\.js\?v=8/);
+  assert.ok(apps.some(app => app.id === 'wanko' && /\?v=9$/.test(app.url)));
 });
 
 test('registers 爆発玉 as a low-cost high-damage self-destructing ally', () => {
@@ -121,4 +120,10 @@ test('uses the standard 2.0 display scale for every original official character'
     const metadata = JSON.parse(fs.readFileSync(path.join(root, 'official-wankos', file), 'utf8'));
     assert.equal(metadata.renderScale, 2, `${file} should use renderScale 2`);
   }
+});
+
+
+test('official catalog script remains valid JavaScript', () => {
+  const catalog = fs.readFileSync(path.join(root, 'shared', 'official-wankos.js'), 'utf8');
+  assert.doesNotThrow(() => new Function(catalog));
 });
