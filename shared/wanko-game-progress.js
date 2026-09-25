@@ -2,7 +2,7 @@
   const api = factory();
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
   if (!root) return;
-  const exported = { createProgressStore: api.createProgressStore, createProfileStore: api.createProfileStore, mergeStates: api.mergeStates, normalizeState: api.normalizeState };
+  const exported = { createProgressStore: api.createProgressStore, createProfileStore: api.createProfileStore, mergeStates: api.mergeStates, normalizeState: api.normalizeState, walletFromState: api.walletFromState };
   if (root.WankoLibrary && root.WankoGameData) {
     const store = api.createProgressStore({
       getMeta: () => root.WankoLibrary.getMeta('wankoGameProgressV1'),
@@ -19,8 +19,45 @@
     discoveredCharacterIds: [],
     clearedStageIds: [],
     selectedWanko: null,
-    ownedWankoIds: []
+    ownedWankoIds: [],
+    economy: {
+      pointEarned: {},
+      pointSpent: {},
+      ticketEarned: {},
+      ticketSpent: {}
+    }
   });
+
+  function normalizeCounterMap(raw) {
+    const source = raw && typeof raw === 'object' && !Array.isArray(raw) ? raw : {};
+    const result = {};
+    for (const [key, value] of Object.entries(source)) {
+      if (!/^[A-Za-z0-9_-]{1,80}$/.test(key)) continue;
+      const number = Math.floor(Number(value));
+      if (Number.isFinite(number) && number > 0) result[key] = number;
+    }
+    return result;
+  }
+
+  function mergeCounterMaps(left, right) {
+    const a = normalizeCounterMap(left);
+    const b = normalizeCounterMap(right);
+    const merged = { ...a };
+    for (const [key, value] of Object.entries(b)) merged[key] = Math.max(merged[key] || 0, value);
+    return merged;
+  }
+
+  function sumCounterMap(map) {
+    return Object.values(normalizeCounterMap(map)).reduce((sum, value) => sum + value, 0);
+  }
+
+  function walletFromState(state) {
+    const economy = state?.economy || {};
+    return {
+      points: Math.max(0, sumCounterMap(economy.pointEarned) - sumCounterMap(economy.pointSpent)),
+      tickets: Math.max(0, sumCounterMap(economy.ticketEarned) - sumCounterMap(economy.ticketSpent))
+    };
+  }
 
   function normalizeState(raw, definitions) {
     if (!definitions?.stages || !definitions?.elements || !definitions?.characters) throw new TypeError('game definitions are required');
@@ -54,7 +91,16 @@
         .filter(id => typeof id === 'string' && id.trim())
         .map(id => id.trim().slice(0, 120))
     )].sort();
-    return { selectedStageId, discoveredElementIds, discoveredCharacterIds, clearedStageIds, selectedWanko, ownedWankoIds };
+    const economySource = value.economy && typeof value.economy === 'object' && !Array.isArray(value.economy)
+      ? value.economy
+      : {};
+    const economy = {
+      pointEarned: normalizeCounterMap(economySource.pointEarned),
+      pointSpent: normalizeCounterMap(economySource.pointSpent),
+      ticketEarned: normalizeCounterMap(economySource.ticketEarned),
+      ticketSpent: normalizeCounterMap(economySource.ticketSpent)
+    };
+    return { selectedStageId, discoveredElementIds, discoveredCharacterIds, clearedStageIds, selectedWanko, ownedWankoIds, economy };
   }
 
   function mergeStates(left, right, definitions) {
@@ -69,7 +115,13 @@
       discoveredCharacterIds: [...a.discoveredCharacterIds, ...b.discoveredCharacterIds],
       clearedStageIds: [...a.clearedStageIds, ...b.clearedStageIds],
       selectedWanko: a.selectedWanko || b.selectedWanko,
-      ownedWankoIds: [...a.ownedWankoIds, ...b.ownedWankoIds]
+      ownedWankoIds: [...a.ownedWankoIds, ...b.ownedWankoIds],
+      economy: {
+        pointEarned: mergeCounterMaps(a.economy.pointEarned, b.economy.pointEarned),
+        pointSpent: mergeCounterMaps(a.economy.pointSpent, b.economy.pointSpent),
+        ticketEarned: mergeCounterMaps(a.economy.ticketEarned, b.economy.ticketEarned),
+        ticketSpent: mergeCounterMaps(a.economy.ticketSpent, b.economy.ticketSpent)
+      }
     }, definitions);
   }
 
@@ -186,6 +238,72 @@
       return (await readState()).ownedWankoIds.includes(id);
     }
 
+    function safeDeviceId(deviceId) {
+      const id = typeof deviceId === 'string' ? deviceId.trim() : '';
+      if (!/^[A-Za-z0-9_-]{1,80}$/.test(id)) throw new TypeError('deviceId is invalid');
+      return id;
+    }
+
+    async function awardPoints(amount, deviceId) {
+      const points = Math.floor(Number(amount));
+      const device = safeDeviceId(deviceId);
+      if (!Number.isFinite(points) || points <= 0) throw new TypeError('amount must be positive');
+      return writeState(current => {
+        const currentCount = current.economy.pointEarned[device] || 0;
+        return {
+          ...current,
+          economy: {
+            ...current.economy,
+            pointEarned: { ...current.economy.pointEarned, [device]: currentCount + points }
+          }
+        };
+      });
+    }
+
+    async function exchangePointsForTicket(cost, deviceId) {
+      const points = Math.floor(Number(cost));
+      const device = safeDeviceId(deviceId);
+      if (!Number.isFinite(points) || points <= 0) throw new TypeError('cost must be positive');
+      return writeState(current => {
+        if (walletFromState(current).points < points) throw new Error('Not enough points');
+        return {
+          ...current,
+          economy: {
+            ...current.economy,
+            pointSpent: {
+              ...current.economy.pointSpent,
+              [device]: (current.economy.pointSpent[device] || 0) + points
+            },
+            ticketEarned: {
+              ...current.economy.ticketEarned,
+              [device]: (current.economy.ticketEarned[device] || 0) + 1
+            }
+          }
+        };
+      });
+    }
+
+    async function spendGachaTicket(deviceId) {
+      const device = safeDeviceId(deviceId);
+      return writeState(current => {
+        if (walletFromState(current).tickets < 1) throw new Error('No gacha ticket');
+        return {
+          ...current,
+          economy: {
+            ...current.economy,
+            ticketSpent: {
+              ...current.economy.ticketSpent,
+              [device]: (current.economy.ticketSpent[device] || 0) + 1
+            }
+          }
+        };
+      });
+    }
+
+    async function getWallet() {
+      return walletFromState(await readState());
+    }
+
     async function importState(raw) {
       const next = normalize(raw);
       await storage.setMeta(META_KEY, next);
@@ -210,6 +328,10 @@
       setSelectedWanko,
       ownWanko,
       isWankoOwned,
+      awardPoints,
+      exchangePointsForTicket,
+      spendGachaTicket,
+      getWallet,
       importState,
       isStageUnlocked,
       isCharacterUnlocked
@@ -224,5 +346,5 @@
     }, definitions);
   }
 
-  return { createProgressStore, createProfileStore, mergeStates, normalizeState, initialState: () => ({ ...INITIAL_STATE }) };
+  return { createProgressStore, createProfileStore, mergeStates, normalizeState, walletFromState, initialState: () => JSON.parse(JSON.stringify(INITIAL_STATE)) };
 });
