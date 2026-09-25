@@ -73,7 +73,7 @@
     .card{position:relative;min-height:74px;border:2.5px solid var(--line);border-radius:16px;background:white;box-shadow:0 4px 0 var(--line);display:grid;grid-template-columns:auto 1fr;align-items:center;gap:6px;padding:6px 8px;text-align:left;touch-action:manipulation}
     .card:active:not(:disabled){transform:translateY(3px);box-shadow:0 1px 0 var(--line)}
     .card:disabled{opacity:.43;filter:grayscale(.4)}
-    .card .dog{font-size:38px}.card .dog img{width:40px;height:40px;display:block;object-fit:contain}.card .name{font-size:12px;font-weight:1000;line-height:1.1}.card .cost{font-size:12px;font-weight:900;color:#6b532c;margin-top:4px}
+    .card .dog{font-size:38px}.card .dog img{width:40px;height:40px;display:block;object-fit:contain}.card .name{font-size:12px;font-weight:1000;line-height:1.1}.card .cost{font-size:12px;font-weight:900;color:#6b532c;margin-top:4px}.card .status{display:inline-flex;margin-top:3px;padding:2px 5px;border-radius:999px;background:#f3d763;font-size:8px;font-weight:1000}.card .status.trial{background:#e8e0d5;color:#6f6458}
     .deck{max-height:158px;overflow-y:auto;overscroll-behavior:contain}
     .stageSelect{max-width:min(34vw,220px);min-width:110px;padding:8px 9px;border:2px solid var(--line);border-radius:12px;background:#fff;font-weight:900}
     .unit .customSprite{width:50px;height:50px;object-fit:contain;display:block;filter:drop-shadow(0 3px 0 rgba(0,0,0,.16));transform-origin:50% 100%;animation:bob .42s ease-in-out infinite alternate}
@@ -161,6 +161,7 @@
         <button class="card" data-dog="W02"><span class="dog">🐶</span><span><div class="name">ダッシュわん</div><div class="cost">🦴 150</div></span></button>
         <button class="card" data-dog="legacyBig"><span class="dog">🐩</span><span><div class="name">でかわん</div><div class="cost">🦴 280</div></span></button>
         <div id="unlockedCards" style="display:contents"></div>
+        <div id="customWankoCards" style="display:contents"></div>
         <button class="card" data-dog="custom" id="customDogCard" hidden><span class="dog" id="customDogThumb">🎨</span><span><div class="name" id="customDogName">うちのわんこ</div><div class="cost" id="customDogCost">🦴 180</div></span></button>
       </div>
       <button class="cannon" id="cannonBtn" disabled aria-label="わんこ砲">
@@ -178,13 +179,13 @@
 <script src="../shared/save-store.js?v=2"></script>
 <script src="../shared/github-sync.js?v=7"></script>
 <script src="../shared/character-requests.js?v=1"></script>
-<script src="../shared/for-my-sons.js?v=6"></script>
+<script src="../shared/for-my-sons.js?v=7"></script>
 <script src="../shared/wanko-cloud-config.js"></script>
 <script src="../shared/wanko-cloud.js"></script>
 <script src="../shared/official-wankos.js?v=7"></script>
 <script src="../shared/wanko-library.js"></script>
 <script src="../shared/wanko-game-data.js?v=2"></script>
-<script src="../shared/wanko-game-progress.js?v=4"></script>
+<script src="../shared/wanko-game-progress.js?v=5"></script>
 <script src="../shared/wanko-profile-sync.js?v=1"></script>
 <script>
 (() => {
@@ -205,10 +206,12 @@
   const customDogThumb = document.getElementById('customDogThumb');
   const customDogName = document.getElementById('customDogName');
   const customDogCost = document.getElementById('customDogCost');
+  const customWankoCards = document.getElementById('customWankoCards');
   const unlockedCards = document.getElementById('unlockedCards');
   const stageSelect = document.getElementById('stageSelect');
   const playerBadge = document.getElementById('playerBadge');
   let customDogUrl = null;
+  let customDogUrls = [];
 
   const GameData=window.WankoGameData;
   let Progress=window.WankoGameProgress;
@@ -448,69 +451,93 @@
     enemy.querySelector('.hpText').textContent=Math.max(0,Math.ceil(enemyBase.hp))+' / '+enemyBase.maxHp;
   }
 
-  async function loadCustomDog(){
+  function clearCustomDogUrls(){
+    for(const url of customDogUrls){if(url&&url.startsWith('blob:'))try{URL.revokeObjectURL(url)}catch{}}
+    customDogUrls=[];
+    if(customDogUrl&&customDogUrl.startsWith('blob:'))try{URL.revokeObjectURL(customDogUrl)}catch{}
+    customDogUrl=null;
+  }
+
+  function customDogDefinition(wanko,imageUrl){
+    const stats=wanko?.stats||{};
+    return {
+      cost:Number(stats.cost)||180,
+      hp:Number(stats.hp)||140,
+      damage:Number(stats.damage)||30,
+      speed:Number(stats.speed)||46,
+      range:Number(stats.range)||44,
+      cooldown:Number(stats.cooldown)||.72,
+      imageUrl,
+      renderScale:Number(wanko?.renderScale)||1,
+      behavior:wanko?.behavior||{},
+      className:'custom'
+    };
+  }
+
+  function appendCustomCard(wanko,key,isOwned){
+    const button=document.createElement('button');button.className='card';button.dataset.dog=key;
+    const thumb=document.createElement('span');thumb.className='dog';
+    const image=document.createElement('img');image.alt='';image.src=DOGS[key].imageUrl;thumb.appendChild(image);
+    const details=document.createElement('span');
+    const name=document.createElement('div');name.className='name';name.textContent=wanko.name||'うちのわんこ';
+    const cost=document.createElement('div');cost.className='cost';cost.textContent='🦴 '+DOGS[key].cost;
+    const status=document.createElement('div');status.className='status'+(isOwned?'':' trial');status.textContent=isOwned?'なかま':'お試し';
+    details.append(name,cost,status);button.append(thumb,details);customWankoCards.appendChild(button);
+  }
+
+  async function loadCustomDogs(){
     if(!window.WankoLibrary)return;
     try{
-      if(customDogUrl && customDogUrl.startsWith('blob:')) URL.revokeObjectURL(customDogUrl);
-      customDogUrl=null;
+      clearCustomDogUrls();
+      customWankoCards.replaceChildren();
+      for(const key of Object.keys(DOGS))if(key.startsWith('custom:'))delete DOGS[key];
 
-      const selected=progressState?.selectedWanko||null;
-      let w=null;
-      if(selected?.source==='official'&&window.OfficialWankos){
-        w=await OfficialWankos.load(selected.id);
-        if(w)customDogUrl=w.image;
+      const state=progressState||await Progress.getState();
+      const ownedIds=new Set(state.ownedWankoIds||[]);
+      const list=await WankoLibrary.listWankos();
+      const byId=new Map(list.map(wanko=>[wanko.id,wanko]));
+      const owned=list.filter(wanko=>ownedIds.has(wanko.id));
+      let trial=null;
+      if(state.selectedWanko?.source==='custom'){
+        const selected=byId.get(state.selectedWanko.id);
+        if(selected&&!ownedIds.has(selected.id))trial=selected;
       }
-      if(!w&&selected?.source==='custom'){
-        w=await WankoLibrary.getWanko(selected.id);
-        if(w)customDogUrl=WankoLibrary.blobUrl(w);
+      if(!trial)trial=list.find(wanko=>!ownedIds.has(wanko.id))||null;
+
+      for(const wanko of [...owned,...(trial?[trial]:[])]){
+        const url=WankoLibrary.blobUrl(wanko);
+        if(!url)continue;
+        customDogUrls.push(url);
+        const key='custom:'+wanko.id;
+        DOGS[key]=customDogDefinition(wanko,url);
+        appendCustomCard(wanko,key,ownedIds.has(wanko.id));
       }
 
-      if(!w){
+      let official=null;
+      if(state.selectedWanko?.source==='official'&&window.OfficialWankos){
+        official=await OfficialWankos.load(state.selectedWanko.id);
+      }
+      if(!official&&!list.length){
         const officialId=localStorage.getItem('wankoOfficialActiveId');
-        if(officialId&&window.OfficialWankos){
-          w=await OfficialWankos.load(officialId);
-          if(w)customDogUrl=w.image;
-        }
+        if(officialId&&window.OfficialWankos)official=await OfficialWankos.load(officialId);
       }
-
-      if(!w){
-        w=await WankoLibrary.getActiveWanko();
-        if(w) customDogUrl=WankoLibrary.blobUrl(w);
-      }
-
-      if(!w){
+      if(!official&&!list.length){
         const fallback=window.OfficialWankos?.catalog?.[0];
-        if(fallback){
-          localStorage.setItem('wankoOfficialActiveId',fallback.id);
-          w=await OfficialWankos.load(fallback.id);
-          customDogUrl=w?.image||null;
-        }
+        if(fallback)official=await OfficialWankos.load(fallback.id);
       }
 
-      if(!w){
+      if(official){
+        customDogUrl=official.image||null;
+        DOGS.custom=customDogDefinition(official,customDogUrl);
+        customDogCard.hidden=false;
+        customDogName.textContent=official.name||'うちのわんこ';
+        customDogCost.textContent='🦴 '+DOGS.custom.cost;
+        customDogThumb.replaceChildren();
+        if(customDogUrl){const img=document.createElement('img');img.alt='';img.src=customDogUrl;customDogThumb.appendChild(img);}
+      }else{
         delete DOGS.custom;
         customDogCard.hidden=true;
-        return;
       }
-
-      const stats=w.stats||{};
-      DOGS.custom={
-        cost:Number(stats.cost)||180,
-        hp:Number(stats.hp)||140,
-        damage:Number(stats.damage)||30,
-        speed:Number(stats.speed)||46,
-        range:Number(stats.range)||44,
-        cooldown:Number(stats.cooldown)||.72,
-        imageUrl:customDogUrl,
-        renderScale:Number(w.renderScale)||1,
-        behavior:w.behavior||{},
-        className:'custom'
-      };
-      customDogCard.hidden=false;
-      customDogName.textContent=w.name||'うちのわんこ';
-      customDogCost.textContent='🦴 '+DOGS.custom.cost;
-      customDogThumb.innerHTML='';
-      const img=document.createElement('img');img.alt='';img.src=customDogUrl;customDogThumb.appendChild(img);
       updateUI();
     }catch(error){console.warn('Custom wanko load failed',error);}
   }
@@ -705,10 +732,10 @@
     showStartScreen();
   });
   window.addEventListener('resize',()=>entities.forEach(renderEntity));
-  window.addEventListener('pagehide',()=>{if(progressSync)void progressSync.flush();});
-  window.addEventListener('wanko-active-changed',loadCustomDog);
-  window.addEventListener('wanko-library-changed',loadCustomDog);
-  window.addEventListener('wanko-official-active-changed',loadCustomDog);
+  window.addEventListener('pagehide',()=>{if(progressSync)void progressSync.flush();clearCustomDogUrls();});
+  window.addEventListener('wanko-active-changed',loadCustomDogs);
+  window.addEventListener('wanko-library-changed',loadCustomDogs);
+  window.addEventListener('wanko-official-active-changed',loadCustomDogs);
   updateBaseUI();updateUI();
   (async()=>{
     try{
@@ -718,7 +745,7 @@
       if(requested&&GameData.getStage(requested)&&await Progress.isStageUnlocked(requested)){
         progressState=await Progress.selectStage(requested);
       }
-      await loadCustomDog();
+      await loadCustomDogs();
       await refreshProgressState();
       showStartScreen();
       requestAnimationFrame(step);
