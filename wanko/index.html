@@ -56,12 +56,12 @@ main{width:min(100%,700px);margin:auto;padding:2px 14px calc(env(safe-area-inset
   </section>
 
   <section class="actions">
-    <a class="action start" href="../wanko-war/?v=19">
+    <a class="action start" href="../wanko-war/?v=20">
       <div class="icon">⚔️</div>
       <div><div class="name">ゲームスタート</div><div class="desc" id="stageText">元素ステージへ</div></div>
       <div class="arrow">›</div>
     </a>
-    <a class="action gacha" href="../wanko-gacha/?v=2">
+    <a class="action gacha" href="../wanko-gacha/?v=3">
       <div class="icon">⭐</div>
       <div><div class="name">ガチャ</div><div class="desc">自分のわんこを仲間にする</div></div>
       <div class="arrow">›</div>
@@ -69,7 +69,7 @@ main{width:min(100%,700px);margin:auto;padding:2px 14px calc(env(safe-area-inset
   </section>
 
   <section class="utility">
-    <a href="../wanko-library/?v=14">📖 わんこ大図鑑</a>
+    <a href="../wanko-library/?v=15">📖 わんこ大図鑑</a>
     <a href="../paint/?wanko=1">🎨 わんこをつくる</a>
   </section>
 </main>
@@ -84,7 +84,7 @@ main{width:min(100%,700px);margin:auto;padding:2px 14px calc(env(safe-area-inset
 <script src="../shared/for-my-sons.js?v=7"></script>
 <script src="../shared/settings-view.js?v=6"></script>
 <script src="../shared/wanko-game-data.js?v=2"></script>
-<script src="../shared/wanko-game-progress.js?v=5"></script>
+<script src="../shared/wanko-game-progress.js?v=6"></script>
 <script>
 (async()=>{
   const nameEl=document.getElementById('profileName');
@@ -104,7 +104,8 @@ main{width:min(100%,700px);margin:auto;padding:2px 14px calc(env(safe-area-inset
     const selected=window.WankoGameData.getStage(state.selectedStageId)||window.WankoGameData.stages[0];
     const next=state.clearedStageIds.includes(selected.id)?window.WankoGameData.stages[selected.sequence]||selected:selected;
     const element=window.WankoGameData.getElementById(next.elementId);
-    progressEl.textContent=cleared+' / '+window.WankoGameData.stages.length+' クリア';
+    const wallet=window.WankoGameProgress.walletFromState(state);
+    progressEl.textContent=cleared+' / '+window.WankoGameData.stages.length+' クリア ・ 🐾 '+wallet.points+' ・ 🎫 '+wallet.tickets;
     stageEl.textContent='つぎ: '+next.id+'  '+element.symbol+' '+element.nameJa;
     if(window.ForMySonsSettingsView?.renderSettings){
       const view=window.ForMySonsSettingsView.renderSettings(host,api);
