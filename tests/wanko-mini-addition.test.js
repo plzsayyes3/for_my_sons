@@ -19,18 +19,30 @@ test('addition scoring follows the configured mistake rules', () => {
   assert.equal(addition.scoreQuestion('three-three', 8), 1);
 });
 
-test('a round contains two questions from each addition level', () => {
+test('animal courses map body size from ant to blue whale onto difficulty', () => {
+  assert.deepEqual(
+    addition.COURSES.map(course => [course.name, course.levelId]),
+    [
+      ['蟻', 'one-one'],
+      ['ネズミ', 'two-one'],
+      ['犬', 'two-two'],
+      ['ゾウ', 'three-one'],
+      ['シロナガスクジラ', 'three-three']
+    ]
+  );
+});
+
+test('a selected course produces ten questions from only that level', () => {
   let seed = 0;
   const random = () => {
     seed = (seed * 1664525 + 1013904223) >>> 0;
     return seed / 4294967296;
   };
-  const round = addition.createRound(random);
+  const round = addition.createCourseRound('blue-whale', 10, random);
   assert.equal(round.length, 10);
-  const counts = new Map();
   for (const question of round) {
-    counts.set(question.levelId, (counts.get(question.levelId) || 0) + 1);
+    assert.equal(question.levelId, 'three-three');
+    assert.equal(question.courseId, 'blue-whale');
     assert.equal(question.answer, question.a + question.b);
   }
-  for (const level of addition.LEVELS) assert.equal(counts.get(level.id), 2);
 });
