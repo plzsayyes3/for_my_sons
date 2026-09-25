@@ -94,7 +94,7 @@ main{width:min(100%,720px);margin:auto;padding:14px 12px calc(env(safe-area-inse
 <script src="../shared/wanko-cloud.js"></script>
 <script src="../shared/wanko-library.js"></script>
 <script src="../shared/wanko-game-data.js?v=2"></script>
-<script src="../shared/wanko-game-progress.js?v=6"></script>
+<script src="../shared/wanko-game-progress.js?v=7"></script>
 <script src="../shared/wanko-profile-sync.js?v=1"></script>
 <script>
 (() => {
@@ -162,7 +162,9 @@ main{width:min(100%,720px);margin:auto;padding:14px 12px calc(env(safe-area-inse
     characters=list.map(wanko=>{
       const image=WankoLibrary.blobUrl(wanko);
       if(image)objectUrls.push(image);
-      return {id:wanko.id,name:wanko.name||'うちのわんこ',image,owned:owned.has(wanko.id)};
+      const isOwned=owned.has(wanko.id);
+      const stars=isOwned?window.WankoGameProgress.starsFromState(progressState,wanko.id):0;
+      return {id:wanko.id,name:wanko.name||'うちのわんこ',image,owned:isOwned,stars};
     });
     render();
   }
@@ -191,7 +193,7 @@ main{width:min(100%,720px);margin:auto;padding:14px 12px calc(env(safe-area-inse
       else art.textContent='🐾';
       const info=document.createElement('div');info.className='info';
       const name=document.createElement('div');name.className='name';name.textContent=character.name;
-      const tag=document.createElement('span');tag.className='tag '+(character.owned?'owned':'trial');tag.textContent=character.owned?'なかま':'お試し候補';
+      const tag=document.createElement('span');tag.className='tag '+(character.owned?'owned':'trial');tag.textContent=character.owned?'なかま ★'+Math.max(1,character.stars||1):'お試し候補';
       info.append(name,tag);card.append(art,info);collection.appendChild(card);
     }
   }
@@ -266,11 +268,16 @@ main{width:min(100%,720px);margin:auto;padding:14px 12px calc(env(safe-area-inse
     }
   }
 
-  async function commitResult(character){
+  async function commitResult(character,wasOwned){
     try{
-      progressState=await Progress.ownWanko(character.id);
+      if(wasOwned){
+        progressState=await Progress.recordDuplicateWankoDraw(character.id,economyDeviceId,10);
+      }else{
+        progressState=await Progress.ownWanko(character.id);
+      }
       queueProgressSync();
       character.owned=true;
+      character.stars=window.WankoGameProgress.starsFromState(progressState,character.id);
       return true;
     }catch(error){
       console.warn('Gacha ownership save failed',error);
@@ -292,17 +299,17 @@ main{width:min(100%,720px);margin:auto;padding:14px 12px calc(env(safe-area-inse
     playIntroFx();
     try{navigator.vibrate?.([30,30,70])}catch{}
     setTimeout(async()=>{
-      const saved=await commitResult(character);
+      const saved=await commitResult(character,wasOwned);
       machine.classList.remove('drawing');
       chargeHalo.style.setProperty('--charge','0deg');
       tapPad.textContent='タップ!';tapPad.disabled=false;
       document.getElementById('windowMark').textContent='?';
       chargeStatus.textContent='押すと4秒後に排出。連打すると早くなる！';
-      resultBadge.textContent=wasOwned?'GET!':'NEW!';
+      resultBadge.textContent=wasOwned?'★ UP!':'NEW!';
       resultBadge.style.background=wasOwned?'#e9e1d6':'#f7d45c';
       resultImage.src=character.image||'../assets/wanko-war.svg?v=1';
       resultName.textContent=character.name;
-      resultText.textContent=!saved?'端末への保存に失敗しました。もう一度ためしてください。':wasOwned?'もう仲間になっているわんこ！':'なかまになった！ バトルで使えるようになった。';
+      resultText.textContent=!saved?'端末への保存に失敗しました。もう一度ためしてください。':wasOwned?'★'+character.stars+'になった！ 🐾10ポイントもどってきた！':'なかまになった！ ★1からスタート。バトルで使えるようになった。';
       layer.classList.remove('newDraw','duplicateDraw');
       layer.classList.add(wasOwned?'duplicateDraw':'newDraw');
       layer.classList.add('show');
