@@ -1,5 +1,7 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
+const fs = require('node:fs');
+const path = require('node:path');
 const multiplication = require('../shared/wanko-mini-multiplication.js');
 
 test('multiplication streak scoring rises every eleven consecutive answers', () => {
@@ -30,4 +32,15 @@ test('multiplication round contains ninety-nine valid 1-to-9 facts', () => {
     assert.ok(question.b >= 1 && question.b <= 9);
     assert.equal(question.answer, question.a * question.b);
   }
+});
+
+
+test('multiplication page exposes pause resume and abandon controls', () => {
+  const html = fs.readFileSync(path.join(__dirname, '../wanko-mini/multiplication/index.html'), 'utf8');
+  assert.match(html, /id="resumeButton"/);
+  assert.match(html, /id="pauseButton"/);
+  assert.match(html, /id="giveUpButton"/);
+  assert.match(html, /wankoMultiplicationCheckpointV1/);
+  assert.match(html, /一時保存してやめる/);
+  assert.match(html, /あきらめる/);
 });
