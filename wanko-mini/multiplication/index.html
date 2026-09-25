@@ -20,6 +20,7 @@ main{width:min(100%,640px);margin:auto;padding:14px 12px calc(env(safe-area-inse
 .panel{border:3px solid var(--line);border-radius:24px;background:var(--card);box-shadow:0 6px 0 var(--line);padding:17px}.panel[hidden]{display:none}
 .hero{text-align:center;padding:8px 4px 5px}.heroIcon{font-size:64px;line-height:1}.hero h2{margin:7px 0 5px;font-size:29px}.hero p{margin:0;color:var(--muted);font-size:12px;font-weight:800;line-height:1.55}
 .ruleBox{margin-top:15px;border:2px solid var(--line);border-radius:17px;background:#fff;padding:12px}
+.resumeBox{margin-top:12px;padding:12px;border:2px solid var(--line);border-radius:15px;background:#e9f3df}.resumeBox[hidden]{display:none}.resumeTitle{font-size:13px;font-weight:1000}.resumeText{margin-top:3px;font-size:11px;font-weight:800;color:#665d53}.resumeButton{width:100%;min-height:46px;margin-top:9px;border:2px solid var(--line);border-radius:13px;background:#fff;font-weight:1000;box-shadow:0 3px 0 var(--line)}
 .ruleTitle{font-size:14px;font-weight:1000}.ruleText{margin-top:5px;font-size:11px;line-height:1.6;font-weight:800;color:#665d53}
 .milestones{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-top:10px}.milestone{padding:7px 5px;border-radius:10px;background:var(--purple);text-align:center;font-size:10px;font-weight:1000}.milestone b{display:block;font-size:15px;margin-bottom:2px}
 .startButton,.againButton,.menuButton{width:100%;min-height:50px;border:2.5px solid var(--line);border-radius:15px;font-weight:1000;box-shadow:0 4px 0 var(--line)}
@@ -30,7 +31,8 @@ main{width:min(100%,640px);margin:auto;padding:14px 12px calc(env(safe-area-inse
 .question{text-align:center;padding:12px 0 7px}.equation{font-size:clamp(45px,14vw,72px);font-weight:1000;letter-spacing:.02em;font-variant-numeric:tabular-nums}.possible{margin-top:6px;font-size:12px;font-weight:900;color:#7a6850;min-height:18px}
 .answerDisplay{margin:10px auto 8px;width:min(100%,330px);min-height:66px;display:grid;place-items:center;border:3px solid var(--line);border-radius:18px;background:#fff;font-size:34px;font-weight:1000;font-variant-numeric:tabular-nums}.answerDisplay.empty{color:#c6b8a7}
 .feedback{min-height:29px;text-align:center;font-size:13px;font-weight:1000;padding:4px}.feedback.good{color:#365d28}.feedback.bad{color:#9a3e31}
-.keypad{width:min(100%,360px);margin:7px auto 0;display:grid;grid-template-columns:repeat(3,1fr);gap:8px}.key{min-height:54px;border:2px solid var(--line);border-radius:15px;background:#fff;font-size:23px;font-weight:1000;box-shadow:0 3px 0 var(--line)}.key:active{transform:translateY(2px);box-shadow:0 1px 0 var(--line)}.key.action{font-size:14px;background:#eee6da}.key.submit{background:var(--gold);font-size:16px}
+.keypad{width:min(100%,360px);margin:7px auto 0;display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.gameActions{width:min(100%,360px);margin:12px auto 0;display:grid;grid-template-columns:1fr 1fr;gap:8px}.gameActions button{min-height:44px;border:2px solid var(--line);border-radius:13px;background:#fff;font-size:12px;font-weight:1000}.gameActions .giveUp{background:#f5e3de}.key{min-height:54px;border:2px solid var(--line);border-radius:15px;background:#fff;font-size:23px;font-weight:1000;box-shadow:0 3px 0 var(--line)}.key:active{transform:translateY(2px);box-shadow:0 1px 0 var(--line)}.key.action{font-size:14px;background:#eee6da}.key.submit{background:var(--gold);font-size:16px}
 .result{text-align:center}.resultIcon{font-size:72px}.result h2{margin:5px 0 2px;font-size:28px}.earned{font-size:40px;font-weight:1000;margin:8px 0}.result p{margin:5px 0;color:var(--muted);font-size:12px;font-weight:800;line-height:1.5}.perfect{margin:12px 0;padding:10px;border-radius:13px;background:#fff2b5;border:1.5px solid var(--line);font-size:12px;font-weight:1000}
 @media(max-width:420px){header h1{font-size:17px}.player{display:none}.panel{padding:14px}.equation{font-size:46px}.key{min-height:50px}.milestones{grid-template-columns:repeat(2,1fr)}}
 @media(prefers-reduced-motion:reduce){*{transition:none!important}}
@@ -63,6 +65,11 @@ main{width:min(100%,640px);margin:auto;padding:14px 12px calc(env(safe-area-inse
         <div class="milestone"><b>89〜99</b>9pt / 問</div>
       </div>
       <div class="ruleText">✨ 99問を一度も間違えずに正解すると <b>495pt</b>。</div>
+    </div>
+    <div class="resumeBox" id="resumeBox" hidden>
+      <div class="resumeTitle">つづきがあります</div>
+      <div class="resumeText" id="resumeText">0 / 99</div>
+      <button class="resumeButton" id="resumeButton" type="button">つづきから</button>
     </div>
     <button class="startButton" id="startButton" type="button">99もん スタート</button>
   </section>
@@ -97,6 +104,10 @@ main{width:min(100%,640px);margin:auto;padding:14px 12px calc(env(safe-area-inse
       <button class="key" type="button" data-digit="0">0</button>
       <button class="key submit" type="button" id="submitButton">こたえる</button>
     </div>
+    <div class="gameActions">
+      <button id="pauseButton" type="button">一時保存してやめる</button>
+      <button class="giveUp" id="giveUpButton" type="button">あきらめる</button>
+    </div>
   </section>
 
   <section class="panel result" id="resultPanel" hidden>
@@ -129,6 +140,11 @@ main{width:min(100%,640px);margin:auto;padding:14px 12px calc(env(safe-area-inse
   const resultPanel=document.getElementById('resultPanel');
   const startButton=document.getElementById('startButton');
   const againButton=document.getElementById('againButton');
+  const resumeBox=document.getElementById('resumeBox');
+  const resumeText=document.getElementById('resumeText');
+  const resumeButton=document.getElementById('resumeButton');
+  const pauseButton=document.getElementById('pauseButton');
+  const giveUpButton=document.getElementById('giveUpButton');
   const playerBadge=document.getElementById('playerBadge');
   const walletPoints=document.getElementById('walletPoints');
   const progressFill=document.getElementById('progressFill');
@@ -149,7 +165,7 @@ main{width:min(100%,640px);margin:auto;padding:14px 12px calc(env(safe-area-inse
 
   let Progress=window.WankoGameProgress;
   let progressSync=null,progressState=null,sharedApi=null,sessionProfile=null;
-  let round=[],index=0,answerText='',streak=0,bestStreak=0,totalScore=0,mistakes=0,locked=false,roundFinished=false;
+  let round=[],index=0,answerText='',streak=0,bestStreak=0,totalScore=0,mistakes=0,locked=false,roundFinished=false,challengeActive=false;
 
   function getEconomyDeviceId(){
     const key='wankoEconomyDeviceId';
@@ -163,6 +179,45 @@ main{width:min(100%,640px);margin:auto;padding:14px 12px calc(env(safe-area-inse
     return id;
   }
   const economyDeviceId=getEconomyDeviceId();
+
+  function checkpointKey(){
+    return 'wankoMultiplicationCheckpointV1:'+(sessionProfile?.id||'local');
+  }
+
+  function validCheckpoint(value){
+    if(!value||value.version!==1||!Array.isArray(value.round)||value.round.length!==99)return false;
+    if(!Number.isInteger(value.index)||value.index<0||value.index>=99)return false;
+    if(!value.round.every(q=>Number.isInteger(q?.a)&&q.a>=1&&q.a<=9&&Number.isInteger(q?.b)&&q.b>=1&&q.b<=9&&q.answer===q.a*q.b))return false;
+    return ['streak','bestStreak','totalScore','mistakes'].every(key=>Number.isFinite(Number(value[key]))&&Number(value[key])>=0);
+  }
+
+  function readCheckpoint(){
+    try{
+      const value=JSON.parse(localStorage.getItem(checkpointKey())||'null');
+      return validCheckpoint(value)?value:null;
+    }catch{return null}
+  }
+
+  function clearCheckpoint(){
+    try{localStorage.removeItem(checkpointKey())}catch{}
+  }
+
+  function saveCheckpoint(){
+    if(!challengeActive||!round.length||index>=round.length)return;
+    const value={version:1,round,index,streak,bestStreak,totalScore,mistakes,updatedAt:Date.now()};
+    try{localStorage.setItem(checkpointKey(),JSON.stringify(value))}catch{}
+  }
+
+  function refreshResumeBox(){
+    const saved=readCheckpoint();
+    resumeBox.hidden=!saved;
+    if(saved){
+      resumeText.textContent=saved.index+' / 99 までクリア ・ '+saved.streak+'問れんぞく ・ 今回 '+saved.totalScore+'pt';
+      startButton.textContent='はじめから';
+    }else{
+      startButton.textContent='99もん スタート';
+    }
+  }
 
   function queueProgressSync(){
     if(progressSync&&progressState)progressSync.schedule(progressState);
@@ -188,6 +243,7 @@ main{width:min(100%,640px);margin:auto;padding:14px 12px calc(env(safe-area-inse
       playerBadge.textContent='端末保存';
     }
     updateWallet();
+    refreshResumeBox();
   }
 
   function updateWallet(){
@@ -220,11 +276,47 @@ main{width:min(100%,640px);margin:auto;padding:14px 12px calc(env(safe-area-inse
   }
 
   function startRound(){
+    clearCheckpoint();
     round=window.WankoMiniMultiplication.createRound(99);
-    index=0;answerText='';streak=0;bestStreak=0;totalScore=0;mistakes=0;locked=false;roundFinished=false;
+    index=0;answerText='';streak=0;bestStreak=0;totalScore=0;mistakes=0;locked=false;roundFinished=false;challengeActive=true;
+    perfectMessage.hidden=true;
+    introPanel.hidden=true;resultPanel.hidden=true;gamePanel.hidden=false;
+    saveCheckpoint();
+    renderQuestion();
+  }
+
+  function resumeRound(){
+    const saved=readCheckpoint();
+    if(!saved){refreshResumeBox();return}
+    round=saved.round;
+    index=saved.index;
+    streak=Math.floor(saved.streak);
+    bestStreak=Math.floor(saved.bestStreak);
+    totalScore=Math.floor(saved.totalScore);
+    mistakes=Math.floor(saved.mistakes);
+    answerText='';locked=false;roundFinished=false;challengeActive=true;
     perfectMessage.hidden=true;
     introPanel.hidden=true;resultPanel.hidden=true;gamePanel.hidden=false;
     renderQuestion();
+  }
+
+  function pauseAndQuit(){
+    if(!challengeActive)return;
+    saveCheckpoint();
+    challengeActive=false;
+    gamePanel.hidden=true;resultPanel.hidden=true;introPanel.hidden=false;
+    refreshResumeBox();
+    if(progressSync)void progressSync.flush();
+  }
+
+  function giveUp(){
+    if(!challengeActive)return;
+    if(window.confirm&&!window.confirm('この99問チャレンジをあきらめますか？ ここまでの🐾ポイントは残ります。'))return;
+    challengeActive=false;
+    clearCheckpoint();
+    gamePanel.hidden=true;resultPanel.hidden=true;introPanel.hidden=false;
+    refreshResumeBox();
+    if(progressSync)void progressSync.flush();
   }
 
   function addDigit(digit){
@@ -236,7 +328,8 @@ main{width:min(100%,640px);margin:auto;padding:14px 12px calc(env(safe-area-inse
 
   async function finishRound(){
     if(roundFinished)return;
-    roundFinished=true;locked=true;
+    roundFinished=true;locked=true;challengeActive=false;
+    clearCheckpoint();
     progressFill.style.width='100%';
     gamePanel.hidden=true;resultPanel.hidden=false;
     earnedPoints.textContent='+'+totalScore+'pt';
@@ -259,6 +352,7 @@ main{width:min(100%,640px);margin:auto;padding:14px 12px calc(env(safe-area-inse
       possible.textContent='ストリークが0にもどった。正解すると +1pt';
       feedback.textContent='ちがうよ。同じ問題でもういちど！';
       feedback.className='feedback bad';
+      saveCheckpoint();
       try{navigator.vibrate?.(25)}catch{}
       return;
     }
@@ -283,8 +377,9 @@ main{width:min(100%,640px);margin:auto;padding:14px 12px calc(env(safe-area-inse
       feedback.textContent='せいかい！ ただしポイント保存を確認できませんでした。';
     }
 
+    index++;
+    if(index<round.length)saveCheckpoint();
     setTimeout(()=>{
-      index++;
       if(index>=round.length){void finishRound();return}
       renderQuestion();
     },360);
@@ -297,11 +392,15 @@ main{width:min(100%,640px);margin:auto;padding:14px 12px calc(env(safe-area-inse
   backspaceButton.addEventListener('click',()=>{if(!locked){answerText=answerText.slice(0,-1);renderAnswer()}});
   submitButton.addEventListener('click',()=>void submitAnswer());
   startButton.addEventListener('click',startRound);
+  resumeButton.addEventListener('click',resumeRound);
+  pauseButton.addEventListener('click',pauseAndQuit);
+  giveUpButton.addEventListener('click',giveUp);
   againButton.addEventListener('click',startRound);
-  window.addEventListener('pagehide',()=>{if(progressSync)void progressSync.flush()});
+  window.addEventListener('pagehide',()=>{if(challengeActive)saveCheckpoint();if(progressSync)void progressSync.flush()});
   document.addEventListener('gesturestart',event=>event.preventDefault(),{passive:false});
 
-  setupProfile().catch(error=>{console.error(error);playerBadge.textContent='端末保存'});
+  refreshResumeBox();
+  setupProfile().catch(error=>{console.error(error);playerBadge.textContent='端末保存';refreshResumeBox()});
 })();
 </script>
 </body>
