@@ -15,7 +15,7 @@ const PRIORITY_ORDER = [
   'Li','F','Br','I','Ag','Sn','Pb','Hg','Ni','Cr','Mn','Co'
 ];
 const CHARACTER_IDS = [
-  ...Array.from({ length: 8 }, (_, i) => `W${String(i + 1).padStart(2, '0')}`),
+  ...Array.from({ length: 12 }, (_, i) => `W${String(i + 1).padStart(2, '0')}`),
   ...Array.from({ length: 12 }, (_, i) => `E${String(i + 1).padStart(2, '0')}`),
   ...Array.from({ length: 8 }, (_, i) => `B${String(i + 1).padStart(2, '0')}`)
 ];
@@ -44,7 +44,7 @@ test('orders the familiar elements first, remaining elements by atomic number, a
   assert.equal(ordered.at(-1).id, 'S118');
 });
 
-test('defines exactly 28 characters with correct factions and separated artwork', () => {
+test('defines exactly 32 characters with correct factions and official ally artwork', () => {
   assert.deepEqual(Object.keys(game.characters).sort(), [...CHARACTER_IDS].sort());
   for (const id of CHARACTER_IDS) {
     const character = game.getCharacter(id);
@@ -54,11 +54,26 @@ test('defines exactly 28 characters with correct factions and separated artwork'
     assert.ok(character.stats.hp > 0);
     assert.ok(character.stats.damage > 0);
     assert.ok(character.placeholder);
-    assert.equal(character.artwork, null);
+    if (['W09','W10','W11','W12'].includes(id)) assert.match(character.artwork, /assets\/official-wankos\//);
+    else assert.equal(character.artwork, null);
   }
   assert.equal(game.getCharacter('W01').legacyWankoId, 'futsuu-no-wanko');
   assert.equal(game.getCharacter('W05').legacyWankoId, 'naganeko');
   assert.equal(game.getCharacter('W03').legacyWankoId, 'inusensha');
+  assert.equal(game.getCharacter('W09').legacyWankoId, 'kurionen');
+  assert.equal(game.getCharacter('W10').legacyWankoId, 'nen-o-kometa-snake');
+  assert.equal(game.getCharacter('W11').legacyWankoId, 'bakuhatsu-dama');
+  assert.equal(game.getCharacter('W12').legacyWankoId, 'hammer');
+  assert.equal(game.getCharacter('W09').unlockAfterStage, 'S015');
+  assert.equal(game.getCharacter('W10').unlockAfterStage, 'S030');
+  assert.equal(game.getCharacter('W11').unlockAfterStage, 'S060');
+  assert.equal(game.getCharacter('W12').unlockAfterStage, 'S090');
+  assert.deepEqual(game.getCharacter('W11').behavior, {
+    selfDestruct: true,
+    splashRadius: 72,
+    maxTargets: 3,
+    explosionParticles: true
+  });
   assert.equal(game.getCharacter('B01').kind, 'boss');
 });
 
