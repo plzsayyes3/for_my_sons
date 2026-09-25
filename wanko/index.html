@@ -85,6 +85,7 @@ main{width:min(100%,700px);margin:auto;padding:2px 14px calc(env(safe-area-inset
 <script src="../shared/settings-view.js?v=6"></script>
 <script src="../shared/wanko-game-data.js?v=2"></script>
 <script src="../shared/wanko-game-progress.js?v=6"></script>
+<script src="../shared/wanko-profile-sync.js?v=1"></script>
 <script>
 (async()=>{
   const nameEl=document.getElementById('profileName');
@@ -99,7 +100,18 @@ main{width:min(100%,700px);margin:auto;padding:2px 14px calc(env(safe-area-inset
     const unset=profile.id==='profile-1'&&profile.label==='profile-1';
     nameEl.textContent=unset?'プレイヤー未設定':profile.label;
     const progress=window.WankoGameProgress.createProfileStore(profile.id,api.save,window.WankoGameData);
-    const state=await progress.getState();
+    let state=await progress.getState();
+    if(window.WankoProfileSync?.createWankoProfileSync){
+      const sync=window.WankoProfileSync.createWankoProfileSync({
+        api,
+        profileId:profile.id,
+        definitions:window.WankoGameData,
+        progressStore:progress,
+        confirmLegacy:async()=>false
+      });
+      const initialized=await sync.initialize();
+      state=initialized.state;
+    }
     const cleared=state.clearedStageIds.length;
     const selected=window.WankoGameData.getStage(state.selectedStageId)||window.WankoGameData.stages[0];
     const next=state.clearedStageIds.includes(selected.id)?window.WankoGameData.stages[selected.sequence]||selected:selected;
