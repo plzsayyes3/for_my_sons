@@ -38,7 +38,6 @@
       faction: "ally",
       path: "../official-wankos/hammer.wanko.json?v=2"
     }
-    }
   ];
   const cache = new Map();
 
