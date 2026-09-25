@@ -18,7 +18,8 @@
     discoveredElementIds: [],
     discoveredCharacterIds: [],
     clearedStageIds: [],
-    selectedWanko: null
+    selectedWanko: null,
+    ownedWankoIds: []
   });
 
   function normalizeState(raw, definitions) {
@@ -48,7 +49,12 @@
       && rawWanko.id.trim()
       ? { source: rawWanko.source, id: rawWanko.id.trim().slice(0, 120) }
       : null;
-    return { selectedStageId, discoveredElementIds, discoveredCharacterIds, clearedStageIds, selectedWanko };
+    const ownedWankoIds = [...new Set(
+      (Array.isArray(value.ownedWankoIds) ? value.ownedWankoIds : [])
+        .filter(id => typeof id === 'string' && id.trim())
+        .map(id => id.trim().slice(0, 120))
+    )].sort();
+    return { selectedStageId, discoveredElementIds, discoveredCharacterIds, clearedStageIds, selectedWanko, ownedWankoIds };
   }
 
   function mergeStates(left, right, definitions) {
@@ -62,7 +68,8 @@
       discoveredElementIds: [...a.discoveredElementIds, ...b.discoveredElementIds],
       discoveredCharacterIds: [...a.discoveredCharacterIds, ...b.discoveredCharacterIds],
       clearedStageIds: [...a.clearedStageIds, ...b.clearedStageIds],
-      selectedWanko: a.selectedWanko || b.selectedWanko
+      selectedWanko: a.selectedWanko || b.selectedWanko,
+      ownedWankoIds: [...a.ownedWankoIds, ...b.ownedWankoIds]
     }, definitions);
   }
 
@@ -165,6 +172,20 @@
       }));
     }
 
+    async function ownWanko(wankoId) {
+      const id = typeof wankoId === 'string' ? wankoId.trim().slice(0, 120) : '';
+      if (!id) throw new TypeError('wankoId is required');
+      return writeState(current => current.ownedWankoIds.includes(id)
+        ? current
+        : { ...current, ownedWankoIds: [...current.ownedWankoIds, id] });
+    }
+
+    async function isWankoOwned(wankoId) {
+      const id = typeof wankoId === 'string' ? wankoId.trim() : '';
+      if (!id) return false;
+      return (await readState()).ownedWankoIds.includes(id);
+    }
+
     async function importState(raw) {
       const next = normalize(raw);
       await storage.setMeta(META_KEY, next);
@@ -187,6 +208,8 @@
       startStage,
       completeStage,
       setSelectedWanko,
+      ownWanko,
+      isWankoOwned,
       importState,
       isStageUnlocked,
       isCharacterUnlocked
