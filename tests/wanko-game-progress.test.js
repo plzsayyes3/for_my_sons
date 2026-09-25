@@ -17,7 +17,7 @@ function memoryStorage(initialValue = null) {
 test('starts with only S001 playable and unlocked ally slots available', async () => {
   const store = createProgressStore(memoryStorage(), game);
   assert.deepEqual(await store.getState(), {
-    selectedStageId: 'S001', discoveredElementIds: [], discoveredCharacterIds: [], clearedStageIds: [], selectedWanko: null, ownedWankoIds: []
+    selectedStageId: 'S001', discoveredElementIds: [], discoveredCharacterIds: [], clearedStageIds: [], selectedWanko: null, ownedWankoIds: [], economy: { pointEarned: {}, pointSpent: {}, ticketEarned: {}, ticketSpent: {} }
   });
   assert.equal(await store.isStageUnlocked('S001'), true);
   assert.equal(await store.isStageUnlocked('S002'), false);
@@ -47,7 +47,7 @@ test('starting an unlocked stage selects it and discovers its element', async ()
   const store = createProgressStore(storage, game);
   await store.startStage('S001');
   assert.deepEqual(await store.getState(), {
-    selectedStageId: 'S001', discoveredElementIds: [1], discoveredCharacterIds: [], clearedStageIds: [], selectedWanko: null, ownedWankoIds: []
+    selectedStageId: 'S001', discoveredElementIds: [1], discoveredCharacterIds: [], clearedStageIds: [], selectedWanko: null, ownedWankoIds: [], economy: { pointEarned: {}, pointSpent: {}, ticketEarned: {}, ticketSpent: {} }
   });
   assert.equal(storage.key(), 'wankoGameProgressV1');
 });
@@ -105,7 +105,7 @@ test('repairs malformed saved progress without losing valid IDs', async () => {
   });
   const store = createProgressStore(storage, game);
   assert.deepEqual(await store.getState(), {
-    selectedStageId: 'S001', discoveredElementIds: [1, 79], discoveredCharacterIds: ['E01'], clearedStageIds: ['S001'], selectedWanko: null, ownedWankoIds: []
+    selectedStageId: 'S001', discoveredElementIds: [1, 79], discoveredCharacterIds: ['E01'], clearedStageIds: ['S001'], selectedWanko: null, ownedWankoIds: [], economy: { pointEarned: {}, pointSpent: {}, ticketEarned: {}, ticketSpent: {} }
   });
 });
 
@@ -137,4 +137,28 @@ test('merges gacha ownership by union across devices', () => {
     game
   );
   assert.deepEqual(merged.ownedWankoIds, ['drawing-a', 'drawing-b']);
+});
+
+
+test('awards points and exchanges them for gacha tickets', async () => {
+  const store = createProgressStore(memoryStorage(), game);
+  await store.awardPoints(3, 'device-a');
+  await store.awardPoints(10, 'device-a');
+  assert.deepEqual(await store.getWallet(), { points: 13, tickets: 0 });
+  await assert.rejects(store.exchangePointsForTicket(20, 'device-a'), /not enough points/i);
+  await store.awardPoints(7, 'device-a');
+  await store.exchangePointsForTicket(20, 'device-a');
+  assert.deepEqual(await store.getWallet(), { points: 0, tickets: 1 });
+  await store.spendGachaTicket('device-a');
+  assert.deepEqual(await store.getWallet(), { points: 0, tickets: 0 });
+  await assert.rejects(store.spendGachaTicket('device-a'), /no gacha ticket/i);
+});
+
+test('merges economy counters by device without losing concurrent gains', () => {
+  const merged = mergeStates(
+    { economy: { pointEarned: { 'device-a': 5 }, pointSpent: {}, ticketEarned: {}, ticketSpent: {} } },
+    { economy: { pointEarned: { 'device-b': 7 }, pointSpent: {}, ticketEarned: {}, ticketSpent: {} } },
+    game
+  );
+  assert.deepEqual(merged.economy.pointEarned, { 'device-a': 5, 'device-b': 7 });
 });
