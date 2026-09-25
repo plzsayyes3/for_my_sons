@@ -6,7 +6,7 @@
 <meta name="theme-color" content="#f6efe3">
 <title>わんこミニゲーム</title>
 <style>
-:root{--ink:#29251f;--line:#332f29;--paper:#f7f0e4;--gold:#ffe27a;--green:#e7f2d7;--blue:#e5eef8}
+:root{--ink:#29251f;--line:#332f29;--paper:#f7f0e4;--gold:#ffe27a;--green:#e7f2d7;--blue:#e5eef8;--orange:#f8ead3}
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 html,body{margin:0;min-height:100%;background:linear-gradient(#fff9ef,#f3eadc);color:var(--ink);font-family:-apple-system,BlinkMacSystemFont,"Hiragino Sans","Yu Gothic",system-ui,sans-serif;-webkit-text-size-adjust:100%;user-select:none}
 body{min-height:100svh}
@@ -18,7 +18,7 @@ main{width:min(100%,680px);margin:auto;padding:8px 14px calc(env(safe-area-inset
 .hero{padding:16px 10px;text-align:center}.heroIcon{font-size:62px}.hero h2{margin:7px 0 5px;font-size:29px}.hero p{margin:0;font-size:12px;font-weight:800;color:#74695c;line-height:1.55}
 .games{display:grid;gap:13px;margin-top:10px}
 .game{display:grid;grid-template-columns:66px minmax(0,1fr) auto;align-items:center;gap:12px;min-height:102px;padding:14px;border:3px solid var(--line);border-radius:22px;text-decoration:none;box-shadow:0 5px 0 var(--line)}
-.game.add{background:var(--green)}.game.sub{background:var(--blue)}
+.game.add{background:var(--green)}.game.sub{background:var(--blue)}.game.mul{background:var(--orange)}
 .game:active{transform:translateY(3px);box-shadow:0 2px 0 var(--line)}
 .icon{font-size:44px;text-align:center}.name{font-size:21px;font-weight:1000}.desc{margin-top:4px;font-size:11px;font-weight:800;color:#675e54;line-height:1.45}.arrow{font-size:26px;font-weight:1000}
 .sizeLine{margin-top:7px;display:flex;align-items:flex-end;gap:4px;height:28px}.sizeLine span{line-height:1}.ant{font-size:12px}.mouse{font-size:15px}.dog{font-size:18px}.elephant{font-size:22px}.whale{font-size:27px}
@@ -28,7 +28,7 @@ main{width:min(100%,680px);margin:auto;padding:8px 14px calc(env(safe-area-inset
 </head>
 <body>
 <header>
-  <a class="back" href="../wanko/?v=6" aria-label="わんこトップへ">‹</a>
+  <a class="back" href="../wanko/?v=7" aria-label="わんこトップへ">‹</a>
   <h1>ミニゲーム</h1>
   <div class="spacer"></div>
   <span class="pill">🐾 <b id="points">0</b></span>
@@ -36,7 +36,7 @@ main{width:min(100%,680px);margin:auto;padding:8px 14px calc(env(safe-area-inset
 <main>
   <section class="hero">
     <div class="heroIcon">🎮🐶</div>
-    <h2>どっちであそぶ？</h2>
+    <h2>どれであそぶ？</h2>
     <p>からだが大きいどうぶつほど難しいコース。もらったポイントはガチャ券に交換できます。</p>
   </section>
   <section class="games">
@@ -55,6 +55,15 @@ main{width:min(100%,680px);margin:auto;padding:8px 14px calc(env(safe-area-inset
         <div class="name">ひきざん</div>
         <div class="desc">答えがマイナスにならない問題で、同じ5コース</div>
         <div class="sizeLine" aria-hidden="true"><span class="ant">🐜</span><span class="mouse">🐭</span><span class="dog">🐕</span><span class="elephant">🐘</span><span class="whale">🐋</span></div>
+      </div>
+      <div class="arrow">›</div>
+    </a>
+    <a class="game mul" href="./multiplication/?v=1">
+      <div class="icon">✖️</div>
+      <div>
+        <div class="name">かけざん</div>
+        <div class="desc">99問チャレンジ。連続正解で1問あたりのポイントが上がる</div>
+        <div class="sizeLine" aria-hidden="true"><span class="ant">1</span><span class="mouse">×</span><span class="dog">9</span><span class="elephant">🔥</span><span class="whale">99</span></div>
       </div>
       <div class="arrow">›</div>
     </a>
