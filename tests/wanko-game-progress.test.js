@@ -71,6 +71,15 @@ test('records discovered enemy and boss IDs without accepting ally IDs', async (
   await assert.rejects(store.discoverCharacter('missing'), /unknown/i);
 });
 
+test('ignores reserved ally IDs if an old or edited save contains them', async () => {
+  const storage = memoryStorage({
+    selectedStageId: 'S001', discoveredElementIds: [], discoveredCharacterIds: ['E01', 'W13', 'W32'], clearedStageIds: []
+  });
+  const store = createProgressStore(storage, game);
+  assert.deepEqual((await store.getState()).discoveredCharacterIds, ['E01']);
+  await assert.rejects(store.discoverCharacter('W13'), /not an enemy/i);
+});
+
 test('winning unlocks the next stage and its milestone ally without duplicate records', async () => {
   const store = createProgressStore(memoryStorage(), game);
   for (let number = 1; number <= 10; number++) {

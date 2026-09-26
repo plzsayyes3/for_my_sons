@@ -6,7 +6,7 @@
   function buildAllyCards(characters, progress) {
     const cleared = new Set(progress?.clearedStageIds || []);
     return Object.values(characters)
-      .filter(character => character.faction === 'ally')
+      .filter(character => character.faction === 'ally' && !character.reserved && character.stats)
       .sort((a, b) => a.id.localeCompare(b.id))
       .map(character => ({
         id: character.id,

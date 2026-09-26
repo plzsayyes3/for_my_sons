@@ -15,7 +15,7 @@ const PRIORITY_ORDER = [
   'Li','F','Br','I','Ag','Sn','Pb','Hg','Ni','Cr','Mn','Co'
 ];
 const CHARACTER_IDS = [
-  ...Array.from({ length: 12 }, (_, i) => `W${String(i + 1).padStart(2, '0')}`),
+  ...Array.from({ length: 32 }, (_, i) => `W${String(i + 1).padStart(2, '0')}`),
   ...Array.from({ length: 12 }, (_, i) => `E${String(i + 1).padStart(2, '0')}`),
   ...Array.from({ length: 8 }, (_, i) => `B${String(i + 1).padStart(2, '0')}`)
 ];
@@ -44,13 +44,24 @@ test('orders the familiar elements first, remaining elements by atomic number, a
   assert.equal(ordered.at(-1).id, 'S118');
 });
 
-test('defines exactly 32 characters with correct factions and official ally artwork', () => {
+test('defines W01-W12 as usable allies and W13-W32 as hidden reservation slots', () => {
+  assert.deepEqual(game.getSelectableAllyIds(), Array.from({ length: 12 }, (_, i) => `W${String(i + 1).padStart(2, '0')}`));
+  assert.deepEqual(game.getReservedAllyIds(), Array.from({ length: 20 }, (_, i) => `W${String(i + 13).padStart(2, '0')}`));
+});
+
+test('defines exactly 52 characters with correct factions and official ally artwork', () => {
+  assert.equal(Object.keys(game.characters).length, 52);
   assert.deepEqual(Object.keys(game.characters).sort(), [...CHARACTER_IDS].sort());
   for (const id of CHARACTER_IDS) {
     const character = game.getCharacter(id);
     const faction = id.startsWith('W') ? 'ally' : 'enemy';
     assert.equal(character.faction, faction, `${id} faction`);
     assert.ok(character.role);
+    if (character.reserved) {
+      assert.equal(character.stats, null);
+      assert.equal(character.placeholder, null);
+      continue;
+    }
     assert.ok(character.stats.hp > 0);
     assert.ok(character.stats.damage > 0);
     assert.ok(character.placeholder);

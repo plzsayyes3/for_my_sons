@@ -238,7 +238,7 @@
   const DOGS={
     legacyBig:{cost:280,hp:310,damage:58,speed:25,range:50,cooldown:1.18,sprite:'🐩',className:'big'}
   };
-  for(const id of Object.keys(GameData.characters).filter(id=>id.startsWith('W'))){
+  for(const id of GameData.getSelectableAllyIds()){
     const character=GameData.getCharacter(id);
     DOGS[id]={...character,...character.stats,sprite:character.placeholder,className:character.role};
   }
@@ -596,7 +596,7 @@
 
   function renderAllyCards(state){
     unlockedCards.replaceChildren();
-    const unlockedIds=Object.keys(GameData.characters).filter(id=>id.startsWith('W')&&id!=='W01'&&id!=='W02');
+    const unlockedIds=GameData.getSelectableAllyIds().filter(id=>id!=='W01'&&id!=='W02');
     for(const id of unlockedIds){
       const character=GameData.getCharacter(id);
       const isUnlocked=!character.unlockAfterStage||state.clearedStageIds.includes(character.unlockAfterStage);

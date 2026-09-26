@@ -6,7 +6,8 @@ const view = require('../shared/wanko-library-view.js');
 test('ally cards distinguish placeholder art and unlock milestone characters from clears', () => {
   const progress = { discoveredElementIds: [], clearedStageIds: [] };
   const cards = view.buildAllyCards(game.characters, progress);
-  assert.equal(cards.length, 8);
+  assert.equal(cards.length, 12);
+  assert.equal(cards.some(card => card.id === 'W13'), false);
   assert.equal(cards.find(card => card.id === 'W01').characterStatus, 'placeholder');
   assert.equal(cards.find(card => card.id === 'W01').unlocked, true);
   assert.equal(cards.find(card => card.id === 'W03').unlocked, false);
@@ -14,6 +15,15 @@ test('ally cards distinguish placeholder art and unlock milestone characters fro
 
   const unlocked = view.buildAllyCards(game.characters, { ...progress, clearedStageIds: ['S010'] });
   assert.equal(unlocked.find(card => card.id === 'W03').unlocked, true);
+});
+
+test('ally cards never expose reserved slots even when legacy progress mentions them', () => {
+  const cards = view.buildAllyCards(game.characters, {
+    clearedStageIds: ['S010'],
+    discoveredCharacterIds: ['W13', 'W32']
+  });
+  assert.deepEqual(cards.map(card => card.id), game.getSelectableAllyIds());
+  assert.equal(cards.some(card => card.id >= 'W13'), false);
 });
 
 test('enemy cards hide unrevealed identity and show discovered E and B slots', () => {

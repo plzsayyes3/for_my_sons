@@ -59,8 +59,12 @@
       unlockAfterStage,
       legacyWankoId,
       renderScale: Number(options.renderScale) || 1,
-      behavior: options.behavior || {}
+      behavior: options.behavior || {},
+      reserved: Boolean(options.reserved)
     };
+  }
+  function reservedAlly(id) {
+    return ally(id, null, 'reserved', null, null, null, null, { reserved: true });
   }
   function foe(id, faction, name, role, placeholder, stats) {
     return { id, faction: faction === 'boss' ? 'enemy' : faction, kind: faction === 'boss' ? 'boss' : 'unit', role, name, placeholder, artwork: null, stats, unlockAfterStage: null, legacyWankoId: null };
@@ -87,6 +91,11 @@
     W12: ally('W12','ハンマー','attacker','🔨',{cost:180,hp:140,damage:30,speed:46,range:44,cooldown:.72},'S090','hammer',{
       artwork:'../assets/official-wankos/hammer.png?v=1',renderScale:2
     }),
+    W13: reservedAlly('W13'), W14: reservedAlly('W14'), W15: reservedAlly('W15'), W16: reservedAlly('W16'),
+    W17: reservedAlly('W17'), W18: reservedAlly('W18'), W19: reservedAlly('W19'), W20: reservedAlly('W20'),
+    W21: reservedAlly('W21'), W22: reservedAlly('W22'), W23: reservedAlly('W23'), W24: reservedAlly('W24'),
+    W25: reservedAlly('W25'), W26: reservedAlly('W26'), W27: reservedAlly('W27'), W28: reservedAlly('W28'),
+    W29: reservedAlly('W29'), W30: reservedAlly('W30'), W31: reservedAlly('W31'), W32: reservedAlly('W32'),
     E01: foe('E01','enemy','ぷるぷる','basic','👾',{hp:90,damage:17,speed:31,range:39,cooldown:.9}),
     E02: foe('E02','enemy','おにわん','tank','👹',{hp:145,damage:24,speed:23,range:42,cooldown:1.05}),
     E03: foe('E03','enemy','かけぬけ','fast','🦹',{hp:65,damage:13,speed:51,range:35,cooldown:.68}),
@@ -173,7 +182,12 @@
     if (elements.length !== 118 || stages.length !== 118) errors.push('expected 118 elements and stages');
     if (new Set(elements.map(element => element.atomicNumber)).size !== 118) errors.push('duplicate atomic number');
     if (new Set(elements.map(element => element.symbol)).size !== 118) errors.push('duplicate element symbol');
-    if (Object.keys(characters).length !== 32) errors.push('expected 32 character slots');
+    if (Object.keys(characters).length !== 52) errors.push('expected 52 character slots');
+    if (Object.values(characters).filter(character => character.reserved).length !== 20) errors.push('expected 20 reserved ally slots');
+    for (const character of Object.values(characters)) {
+      if (character.reserved && (character.faction !== 'ally' || character.stats !== null)) errors.push(`${character.id}: invalid reserved ally`);
+      if (!character.reserved && (!character.stats || character.stats.hp <= 0)) errors.push(`${character.id}: missing stats`);
+    }
     for (const stage of stages) {
       if (!elementById.has(stage.elementId)) errors.push(`${stage.id}: unknown element`);
       for (const event of stage.enemyEvents) {
@@ -191,6 +205,9 @@
     getElementBySymbol: symbol => elementBySymbol.get(symbol) || null,
     getStage: id => stageById.get(id) || null,
     getCharacter: id => characters[id] || null,
+    isSelectableAlly: character => Boolean(character && character.faction === 'ally' && !character.reserved && character.stats),
+    getSelectableAllyIds: () => Object.values(characters).filter(character => character.faction === 'ally' && !character.reserved && character.stats).map(character => character.id),
+    getReservedAllyIds: () => Object.values(characters).filter(character => character.faction === 'ally' && character.reserved).map(character => character.id),
     expandEnemyEvents,
     buildStagePlan,
     validateDefinitions
