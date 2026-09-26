@@ -402,7 +402,7 @@ main{width:min(100%,640px);margin:auto;padding:14px 12px calc(env(safe-area-inse
   pauseButton.addEventListener('click',pauseAndQuit);
   giveUpButton.addEventListener('click',giveUp);
   againButton.addEventListener('click',startRound);
-  window.addEventListener('pagehide',()=>{if(challengeActive)saveCheckpoint();if(progressSync)void progressSync.flush();try{progressChannel?.close()}catch{}});
+  window.addEventListener('pagehide',()=>{if(challengeActive)saveCheckpoint();if(progressSync)void progressSync.flush()});
   document.addEventListener('gesturestart',event=>event.preventDefault(),{passive:false});
 
   refreshResumeBox();
