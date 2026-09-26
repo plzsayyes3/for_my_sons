@@ -383,7 +383,7 @@ main{width:min(100%,640px);margin:auto;padding:14px 12px calc(env(safe-area-inse
     gamePanel.hidden=true;
     introPanel.hidden=false;
   });
-  window.addEventListener('pagehide',()=>{if(progressSync)void progressSync.flush();try{progressChannel?.close()}catch{}});
+  window.addEventListener('pagehide',()=>{if(progressSync)void progressSync.flush()});
   document.addEventListener('gesturestart',event=>event.preventDefault(),{passive:false});
 
   setupProfile().catch(error=>{
