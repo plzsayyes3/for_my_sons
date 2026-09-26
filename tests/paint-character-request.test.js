@@ -20,7 +20,8 @@ test('Paint source uses the shared request facade and does not build official st
   assert.match(source, /登録依頼を送信しました/);
   assert.doesNotMatch(source, /official-wankos/);
   assert.doesNotMatch(source, /cost:\s*180/);
-  assert.doesNotMatch(source, /WankoLibrary\.registerWanko/);
+  assert.match(source, /WankoLibrary\.registerWanko/);
+  assert.match(source, /characterRequestId:\s*request\.requestId/);
   assert.match(source, /認証が必要です/);
   assert.match(source, /競合しています/);
 });

@@ -652,6 +652,21 @@ async function confirmWankoRegistration() {
       console.warn("Character request sync deferred", error);
     }
 
+    let librarySaved = true;
+    try {
+      if (window.WankoLibrary?.registerWanko) {
+        await window.WankoLibrary.registerWanko({
+          name,
+          blob: pendingWankoBlob,
+          creator: "paint",
+          characterRequestId: request.requestId
+        });
+      }
+    } catch (error) {
+      librarySaved = false;
+      console.warn("Custom wanko library save deferred", error?.code || "unknown");
+    }
+
     closeWankoModal();
     if (result.syncState === "synced") {
       showToast("登録依頼を送信しました");
@@ -659,6 +674,8 @@ async function confirmWankoRegistration() {
       showToast("認証が必要です");
     } else if (result.syncState === "conflict") {
       showToast("競合しています");
+    } else if (!librarySaved) {
+      showToast("登録依頼を保存しました。図鑑への保存はあとで再試行します");
     } else {
       showToast("登録依頼を保存しました。あとで送信します");
     }
