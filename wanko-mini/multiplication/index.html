@@ -179,6 +179,11 @@ main{width:min(100%,640px);margin:auto;padding:14px 12px calc(env(safe-area-inse
     return id;
   }
   const economyDeviceId=getEconomyDeviceId();
+  let progressChannel=null;
+  try{progressChannel=new BroadcastChannel('wanko-progress')}catch{}
+  function notifyProgressChanged(){
+    try{progressChannel?.postMessage({type:'wanko-economy-updated',profileId:sessionProfile?.id||null})}catch{}
+  }
 
   function checkpointKey(){
     return 'wankoMultiplicationCheckpointV1:'+(sessionProfile?.id||'local');
@@ -371,6 +376,7 @@ main{width:min(100%,640px);margin:auto;padding:14px 12px calc(env(safe-area-inse
     try{
       progressState=await Progress.awardPoints(points,economyDeviceId);
       queueProgressSync();
+      notifyProgressChanged();
       updateWallet();
     }catch(error){
       console.warn('Multiplication point save failed',error);
@@ -396,7 +402,7 @@ main{width:min(100%,640px);margin:auto;padding:14px 12px calc(env(safe-area-inse
   pauseButton.addEventListener('click',pauseAndQuit);
   giveUpButton.addEventListener('click',giveUp);
   againButton.addEventListener('click',startRound);
-  window.addEventListener('pagehide',()=>{if(challengeActive)saveCheckpoint();if(progressSync)void progressSync.flush()});
+  window.addEventListener('pagehide',()=>{if(challengeActive)saveCheckpoint();if(progressSync)void progressSync.flush();try{progressChannel?.close()}catch{}});
   document.addEventListener('gesturestart',event=>event.preventDefault(),{passive:false});
 
   refreshResumeBox();
