@@ -40,7 +40,7 @@ test('exposes 念を込めたスネーク through the official catalog and PWA s
   assert.match(serviceWorker, new RegExp(`official-wankos/${id}\.wanko\.json\\?v=2`));
   assert.match(serviceWorker, new RegExp(`assets/official-wankos/${id}\.png\\?v=1`));
   assert.match(serviceWorker, /official-wankos\.js\?v=8/);
-  assert.ok(apps.some(app => app.id === 'wanko' && /\?v=9$/.test(app.url)));
+  assert.ok(apps.some(app => app.id === 'wanko' && /\?v=10$/.test(app.url)));
 });
 
 test('registers 爆発玉 as a low-cost high-damage self-destructing ally', () => {
