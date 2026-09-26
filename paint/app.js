@@ -644,21 +644,43 @@ async function confirmWankoRegistration() {
       faction: selectedWankoFaction,
       artwork: pendingWankoBlob
     });
-    let synced = false;
+    let result = request;
     try {
       const results = await sharedForMySons.characterRequests.syncPending();
-      synced = results.some((item) => item.requestId === request.requestId && item.syncState === "synced");
+      result = results.find((item) => item.requestId === request.requestId) || request;
     } catch (error) {
       console.warn("Character request sync deferred", error);
     }
 
-    if (window.WankoLibrary?.registerWanko) {
-      await window.WankoLibrary.registerWanko({ name, blob: pendingWankoBlob, creator: "paint" });
+    let librarySaved = true;
+    try {
+      if (window.WankoLibrary?.registerWanko) {
+        await window.WankoLibrary.registerWanko({
+          name,
+          blob: pendingWankoBlob,
+          creator: "paint",
+          characterRequestId: request.requestId
+        });
+      }
+    } catch (error) {
+      librarySaved = false;
+      console.warn("Custom wanko library save deferred", error?.code || "unknown");
     }
+
     closeWankoModal();
-    showToast(synced ? "登録依頼を出しました ✓" : "登録依頼を保存したよ。あとで送るね");
+    if (result.syncState === "synced") {
+      showToast("登録依頼を送信しました");
+    } else if (result.syncState === "auth-required") {
+      showToast("認証が必要です");
+    } else if (result.syncState === "conflict") {
+      showToast("競合しています");
+    } else if (!librarySaved) {
+      showToast("登録依頼を保存しました。図鑑への保存はあとで再試行します");
+    } else {
+      showToast("登録依頼を保存しました。あとで送信します");
+    }
   } catch (error) {
-    console.error(error);
+    console.warn("Character request save failed", error?.code || "unknown");
     wankoRequestStatus.textContent = "登録依頼を保存できなかったよ。もう一度ためしてね";
     showToast("登録依頼に失敗しました");
   } finally {
@@ -828,6 +850,8 @@ async function retryPendingCharacterRequests() {
     console.warn("Character request retry deferred", error?.message || "offline");
   }
 }
+
+window.addEventListener("online", retryPendingCharacterRequests);
 
 restoreDrafts();
 fitFrame();

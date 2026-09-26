@@ -6,6 +6,7 @@ test('service worker precaches character request assets under a new cache versio
   const source = fs.readFileSync('service-worker.js', 'utf8');
   assert.match(source, /for-my-sons-v68/);
   assert.match(source, /\.\/shared\/character-requests\.js\?v=1/);
+  assert.match(source, /\.\/shared\/wanko-library-store\.js\?v=1/);
   assert.match(source, /\.\/shared\/for-my-sons-db\.js\?v=2/);
 });
 
@@ -14,7 +15,7 @@ test('Paint loads shared request dependencies before its app script', () => {
   const db = source.indexOf('../shared/for-my-sons-db.js');
   const requests = source.indexOf('../shared/character-requests.js');
   const facade = source.indexOf('../shared/for-my-sons.js');
-  const app = source.indexOf('./app.js?v=6');
+  const app = source.indexOf('./app.js?v=7');
   assert.ok(db >= 0 && requests > db && facade > requests && app > facade);
 });
 

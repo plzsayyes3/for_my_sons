@@ -18,11 +18,12 @@ main{width:min(100%,900px);margin:auto;padding:18px 14px calc(env(safe-area-inse
 .info{padding:10px}.name{font-weight:900;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.date{font-size:10px;color:#7b7066;margin-top:3px}.badge{display:inline-flex;margin-top:5px;padding:3px 7px;border-radius:999px;background:#f0c63d;color:#332f29;font-size:9px;font-weight:900}.use{width:100%;margin-top:8px;border:0;border-radius:11px;background:#332f29;color:white;padding:9px;font-weight:900}.active .use{background:#f0c63d;color:#332f29}
 .new{display:inline-flex;margin-bottom:14px;padding:10px 14px;border-radius:13px;background:#332f29;color:white;font-weight:900}
 .tabs{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:0 0 18px}.tab{border:2px solid #332f29;border-radius:13px;background:#fffaf2;padding:10px 6px;font-weight:900}.tab[aria-selected="true"]{background:#f0c63d;box-shadow:0 3px 0 #332f29}
+.subtabs{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin:-6px 0 18px}.subtab{border:2px solid #8b7967;border-radius:13px;background:#fffaf2;padding:9px 6px;font-weight:900}.subtab[aria-selected="true"]{background:#d9eef0;border-color:#332f29;box-shadow:0 3px 0 #332f29}.subtabs.is-hidden{display:none}.danger{width:100%;margin-top:8px;border:2px solid #a83a31;border-radius:11px;background:#fff0ed;color:#8f2e27;padding:8px;font-weight:900}.request{background:#d9eef0;color:#24535a}
 </style>
 </head>
 <body>
 <header><a class="back" href="../wanko/?v=9">‹</a><h1>わんこ大図鑑</h1><span class="status" id="profileLabel">端末</span><a class="status" id="status" href="../wanko-cloud/">📱 保存中</a></header>
-<main><a class="new" href="../paint/?wanko=1">＋ 新しいわんこを描く</a><nav class="tabs" role="tablist" aria-label="図鑑の種類"><button class="tab" data-tab="allies" role="tab">なかま</button><button class="tab" data-tab="enemies" role="tab">てき</button><button class="tab" data-tab="elements" role="tab">元素</button></nav><div id="content"></div></main>
+<main><a class="new" href="../paint/?wanko=1">＋ 新しいわんこを描く</a><nav class="tabs" role="tablist" aria-label="図鑑の種類"><button class="tab" data-tab="allies" role="tab">なかま</button><button class="tab" data-tab="enemies" role="tab">てき</button><button class="tab" data-tab="elements" role="tab">元素</button></nav><nav class="subtabs" id="ally-subtabs" role="tablist" aria-label="なかまの種類"><button class="subtab" data-subtab="custom" role="tab">自作</button><button class="subtab" data-subtab="owned" role="tab">所持</button></nav><div id="content"></div></main>
 <script src="../shared/for-my-sons-db.js?v=2"></script>
 <script src="../shared/profile-manager.js?v=2"></script>
 <script src="../shared/parent-lock.js?v=3"></script>
@@ -33,6 +34,7 @@ main{width:min(100%,900px);margin:auto;padding:18px 14px calc(env(safe-area-inse
 <script src="../shared/wanko-cloud-config.js"></script>
 <script src="../shared/wanko-cloud.js"></script>
 <script src="../shared/official-wankos.js?v=8"></script>
+<script src="../shared/wanko-library-store.js?v=1"></script>
 <script src="../shared/wanko-library.js"></script>
 <script src="../shared/wanko-game-data.js?v=3"></script>
 <script src="../shared/wanko-game-progress.js?v=7"></script>
@@ -42,8 +44,10 @@ main{width:min(100%,900px);margin:auto;padding:18px 14px calc(env(safe-area-inse
 (async()=>{
  const content=document.getElementById('content'), status=document.getElementById('status'), profileLabel=document.getElementById('profileLabel');
  const tabs=[...document.querySelectorAll('.tab')];
- let Progress=window.WankoGameProgress, profileSync=null;
+ const allySubtabs=document.getElementById('ally-subtabs'), subTabs=[...document.querySelectorAll('.subtab')];
+ let Progress=window.WankoGameProgress, profileSync=null, activeSubTab='custom';
  const validTabs=new Set(['allies','enemies','elements']);
+ const validSubTabs=new Set(['custom','owned']);
  let activeTab=validTabs.has(location.hash.slice(1))?location.hash.slice(1):'allies';
  async function setupProfileProgress(){
   if(!window.ForMySonsShared?.createForMySons||!window.WankoProfileSync?.createWankoProfileSync)return;
@@ -72,7 +76,7 @@ main{width:min(100%,900px);margin:auto;padding:18px 14px calc(env(safe-area-inse
   }
  }
  function element(tag,className,text){const node=document.createElement(tag);if(className)node.className=className;if(text!==undefined)node.textContent=text;return node;}
- function makeCard({name,image,placeholder,subtitle,badge,active=false,disabled=false,onUse=null,elementCard=false,undiscovered=false}){
+ function makeCard({name,image,placeholder,subtitle,badge,active=false,disabled=false,onUse=null,onDelete=null,requestSubmitted=false,elementCard=false,undiscovered=false}){
   const card=element('article','card'+(active?' active':'')+(undiscovered?' undiscovered':''));
   const thumb=element('div','thumb');
   if(image){const img=element('img');img.alt='';img.src=image;thumb.appendChild(img);}
@@ -80,13 +84,17 @@ main{width:min(100%,900px);margin:auto;padding:18px 14px calc(env(safe-area-inse
   const info=element('div','info');info.append(element('div','name',name),element('div','date',subtitle||''));
   if(badge)info.appendChild(element('span','badge',badge));
   if(onUse){const button=element('button','use',active?'バトルで使用中':'このわんこを使う');button.disabled=disabled;button.addEventListener('click',onUse);info.appendChild(button);}
+  if(requestSubmitted)info.appendChild(element('span','badge request','登録依頼済み'));
+  if(onDelete){const button=element('button','danger','削除');button.addEventListener('click',onDelete);info.appendChild(button);}
   card.append(thumb,info);return card;
  }
- function selectTab(tab){activeTab=validTabs.has(tab)?tab:'allies';tabs.forEach(button=>button.setAttribute('aria-selected',String(button.dataset.tab===activeTab)));}
+ function selectTab(tab){activeTab=validTabs.has(tab)?tab:'allies';tabs.forEach(button=>button.setAttribute('aria-selected',String(button.dataset.tab===activeTab)));allySubtabs.classList.toggle('is-hidden',activeTab!=='allies');}
+ function selectSubTab(tab){activeSubTab=validSubTabs.has(tab)?tab:'custom';subTabs.forEach(button=>button.setAttribute('aria-selected',String(button.dataset.subtab===activeSubTab)));}
  tabs.forEach(button=>button.addEventListener('click',()=>{location.hash=button.dataset.tab;selectTab(button.dataset.tab);render();}));
+ subTabs.forEach(button=>button.addEventListener('click',()=>{selectSubTab(button.dataset.subtab);render();}));
  window.addEventListener('hashchange',()=>{selectTab(location.hash.slice(1));render();});
  async function render(){
-  selectTab(activeTab);
+  selectTab(activeTab);selectSubTab(activeSubTab);
   const [list,active,state,officials,progress]=await Promise.all([
     WankoLibrary.listWankos(),
     WankoLibrary.getActiveWanko(),
@@ -102,34 +110,21 @@ main{width:min(100%,900px);margin:auto;padding:18px 14px calc(env(safe-area-inse
   }
   const grid=document.createElement('div');grid.className='grid';
   if(activeTab==='allies'){
-   for(const w of officials){
-    const isActive=officialActiveId===w.id;
-    grid.appendChild(makeCard({name:w.name,image:w.image,subtitle:'みんなで使えるキャラ',badge:'正式わんこ',active:isActive,onUse:()=>{
-      localStorage.setItem('wankoOfficialActiveId',w.id);
-      window.dispatchEvent(new CustomEvent('wanko-official-active-changed',{detail:{id:w.id}}));render();
-    }}));
+   if(activeSubTab==='custom'){
+    const customCards=WankoLibraryView.buildCustomCards(list,{activeId:active?.id,requestIds:new Set(list.map(w=>w.characterRequestId).filter(Boolean))});
+    for(const card of customCards){
+      grid.appendChild(makeCard({name:card.name,image:WankoLibrary.blobUrl({blob:card.blob}),subtitle:new Date(card.createdAt).toLocaleDateString('ja-JP'),badge:card.active?'使用中':'自作',active:card.active,requestSubmitted:card.requestSubmitted,onUse:async()=>{localStorage.removeItem('wankoOfficialActiveId');await WankoLibrary.setActiveWanko(card.id);render();},onDelete:async()=>{if(!window.confirm('このわんこを削除する？\n削除すると、この端末の図鑑から見えなくなります。'))return;try{await WankoLibrary.archiveWanko(card.id);render();}catch(error){status.textContent='保存エラー';}}}));
+    }
+    if(!customCards.length)content.setAttribute('aria-label','まだ自作わんこはいません');
+   }else{
+    const ownedCards=WankoLibraryView.buildOwnedCards({officials,gameCards:WankoLibraryView.buildAllyCards(WankoGameData.characters,progress)});
+    for(const card of ownedCards){
+      const isActive=card.source==='official'?officialActiveId===card.id:false;
+      const subtitle=card.source==='official'?'みんなで使えるキャラ':(card.unlockAfterStage?'ステージ '+card.unlockAfterStage+' クリアで解放':'最初から使える');
+      const badge=card.source==='official'?'正式わんこ':(card.characterStatus==='placeholder'?'仮キャラ':'正式キャラ');
+      grid.appendChild(makeCard({name:card.name,image:card.image||card.artwork,placeholder:card.placeholder,subtitle,badge,active:isActive,disabled:!card.unlocked,onUse:card.source==='official'?()=>{localStorage.setItem('wankoOfficialActiveId',card.id);render();}:null}));
+    }
    }
-   for(const w of list){
-    const isActive=!officialActiveId&&active?.id===w.id;
-    const stars=window.WankoGameProgress.starsFromState(progress,w.id);
-    grid.appendChild(makeCard({
-      name:w.name,
-      image:WankoLibrary.blobUrl(w),
-      subtitle:new Date(w.createdAt).toLocaleDateString('ja-JP'),
-      badge:stars?'なかま ★'+stars:'お試し',
-      active:isActive,
-      onUse:async()=>{
-        localStorage.removeItem('wankoOfficialActiveId');await WankoLibrary.setActiveWanko(w.id);
-        window.dispatchEvent(new CustomEvent('wanko-official-active-changed',{detail:{id:null}}));render();
-      }
-    }));
-   }
-   for(const card of WankoLibraryView.buildAllyCards(WankoGameData.characters,progress)){
-    const subtitle=card.unlocked?(card.unlockAfterStage?'ステージ '+card.unlockAfterStage+' クリアで解放':'最初から使える'):'ステージ '+card.unlockAfterStage+' クリアで解放';
-    const badge=(card.characterStatus==='placeholder'?'仮キャラ':'正式キャラ')+(card.unlocked?'':' · ロック中');
-    grid.appendChild(makeCard({name:card.name,image:card.artwork,placeholder:card.placeholder,subtitle,badge,disabled:!card.unlocked}));
-   }
-   if(!list.length&&!officials.length)content.setAttribute('aria-label','まだ保存されたわんこはいません');
   }else if(activeTab==='enemies'){
    for(const card of WankoLibraryView.buildEnemyCards(WankoGameData.characters,progress)){
     const badge=card.discovered?(card.characterStatus==='placeholder'?'発見済み · 仮キャラ':'発見済み · 正式キャラ'):'未発見';

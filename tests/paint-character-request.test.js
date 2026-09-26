@@ -17,7 +17,11 @@ test('Paint contains faction choices and the implementation request action', () 
 test('Paint source uses the shared request facade and does not build official stats', () => {
   const source = read('paint/app.js');
   assert.match(source, /characterRequests/);
-  assert.match(source, /登録依頼を出しました/);
+  assert.match(source, /登録依頼を送信しました/);
   assert.doesNotMatch(source, /official-wankos/);
   assert.doesNotMatch(source, /cost:\s*180/);
+  assert.match(source, /WankoLibrary\.registerWanko/);
+  assert.match(source, /characterRequestId:\s*request\.requestId/);
+  assert.match(source, /認証が必要です/);
+  assert.match(source, /競合しています/);
 });

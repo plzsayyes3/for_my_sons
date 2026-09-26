@@ -100,6 +100,21 @@ test('returns safe statuses for missing auth and network failure', async () => {
   assert.equal(JSON.stringify(result).includes('offline-secret'), false);
 });
 
+test('returns an authentication status for GitHub 401 and 403 responses', async () => {
+  for (const status of [401, 403]) {
+    const sync = createGithubSync({
+      fetch: async (_url, options) => options.method === 'GET'
+        ? response(404)
+        : response(status),
+      tokenProvider: async () => 'secret-pat-never-log',
+      config: { owner: 'plzsayyes3', repo: 'For-My-Sons-save', branch: 'main' }
+    });
+    const result = await sync.writePath('character-requests/pending/request-auth/artwork.webp', Uint8Array.from([1]), { kind: 'binary' });
+    assert.equal(result.status, 'auth-error');
+    assert.equal(JSON.stringify(result).includes('secret-pat-never-log'), false);
+  }
+});
+
 test('restores binary records through the binary repository path', async () => {
   const calls = [];
   const { store, sync } = await setup(async (url, options) => {

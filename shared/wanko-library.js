@@ -41,6 +41,43 @@
     });
   }
 
+  const libraryStore = WankoLibraryStore.createWankoLibraryStore({
+    db: {
+      async get(store, key) {
+        const db = await openDB();
+        try { return await requestResult(db.transaction(store, "readonly").objectStore(store).get(key)); }
+        finally { db.close(); }
+      },
+      async put(store, value, key) {
+        const db = await openDB();
+        try {
+          await new Promise((resolve, reject) => {
+            const tx = db.transaction(store, "readwrite");
+            tx.objectStore(store).put(value, key);
+            tx.oncomplete = resolve;
+            tx.onerror = () => reject(tx.error);
+            tx.onabort = () => reject(tx.error);
+          });
+          return value;
+        } finally { db.close(); }
+      },
+      async list(store) {
+        const db = await openDB();
+        try { return await requestResult(db.transaction(store, "readonly").objectStore(store).getAll()); }
+        finally { db.close(); }
+      }
+    },
+    onChange: detail => window.dispatchEvent(new CustomEvent("wanko-library-changed", { detail })),
+    onActiveChange: (id, { cloud = true } = {}) => {
+      window.dispatchEvent(new CustomEvent("wanko-active-changed", { detail: { id } }));
+      if (id && cloud && window.WankoCloud?.configured()) {
+        WankoCloud.getSession().then(session => {
+          if (session) WankoCloud.setActiveWanko(id).catch(error => console.warn("Active wanko cloud sync failed", error));
+        }).catch(() => {});
+      }
+    }
+  });
+
   async function putWanko(record, emit = true) {
     const db = await openDB();
     try {
@@ -56,79 +93,38 @@
     return record;
   }
 
-  async function registerWanko({ name, blob, creator = "family", stats = null }) {
-    const now = new Date().toISOString();
-    const record = {
-      id: uuid(),
-      name: (name || "なまえのないわんこ").trim().slice(0, 24),
-      creator,
-      createdAt: now,
-      updatedAt: now,
-      blob,
-      stats: stats || { cost: 180, hp: 140, damage: 30, speed: 46, range: 44, cooldown: 0.72 },
-      archived: false,
-      syncStatus: "pending",
-      cloudPath: null
-    };
-    await putWanko(record);
-    await setActiveWanko(record.id);
+  async function registerWanko(input = {}) {
+    const record = await libraryStore.registerWanko(input);
     syncNow().catch(() => {});
     return record;
   }
 
   async function listWankos() {
-    const db = await openDB();
-    try {
-      const records = await requestResult(db.transaction(WANKO_STORE, "readonly").objectStore(WANKO_STORE).getAll());
-      return records.filter(x => !x.archived).sort((a, b) => String(b.createdAt).localeCompare(String(a.createdAt)));
-    } finally { db.close(); }
+    return libraryStore.listWankos();
   }
 
   async function getWanko(id) {
-    if (!id) return null;
-    const db = await openDB();
-    try {
-      return await requestResult(db.transaction(WANKO_STORE, "readonly").objectStore(WANKO_STORE).get(id));
-    } finally { db.close(); }
+    return libraryStore.getWanko(id);
   }
 
   async function setMeta(key, value) {
-    const db = await openDB();
-    try {
-      await new Promise((resolve, reject) => {
-        const tx = db.transaction(META_STORE, "readwrite");
-        tx.objectStore(META_STORE).put({ key, value });
-        tx.oncomplete = resolve;
-        tx.onerror = () => reject(tx.error);
-      });
-    } finally { db.close(); }
+    await libraryStore.setMeta(key, value);
   }
 
   async function getMeta(key) {
-    const db = await openDB();
-    try {
-      const row = await requestResult(db.transaction(META_STORE, "readonly").objectStore(META_STORE).get(key));
-      return row?.value ?? null;
-    } finally { db.close(); }
+    return libraryStore.getMeta(key);
   }
 
-  async function setActiveWanko(id, { cloud = true } = {}) {
-    await setMeta(ACTIVE_KEY, id);
-    window.dispatchEvent(new CustomEvent("wanko-active-changed", { detail: { id } }));
-    if (cloud && window.WankoCloud?.configured()) {
-      const session = await WankoCloud.getSession().catch(() => null);
-      if (session) WankoCloud.setActiveWanko(id).catch(error => console.warn("Active wanko cloud sync failed", error));
-    }
-  }
+  async function setActiveWanko(id, options = {}) { return libraryStore.setActiveWanko(id, options); }
 
   async function getActiveWanko() {
-    const id = await getMeta(ACTIVE_KEY);
-    if (id) {
-      const found = await getWanko(id);
-      if (found && !found.archived) return found;
-    }
-    const list = await listWankos();
-    return list[0] || null;
+    return libraryStore.getActiveWanko();
+  }
+
+  async function archiveWanko(id) {
+    const archived = await libraryStore.archiveWanko(id);
+    await syncNow().catch(() => {});
+    return archived;
   }
 
   async function getLatestWanko() {
@@ -254,6 +250,7 @@
     getMeta,
     setMeta,
     setActiveWanko,
+    archiveWanko,
     getActiveWanko,
     getLatestWanko,
     blobUrl,

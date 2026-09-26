@@ -103,9 +103,17 @@
     return JSON.parse(new TextDecoder().decode(bytes));
   }
 
+  function canonicalJson(value) {
+    if (Array.isArray(value)) return value.map(canonicalJson);
+    if (value && typeof value === 'object') {
+      return Object.fromEntries(Object.keys(value).sort().map(key => [key, canonicalJson(value[key])]));
+    }
+    return value;
+  }
+
   function sameRequestJson(left, right) {
     try {
-      return JSON.stringify(decodeRemoteJson(left)) === JSON.stringify(right);
+      return JSON.stringify(canonicalJson(decodeRemoteJson(left))) === JSON.stringify(canonicalJson(right));
     } catch {
       return false;
     }
@@ -114,7 +122,9 @@
   function assertWriteSucceeded(result) {
     if (result?.status === 'created' || result?.status === 'synced') return result;
     const error = new Error('Character request remote write failed');
-    error.code = result?.status === 'conflict' ? 'CONFLICT' : 'REMOTE_UNAVAILABLE';
+    error.code = result?.status === 'conflict'
+      ? 'CONFLICT'
+      : result?.status === 'auth-error' ? 'AUTH_REQUIRED' : 'REMOTE_UNAVAILABLE';
     throw error;
   }
 
@@ -135,11 +145,13 @@
 
     async function listPending() {
       return (await db.list('characterRequests')).filter(record =>
-        record?.status === 'pending' || record?.syncState === 'pending' || record?.syncState === 'error'
+        record?.status === 'pending' && ['pending', 'error', 'auth-required'].includes(record?.syncState)
       );
     }
 
     async function create({ requestId = createRequestId(), name, faction, artwork } = {}) {
+      const existing = await db.get('characterRequests', requestId);
+      if (existing) return { ...existing };
       const preparedArtwork = await prepareArtwork(artwork, { encode: imageEncoder || defaultEncode });
       const createdAt = new Date(clock()).toISOString();
       const metadata = normalizeCharacterRequest({ requestId, name, faction, createdAt });
@@ -196,8 +208,16 @@
         } catch (error) {
           const next = {
             ...record,
-            syncState: error?.code === 'CONFLICT' ? 'conflict' : 'error',
-            lastError: error?.code === 'CONFLICT' ? 'conflict' : 'remote-unavailable',
+            syncState: error?.code === 'CONFLICT'
+              ? 'conflict'
+              : error?.code === 'AUTH_REQUIRED' || error?.code === 'AUTH_FAILED'
+                ? 'auth-required'
+                : 'error',
+            lastError: error?.code === 'CONFLICT'
+              ? 'conflict'
+              : error?.code === 'AUTH_REQUIRED' || error?.code === 'AUTH_FAILED'
+                ? 'auth-required'
+                : 'remote-unavailable',
             updatedAt: new Date(clock()).toISOString()
           };
           await db.put('characterRequests', next, record.requestId);
