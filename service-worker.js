@@ -1,4 +1,4 @@
-const CACHE_NAME = 'for-my-sons-v47';
+const CACHE_NAME = 'for-my-sons-v48';
 const SHELL = [
   './',
   './index.html',
@@ -39,10 +39,11 @@ const SHELL = [
   './shared/wanko-cloud-config.js',
   './shared/wanko-cloud.js',
   './shared/official-wankos.js?v=5',
+  './shared/wanko-library-store.js?v=1',
   './shared/wanko-library.js',
-  './shared/wanko-game-data.js?v=2',
+  './shared/wanko-game-data.js?v=3',
   './shared/wanko-game-progress.js?v=2',
-  './shared/wanko-library-view.js?v=2',
+  './shared/wanko-library-view.js?v=3',
   './paint/?v=8',
   './paint/index.html',
   './paint/styles.css?v=5',
