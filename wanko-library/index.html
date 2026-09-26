@@ -137,9 +137,11 @@ main{width:min(100%,900px);margin:auto;padding:18px 14px calc(env(safe-area-inse
   const grid=document.createElement('div');grid.className='grid';
   if(activeTab==='allies'){
    if(activeSubTab==='custom'){
-    for(const w of list){
-     const isActive=!officialActiveId&&active?.id===w.id;
-     grid.appendChild(makeCard({name:w.name,image:WankoLibrary.blobUrl(w),subtitle:new Date(w.createdAt).toLocaleDateString('ja-JP'),badge:isActive?'使用中':'自作',active:isActive,requestPending:Boolean(w.registrationRequestId),requestSubmitted:Boolean(w.characterRequestId),onRequest:()=>openRequestModal(w),onUse:async()=>{localStorage.removeItem('wankoOfficialActiveId');await WankoLibrary.setActiveWanko(w.id);render();},onDelete:async()=>{if(!window.confirm('このわんこを削除する？\\n削除すると、この端末の図鑑から見えなくなります。'))return;await WankoLibrary.archiveWanko(w.id);render();}}));
+    const customCards=WankoLibraryView.buildCustomCards(list,{activeId:active?.id,requestIds:new Set(list.map(w=>w.characterRequestId).filter(Boolean))});
+    for(const card of customCards){
+     const w=list.find(item=>item.id===card.id)||card;
+     const isActive=!officialActiveId&&card.active;
+     grid.appendChild(makeCard({name:card.name,image:WankoLibrary.blobUrl(card),subtitle:new Date(card.createdAt).toLocaleDateString('ja-JP'),badge:isActive?'使用中':'自作',active:isActive,requestPending:Boolean(w.registrationRequestId),requestSubmitted:card.requestSubmitted,onRequest:()=>openRequestModal(w),onUse:async()=>{localStorage.removeItem('wankoOfficialActiveId');await WankoLibrary.setActiveWanko(card.id);render();},onDelete:async()=>{if(!window.confirm('このわんこを削除する？\\n削除すると、この端末の図鑑から見えなくなります。'))return;await WankoLibrary.archiveWanko(card.id);render();}}));
     }
     if(!list.length)content.setAttribute('aria-label','まだ自作わんこはいません');
    }else{
