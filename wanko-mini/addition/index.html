@@ -182,6 +182,11 @@ main{width:min(100%,640px);margin:auto;padding:14px 12px calc(env(safe-area-inse
     return id;
   }
   const economyDeviceId=getEconomyDeviceId();
+  let progressChannel=null;
+  try{progressChannel=new BroadcastChannel('wanko-progress')}catch{}
+  function notifyProgressChanged(){
+    try{progressChannel?.postMessage({type:'wanko-economy-updated',profileId:sessionProfile?.id||null})}catch{}
+  }
 
   function queueProgressSync(){
     if(progressSync&&progressState)progressSync.schedule(progressState);
@@ -345,6 +350,7 @@ main{width:min(100%,640px);margin:auto;padding:14px 12px calc(env(safe-area-inse
       try{
         progressState=await Progress.awardPoints(points,economyDeviceId);
         queueProgressSync();
+        notifyProgressChanged();
         updateWallet();
       }catch(error){
         console.warn('Addition point save failed',error);
@@ -377,7 +383,7 @@ main{width:min(100%,640px);margin:auto;padding:14px 12px calc(env(safe-area-inse
     gamePanel.hidden=true;
     introPanel.hidden=false;
   });
-  window.addEventListener('pagehide',()=>{if(progressSync)void progressSync.flush()});
+  window.addEventListener('pagehide',()=>{if(progressSync)void progressSync.flush();try{progressChannel?.close()}catch{}});
   document.addEventListener('gesturestart',event=>event.preventDefault(),{passive:false});
 
   setupProfile().catch(error=>{
