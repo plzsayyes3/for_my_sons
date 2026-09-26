@@ -1,4 +1,4 @@
-const CACHE_NAME = 'for-my-sons-v68';
+const CACHE_NAME = 'for-my-sons-v69';
 const SHELL = [
   './',
   './index.html',
@@ -42,7 +42,7 @@ const SHELL = [
   './wanko-mini/subtraction/index.html',
   './wanko-mini/multiplication/?v=2',
   './wanko-mini/multiplication/index.html',
-  './wanko-library/?v=17',
+  './wanko-library/?v=18',
   './wanko-library/index.html',
   './official-wankos/futsuu-no-wanko.wanko.json?v=4',
   './official-wankos/naganeko.wanko.json?v=3',
@@ -64,6 +64,7 @@ const SHELL = [
   './shared/wanko-mini-subtraction.js?v=1',
   './shared/wanko-mini-multiplication.js?v=1',
   './shared/wanko-library-view.js?v=3',
+  './shared/wanko-registration-request.js?v=1',
   './paint/?v=7',
   './paint/index.html',
   './paint/styles.css?v=5',
