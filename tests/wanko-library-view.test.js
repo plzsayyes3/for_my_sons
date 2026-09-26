@@ -3,6 +3,34 @@ const assert = require('node:assert/strict');
 const game = require('../shared/wanko-game-data.js');
 const view = require('../shared/wanko-library-view.js');
 
+test('custom cards contain only local wankos and expose request and active state', () => {
+  const cards = view.buildCustomCards([
+    { id: 'custom-1', name: '依頼済み', createdAt: '2026-09-25T00:00:00.000Z', characterRequestId: 'request-1', blob: {} },
+    { id: 'custom-2', name: '旧わんこ', createdAt: '2026-09-24T00:00:00.000Z', blob: {} }
+  ], { activeId: 'custom-1', requestIds: new Set(['request-1']) });
+
+  assert.deepEqual(cards.map(card => card.id), ['custom-1', 'custom-2']);
+  assert.equal(cards[0].source, 'custom');
+  assert.equal(cards[0].deletable, true);
+  assert.equal(cards[0].active, true);
+  assert.equal(cards[0].requestSubmitted, true);
+  assert.equal(cards[1].requestSubmitted, false);
+});
+
+test('owned cards combine official and unlocked game cards without deletion', () => {
+  const cards = view.buildOwnedCards({
+    officials: [{ id: 'official-1', name: '正式わんこ', image: 'official.webp' }],
+    gameCards: [
+      { id: 'W01', name: '解放済み', unlocked: true, artwork: null, placeholder: '🐕' },
+      { id: 'W03', name: '未所持', unlocked: false, artwork: null, placeholder: '🐢' }
+    ]
+  });
+
+  assert.deepEqual(cards.map(card => card.id), ['official-1', 'W01']);
+  assert.deepEqual(cards.map(card => card.source), ['official', 'game']);
+  assert.equal(cards.every(card => card.deletable === false), true);
+});
+
 test('ally cards distinguish placeholder art and unlock milestone characters from clears', () => {
   const progress = { discoveredElementIds: [], clearedStageIds: [] };
   const cards = view.buildAllyCards(game.characters, progress);

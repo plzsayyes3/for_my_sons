@@ -3,6 +3,36 @@
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
   if (root) root.WankoLibraryView = api;
 })(typeof globalThis !== 'undefined' ? globalThis : this, () => {
+  function buildCustomCards(wankos, { activeId = null, requestIds = new Set() } = {}) {
+    const submitted = requestIds instanceof Set ? requestIds : new Set(requestIds || []);
+    return (Array.isArray(wankos) ? wankos : []).map(wanko => ({
+      id: wanko.id,
+      source: 'custom',
+      name: wanko.name,
+      blob: wanko.blob,
+      createdAt: wanko.createdAt,
+      active: wanko.id === activeId,
+      deletable: true,
+      characterRequestId: wanko.characterRequestId || null,
+      requestSubmitted: Boolean(wanko.characterRequestId && submitted.has(wanko.characterRequestId))
+    }));
+  }
+
+  function buildOwnedCards({ officials = [], gameCards = [] } = {}) {
+    const officialCards = officials.map(official => ({
+      ...official,
+      source: 'official',
+      deletable: false,
+      unlocked: true
+    }));
+    const ownedGameCards = gameCards.filter(card => card.unlocked).map(card => ({
+      ...card,
+      source: 'game',
+      deletable: false
+    }));
+    return [...officialCards, ...ownedGameCards];
+  }
+
   function buildAllyCards(characters, progress) {
     const cleared = new Set(progress?.clearedStageIds || []);
     return Object.values(characters)
@@ -62,5 +92,5 @@
       });
   }
 
-  return { buildAllyCards, buildEnemyCards, buildElementCards };
+  return { buildCustomCards, buildOwnedCards, buildAllyCards, buildEnemyCards, buildElementCards };
 });
