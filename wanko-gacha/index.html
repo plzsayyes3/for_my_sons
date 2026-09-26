@@ -59,7 +59,7 @@ main{width:min(100%,720px);margin:auto;padding:14px 12px calc(env(safe-area-inse
 </style>
 </head>
 <body>
-<header><a class="back" href="../wanko/?v=9" aria-label="わんこトップへ">‹</a><h1>わんこガチャ</h1><span class="playerBadge" id="playerBadge">読み込み中</span></header>
+<header><a class="back" href="../wanko/?v=10" aria-label="わんこトップへ">‹</a><h1>わんこガチャ</h1><span class="playerBadge" id="playerBadge">読み込み中</span></header>
 <main>
 <section class="wallet" aria-label="もちもの">
   <div class="walletCard"><span>🎫 ガチャ券</span><b id="tickets">0</b></div>
@@ -154,6 +154,38 @@ main{width:min(100%,720px);margin:auto;padding:14px 12px calc(env(safe-area-inse
       playerBadge.dataset.sync='local';
     }
   }
+
+  let refreshProgressPromise=null;
+  async function refreshProgressState({remote=true}={}){
+    if(!progressState||refreshProgressPromise)return refreshProgressPromise;
+    refreshProgressPromise=(async()=>{
+      try{
+        if(remote&&progressSync){
+          const refreshed=await progressSync.initialize();
+          progressState=refreshed.state;
+          playerBadge.dataset.sync=refreshed.remoteAvailable?'cloud':'local';
+        }else{
+          progressState=await Progress.getState();
+        }
+        await loadCharacters();
+      }catch(error){
+        console.warn('Gacha progress refresh failed',error);
+      }finally{
+        refreshProgressPromise=null;
+      }
+    })();
+    return refreshProgressPromise;
+  }
+
+  let progressChannel=null;
+  try{
+    progressChannel=new BroadcastChannel('wanko-progress');
+    progressChannel.addEventListener('message',event=>{
+      if(event.data?.type!=='wanko-economy-updated')return;
+      if(sessionProfile?.id&&event.data?.profileId&&event.data.profileId!==sessionProfile.id)return;
+      void refreshProgressState({remote:false});
+    });
+  }catch{}
 
   async function loadCharacters(){
     objectUrls.splice(0).forEach(url=>{try{URL.revokeObjectURL(url)}catch{}});
@@ -384,6 +416,9 @@ main{width:min(100%,720px);margin:auto;padding:14px 12px calc(env(safe-area-inse
   layer.addEventListener('click',event=>{if(event.target===layer)layer.classList.remove('show','newDraw','duplicateDraw')});
   window.addEventListener('pagehide',()=>{if(progressSync)void progressSync.flush();objectUrls.splice(0).forEach(url=>{try{URL.revokeObjectURL(url)}catch{}})});
   window.addEventListener('wanko-library-changed',()=>loadCharacters().catch(error=>console.warn('Gacha list refresh failed',error)));
+  window.addEventListener('pageshow',()=>{if(progressState)void refreshProgressState({remote:true})});
+  window.addEventListener('focus',()=>{if(progressState)void refreshProgressState({remote:false})});
+  document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible'&&progressState)void refreshProgressState({remote:true})});
   document.addEventListener('gesturestart',event=>event.preventDefault(),{passive:false});
 
   (async()=>{

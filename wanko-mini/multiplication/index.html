@@ -40,7 +40,7 @@ main{width:min(100%,640px);margin:auto;padding:14px 12px calc(env(safe-area-inse
 </head>
 <body>
 <header>
-  <a class="back" href="../?v=3" aria-label="ミニゲームへ">‹</a>
+  <a class="back" href="../?v=4" aria-label="ミニゲームへ">‹</a>
   <h1>かけざんストリーク</h1>
   <div class="spacer"></div>
   <span class="pill player" id="playerBadge">読込中</span>
@@ -117,7 +117,7 @@ main{width:min(100%,640px);margin:auto;padding:14px 12px calc(env(safe-area-inse
     <p id="resultDetail">獲得ポイントは正解するたびに保存されています。</p>
     <div class="perfect" id="perfectMessage" hidden>✨ 99問ノーミス！ 495pt フルゲット！</div>
     <button class="againButton" id="againButton" type="button">もう1回</button>
-    <a class="menuButton" href="../?v=3">ミニゲームにもどる</a>
+    <a class="menuButton" href="../?v=4">ミニゲームにもどる</a>
   </section>
 </main>
 
@@ -179,6 +179,11 @@ main{width:min(100%,640px);margin:auto;padding:14px 12px calc(env(safe-area-inse
     return id;
   }
   const economyDeviceId=getEconomyDeviceId();
+  let progressChannel=null;
+  try{progressChannel=new BroadcastChannel('wanko-progress')}catch{}
+  function notifyProgressChanged(){
+    try{progressChannel?.postMessage({type:'wanko-economy-updated',profileId:sessionProfile?.id||null})}catch{}
+  }
 
   function checkpointKey(){
     return 'wankoMultiplicationCheckpointV1:'+(sessionProfile?.id||'local');
@@ -371,6 +376,7 @@ main{width:min(100%,640px);margin:auto;padding:14px 12px calc(env(safe-area-inse
     try{
       progressState=await Progress.awardPoints(points,economyDeviceId);
       queueProgressSync();
+      notifyProgressChanged();
       updateWallet();
     }catch(error){
       console.warn('Multiplication point save failed',error);

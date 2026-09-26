@@ -49,7 +49,7 @@ main{width:min(100%,640px);margin:auto;padding:14px 12px calc(env(safe-area-inse
 </head>
 <body>
 <header>
-  <a class="back" href="../?v=3" aria-label="ミニゲームへ">‹</a>
+  <a class="back" href="../?v=4" aria-label="ミニゲームへ">‹</a>
   <h1>たしざんチャレンジ</h1>
   <div class="spacer"></div>
   <span class="pill player" id="playerBadge">読込中</span>
@@ -182,6 +182,11 @@ main{width:min(100%,640px);margin:auto;padding:14px 12px calc(env(safe-area-inse
     return id;
   }
   const economyDeviceId=getEconomyDeviceId();
+  let progressChannel=null;
+  try{progressChannel=new BroadcastChannel('wanko-progress')}catch{}
+  function notifyProgressChanged(){
+    try{progressChannel?.postMessage({type:'wanko-economy-updated',profileId:sessionProfile?.id||null})}catch{}
+  }
 
   function queueProgressSync(){
     if(progressSync&&progressState)progressSync.schedule(progressState);
@@ -309,20 +314,16 @@ main{width:min(100%,640px);margin:auto;padding:14px 12px calc(env(safe-area-inse
       row.append(left,right);breakdown.appendChild(row);
     }
     try{
-      if(totalScore>0){
-        progressState=await Progress.awardPoints(totalScore,economyDeviceId);
-        queueProgressSync();
-        if(progressSync)await progressSync.flush();
-      }
+      if(progressSync)await progressSync.flush();
       updateWallet();
-      saveStatus.textContent='🐾 わんこポイントに '+totalScore+'pt 追加しました。';
+      saveStatus.textContent='🐾 '+totalScore+'pt は正解するたびに保存済みです。';
     }catch(error){
-      console.warn('Addition point save failed',error);
-      saveStatus.textContent='ポイントの保存に失敗しました。もう一度この画面を開いて確認してください。';
+      console.warn('Addition point sync failed',error);
+      saveStatus.textContent='ポイントは端末に保存済みです。プロフィール同期は次回も再試行します。';
     }
   }
 
-  function submitAnswer(){
+  async function submitAnswer(){
     if(locked||!answerText)return;
     const question=round[index];
     const value=Number(answerText);
@@ -344,6 +345,19 @@ main{width:min(100%,640px);margin:auto;padding:14px 12px calc(env(safe-area-inse
     feedback.textContent='せいかい！ +'+points+'pt';
     feedback.className='feedback good';
     try{navigator.vibrate?.([18,20,35])}catch{}
+
+    if(points>0){
+      try{
+        progressState=await Progress.awardPoints(points,economyDeviceId);
+        queueProgressSync();
+        notifyProgressChanged();
+        updateWallet();
+      }catch(error){
+        console.warn('Addition point save failed',error);
+        feedback.textContent='せいかい！ ただしポイント保存を確認できませんでした。';
+      }
+    }
+
     setTimeout(()=>{
       index++;
       if(index>=round.length){void finishRound();return}
@@ -357,7 +371,7 @@ main{width:min(100%,640px);margin:auto;padding:14px 12px calc(env(safe-area-inse
     if(button.dataset.digit!==undefined)addDigit(button.dataset.digit);
   });
   backspaceButton.addEventListener('click',()=>{if(!locked){answerText=answerText.slice(0,-1);renderAnswer()}});
-  submitButton.addEventListener('click',submitAnswer);
+  submitButton.addEventListener('click',()=>void submitAnswer());
   courseList.addEventListener('click',event=>{
     const button=event.target.closest('.course');
     if(button)chooseCourse(button.dataset.course);

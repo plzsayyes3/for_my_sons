@@ -60,6 +60,7 @@ test('wanko app entries and service-worker shell point to current versioned page
     './shared/wanko-library-store.js?v=1',
     './shared/wanko-game-progress.js?v=7',
     './shared/wanko-library-view.js?v=3',
+    './shared/wanko-registration-request.js?v=1',
     './shared/for-my-sons-db.js?v=2',
     './shared/profile-manager.js?v=2',
     './shared/parent-lock.js?v=3',

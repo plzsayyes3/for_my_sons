@@ -107,6 +107,15 @@
     return libraryStore.getWanko(id);
   }
 
+  async function markRegistrationRequested(id, requestId) {
+    const record = await getWanko(id);
+    if (!record) throw new Error("Wanko not found");
+    if (record.registrationRequestId && record.registrationRequestId !== requestId) {
+      throw new Error("Wanko registration request already exists");
+    }
+    return putWanko({ ...record, registrationRequestId: requestId, updatedAt: new Date().toISOString() });
+  }
+
   async function setMeta(key, value) {
     await libraryStore.setMeta(key, value);
   }
@@ -247,6 +256,7 @@
     registerWanko,
     listWankos,
     getWanko,
+    markRegistrationRequested,
     getMeta,
     setMeta,
     setActiveWanko,
