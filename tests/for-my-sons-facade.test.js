@@ -53,3 +53,21 @@ test('facade does not expose PAT in configuration or status events', async () =>
   assert.equal(JSON.stringify(result).includes('secret-pat'), false);
   assert.equal(events.every(event => !JSON.stringify(event.detail).includes('secret-pat')), true);
 });
+
+test('character requests stay outside the selected sora save profile', async () => {
+  const db = createMemoryDatabase();
+  const api = await createForMySons({ db, crypto: webcrypto });
+  await api.profile.setCurrent('profile-sora');
+  const request = await api.characterRequests.create({
+    requestId: 'request-sora-separation',
+    name: 'そらの依頼',
+    faction: 'ally',
+    artwork: Uint8Array.from([1, 2, 3])
+  });
+
+  assert.equal(request.source, 'paint');
+  assert.equal('profileId' in request, false);
+  assert.equal(await api.save.readJson('paint', 'character-request'), null);
+  assert.equal((await db.list('characterRequests')).length, 1);
+  assert.equal((await db.list('saves')).length, 0);
+});
