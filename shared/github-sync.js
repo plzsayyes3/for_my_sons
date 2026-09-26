@@ -19,6 +19,13 @@
     return btoa(binary);
   }
 
+  async function encodeBase64Async(value) {
+    if (value && typeof value.arrayBuffer === 'function') {
+      return encodeBase64(new Uint8Array(await value.arrayBuffer()));
+    }
+    return encodeBase64(value);
+  }
+
   function decodeBase64(value) {
     const normalized = String(value || '').replace(/\s/g, '');
     if (typeof Buffer !== 'undefined') return new Uint8Array(Buffer.from(normalized, 'base64'));
@@ -130,7 +137,7 @@
       const expectAbsent = options.expectAbsent === true || expectedSha === '__absent__';
       const payload = {
         message: options.message || `Sync ${path}`,
-        content: encodeBase64(value),
+        content: await encodeBase64Async(value),
         branch: settings.branch
       };
       if (expectedSha && expectedSha !== '__absent__') payload.sha = expectedSha;
@@ -192,7 +199,7 @@
         }
         const payload = {
           message: `Sync ${path}`,
-          content: encodeBase64(contentForRecord(record)),
+          content: await encodeBase64Async(contentForRecord(record)),
           branch: settings.branch
         };
         if (remote.exists) payload.sha = remote.sha;

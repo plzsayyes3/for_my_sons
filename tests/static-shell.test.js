@@ -65,7 +65,7 @@ test('wanko app entries and service-worker shell point to current versioned page
     './shared/profile-manager.js?v=2',
     './shared/parent-lock.js?v=3',
     './shared/save-store.js?v=2',
-    './shared/github-sync.js?v=8',
+    './shared/github-sync.js?v=9',
     './shared/character-requests.js?v=1',
     './shared/for-my-sons.js?v=9',
     './shared/settings-view.js?v=6',
@@ -73,7 +73,7 @@ test('wanko app entries and service-worker shell point to current versioned page
   ]) assert.ok(shell.urls.includes(script), `${script} must be cached`);
   assert.match(shell.cacheName, /v\d+$/);
   assert.equal(shell.urls.some(url => url.includes('api.github.com')), false);
-  assert.equal(shell.cacheName, 'for-my-sons-v70');
+  assert.equal(shell.cacheName, 'for-my-sons-v71');
 });
 
 test('battle shell uses the selectable ally filter instead of enumerating every W slot', () => {
