@@ -4,8 +4,9 @@ const fs = require('node:fs');
 
 test('service worker precaches character request assets under a new cache version', () => {
   const source = fs.readFileSync('service-worker.js', 'utf8');
-  assert.match(source, /for-my-sons-v68/);
+  assert.match(source, /for-my-sons-v69/);
   assert.match(source, /\.\/shared\/character-requests\.js\?v=1/);
+  assert.match(source, /\.\/shared\/wanko-registration-request\.js\?v=1/);
   assert.match(source, /\.\/shared\/for-my-sons-db\.js\?v=2/);
 });
 

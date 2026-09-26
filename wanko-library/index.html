@@ -15,7 +15,7 @@ main{width:min(100%,900px);margin:auto;padding:18px 14px calc(env(safe-area-inse
 .card{position:relative;border:2px solid #332f29;border-radius:20px;background:#fffaf2;overflow:hidden;box-shadow:0 5px 0 #332f29}
 .card.active{outline:4px solid #f2c84b;outline-offset:2px}.thumb{aspect-ratio:1;display:grid;place-items:center;background:linear-gradient(#cce9ef 0 65%,#c6d891 65%);padding:12px}.thumb img{width:100%;height:100%;object-fit:contain;filter:drop-shadow(0 4px 1px rgba(0,0,0,.18))}
 .thumb .placeholder{font-size:clamp(46px,11vw,74px);filter:drop-shadow(0 4px 1px rgba(0,0,0,.16))}.thumb .elementSymbol{font-size:clamp(34px,8vw,58px);font-weight:1000}.card.undiscovered .thumb .placeholder{filter:grayscale(1);opacity:.55}
-.info{padding:10px}.name{font-weight:900;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.date{font-size:10px;color:#7b7066;margin-top:3px}.badge{display:inline-flex;margin-top:5px;padding:3px 7px;border-radius:999px;background:#f0c63d;color:#332f29;font-size:9px;font-weight:900}.use{width:100%;margin-top:8px;border:0;border-radius:11px;background:#332f29;color:white;padding:9px;font-weight:900}.active .use{background:#f0c63d;color:#332f29}
+.info{padding:10px}.name{font-weight:900;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.date{font-size:10px;color:#7b7066;margin-top:3px}.badge{display:inline-flex;margin-top:5px;padding:3px 7px;border-radius:999px;background:#f0c63d;color:#332f29;font-size:9px;font-weight:900}.use,.request{width:100%;margin-top:8px;border:0;border-radius:11px;background:#332f29;color:white;padding:9px;font-weight:900}.active .use{background:#f0c63d;color:#332f29}.request{background:#e07b39}.request:disabled{background:#b8aa9b;color:#fff;opacity:.9}
 .new{display:inline-flex;margin-bottom:14px;padding:10px 14px;border-radius:13px;background:#332f29;color:white;font-weight:900}
 .tabs{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:0 0 18px}.tab{border:2px solid #332f29;border-radius:13px;background:#fffaf2;padding:10px 6px;font-weight:900}.tab[aria-selected="true"]{background:#f0c63d;box-shadow:0 3px 0 #332f29}
 </style>
@@ -23,6 +23,7 @@ main{width:min(100%,900px);margin:auto;padding:18px 14px calc(env(safe-area-inse
 <body>
 <header><a class="back" href="../wanko/?v=9">‹</a><h1>わんこ大図鑑</h1><span class="status" id="profileLabel">端末</span><a class="status" id="status" href="../wanko-cloud/">📱 保存中</a></header>
 <main><a class="new" href="../paint/?wanko=1">＋ 新しいわんこを描く</a><nav class="tabs" role="tablist" aria-label="図鑑の種類"><button class="tab" data-tab="allies" role="tab">なかま</button><button class="tab" data-tab="enemies" role="tab">てき</button><button class="tab" data-tab="elements" role="tab">元素</button></nav><div id="content"></div></main>
+<div class="modal" id="request-modal" aria-hidden="true" style="display:none;position:fixed;inset:0;z-index:8;background:rgba(39,35,31,.55);padding:20px;place-items:center"><section style="width:min(100%,420px);padding:22px;border:2px solid #332f29;border-radius:20px;background:#fffaf2;box-shadow:0 6px 0 #332f29"><h2 style="margin:0 0 10px">正式登録の依頼</h2><p id="request-name" style="font-weight:900"></p><label for="request-faction">どっちのわんこ？</label><select id="request-faction" style="display:block;width:100%;margin:8px 0 12px;padding:10px;border:2px solid #332f29;border-radius:10px;background:white"><option value="ally">味方</option><option value="enemy">敵</option></select><p id="request-status" role="status" aria-live="polite"></p><div style="display:flex;gap:8px"><button class="use" id="request-cancel" type="button">やめる</button><button class="request" id="request-confirm" type="button">登録依頼を出す</button></div></section></div>
 <script src="../shared/for-my-sons-db.js?v=2"></script>
 <script src="../shared/profile-manager.js?v=2"></script>
 <script src="../shared/parent-lock.js?v=3"></script>
@@ -38,9 +39,12 @@ main{width:min(100%,900px);margin:auto;padding:18px 14px calc(env(safe-area-inse
 <script src="../shared/wanko-game-progress.js?v=7"></script>
 <script src="../shared/wanko-profile-sync.js?v=1"></script>
 <script src="../shared/wanko-library-view.js?v=3"></script>
+<script src="../shared/wanko-registration-request.js?v=1"></script>
 <script>
 (async()=>{
  const content=document.getElementById('content'), status=document.getElementById('status'), profileLabel=document.getElementById('profileLabel');
+ const requestModal=document.getElementById('request-modal'), requestName=document.getElementById('request-name'), requestFaction=document.getElementById('request-faction'), requestStatus=document.getElementById('request-status'), requestConfirm=document.getElementById('request-confirm');
+ let requestTarget=null, requestInFlight=false;
  const tabs=[...document.querySelectorAll('.tab')];
  let Progress=window.WankoGameProgress, profileSync=null;
  const validTabs=new Set(['allies','enemies','elements']);
@@ -72,16 +76,38 @@ main{width:min(100%,900px);margin:auto;padding:18px 14px calc(env(safe-area-inse
   }
  }
  function element(tag,className,text){const node=document.createElement(tag);if(className)node.className=className;if(text!==undefined)node.textContent=text;return node;}
- function makeCard({name,image,placeholder,subtitle,badge,active=false,disabled=false,onUse=null,elementCard=false,undiscovered=false}){
+ function makeCard({name,image,placeholder,subtitle,badge,active=false,disabled=false,onUse=null,onRequest=null,requestPending=false,elementCard=false,undiscovered=false}){
   const card=element('article','card'+(active?' active':'')+(undiscovered?' undiscovered':''));
   const thumb=element('div','thumb');
   if(image){const img=element('img');img.alt='';img.src=image;thumb.appendChild(img);}
   else thumb.appendChild(element('span',elementCard?'elementSymbol':'placeholder',placeholder||'🐾'));
   const info=element('div','info');info.append(element('div','name',name),element('div','date',subtitle||''));
   if(badge)info.appendChild(element('span','badge',badge));
+  if(onRequest){const button=element('button','request',requestPending?'依頼済み':'登録依頼を出す');button.type='button';button.disabled=requestPending;button.addEventListener('click',onRequest);info.appendChild(button);}
   if(onUse){const button=element('button','use',active?'バトルで使用中':'このわんこを使う');button.disabled=disabled;button.addEventListener('click',onUse);info.appendChild(button);}
   card.append(thumb,info);return card;
  }
+ function openRequestModal(wanko){
+  requestTarget=wanko;requestName.textContent=wanko.name;requestStatus.textContent='';requestConfirm.disabled=false;requestModal.style.display='grid';requestModal.setAttribute('aria-hidden','false');
+ }
+ function closeRequestModal(){requestTarget=null;requestModal.style.display='none';requestModal.setAttribute('aria-hidden','true');}
+ async function submitRequest(){
+  if(!requestTarget||requestInFlight)return;
+  requestInFlight=true;requestConfirm.disabled=true;requestStatus.textContent='保存しています…';
+  try{
+   const api=await window.ForMySonsShared.createForMySons();
+   const result=await window.ForMySonsWankoRegistrationRequest.createWankoRegistrationRequest({
+    service:api.characterRequests,wanko:requestTarget,faction:requestFaction.value,
+    markRequested:(id,requestId)=>WankoLibrary.markRegistrationRequested(id,requestId)
+   });
+   closeRequestModal();
+   window.alert(result.duplicate?'このわんこは、もう依頼済みだよ':(result.synced?'登録依頼を出しました ✓':'登録依頼を保存したよ。あとで送るね'));
+   render();
+  }catch(error){requestStatus.textContent='保存できなかったよ。もう一度ためしてね';requestConfirm.disabled=false;console.error(error);}
+  finally{requestInFlight=false;}
+ }
+ document.getElementById('request-cancel').addEventListener('click',closeRequestModal);
+ requestConfirm.addEventListener('click',submitRequest);
  function selectTab(tab){activeTab=validTabs.has(tab)?tab:'allies';tabs.forEach(button=>button.setAttribute('aria-selected',String(button.dataset.tab===activeTab)));}
  tabs.forEach(button=>button.addEventListener('click',()=>{location.hash=button.dataset.tab;selectTab(button.dataset.tab);render();}));
  window.addEventListener('hashchange',()=>{selectTab(location.hash.slice(1));render();});
@@ -118,6 +144,8 @@ main{width:min(100%,900px);margin:auto;padding:18px 14px calc(env(safe-area-inse
       subtitle:new Date(w.createdAt).toLocaleDateString('ja-JP'),
       badge:stars?'なかま ★'+stars:'お試し',
       active:isActive,
+      requestPending:Boolean(w.registrationRequestId),
+      onRequest:()=>openRequestModal(w),
       onUse:async()=>{
         localStorage.removeItem('wankoOfficialActiveId');await WankoLibrary.setActiveWanko(w.id);
         window.dispatchEvent(new CustomEvent('wanko-official-active-changed',{detail:{id:null}}));render();
