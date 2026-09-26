@@ -36,6 +36,20 @@ test('encodes and decodes UTF-8 JSON and binary content', () => {
   assert.deepEqual([...sync.decodeBase64(sync.encodeBase64(Uint8Array.from([0, 255])))], [0, 255]);
 });
 
+test('encodes browser Blob artwork as binary content instead of an empty object', async () => {
+  const calls = [];
+  const { sync } = await setup(async (_url, options) => {
+    calls.push(options);
+    return options.method === 'GET'
+      ? response(404)
+      : response(201, { content: { sha: 'sha-blob' } });
+  });
+  const result = await sync.writePath('character-requests/pending/request-blob/artwork.webp', new Blob([Uint8Array.from([1, 2, 3])], { type: 'image/webp' }), { kind: 'binary' });
+  assert.equal(result.status, 'created');
+  const payload = JSON.parse(calls.at(-1).body);
+  assert.deepEqual([...Buffer.from(payload.content, 'base64')], [1, 2, 3]);
+});
+
 test('creates a new remote file without leaking the PAT', async () => {
   const calls = [];
   const { store, sync } = await setup(async (url, options) => {
