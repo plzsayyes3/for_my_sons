@@ -12,6 +12,7 @@
 - `shared/wanko-library-view.js` は正式・ゲーム内キャラクター、敵、元素のカードモデルを生成する。
 - `shared/wanko-game-progress.js` の現在の図鑑連携は既存の進行状態を読み取り、正式・ゲーム内キャラクターの解放判定を行う。今回の変更では進行データを書き換えない。
 - 登録依頼は共有IndexedDBの `characterRequests` ストアにあり、自作わんこのアーカイブとは別のライフサイクルである。
+- Paintで新しく作ったわんこは、登録依頼のローカル保存とは別に `WankoLibrary` の自作データとしても保存される必要がある。両者は `requestId` の参照だけで関連付ける。
 - 正式キャラクター関連ファイルと公開カタログは変更しない。
 - 作業開始時点の未コミット変更（`wanko-library/index.html` と `wanko-war/index.html` の既存キャッシュ番号変更）は保持し、今回の変更で上書きしない。
 
@@ -44,6 +45,8 @@
 - 照合は自作わんこに保存された依頼識別子がある場合に限る。識別子がまだない旧データは未依頼として扱い、勝手に依頼を作成しない。
 - 登録依頼済みの自作わんこをアーカイブしても、`characterRequests` レコード、画像Blob、リモートの `character-requests/pending/<requestId>/` は変更しない。
 
+Paintで新規登録する場合は、先に共有 `characterRequests` へ依頼を保存し、その `requestId` を `WankoLibrary.registerWanko({ characterRequestId })` へ渡して自作わんこを保存する。ローカル図鑑保存が失敗した場合でも、先に保存した登録依頼は保持し、依頼を削除しない。
+
 ### アーカイブと使用中切り替え
 
 `WankoLibrary.archiveWanko(id)` を追加する。物理削除は行わず、対象レコードを `archived: true`、`updatedAt` を現在時刻へ更新して保存する。
@@ -71,12 +74,14 @@
 ## 変更対象
 
 - `shared/wanko-library.js`
-  - `archiveWanko` と必要最小限の読み取り・active切り替え補助を追加。
+  - `registerWanko` の任意の `characterRequestId` 保存、`archiveWanko` と必要最小限の読み取り・active切り替え補助を追加。
 - `shared/wanko-library-view.js`
   - 自作カードと所持カードの分類を純粋関数として追加し、既存の敵・元素カード生成を変更しない。
 - `wanko-library/index.html`
   - 内部タブ、カード状態、削除確認UI、アーカイブ後の再描画を追加。
   - 既存の「てき」「元素」のDOM・描画経路を維持する。
+- `paint/app.js`
+  - 共有依頼を保存した後、同じ画像を自作図鑑へ保存し、依頼IDを関連付ける。
 - `tests/wanko-library.test.js` または既存の関連テスト
   - IndexedDBアダプタを含むアーカイブとactive切り替えのテスト。
 - `tests/wanko-library-view.test.js`
@@ -101,6 +106,7 @@
 - 自作モデルはローカルわんこのみを含む。
 - 所持モデルは正式・解放済みゲーム内キャラクターを含む。
 - 自作をアーカイブすると一覧から除外され、レコード自体は復元可能な状態で残る。
+- Paintで作った新規わんこが自作一覧に現れ、関連する依頼IDが保持される。
 - キャンセルではレコードと一覧が変わらない。
 - 正式・ゲーム内カードに削除可能フラグがない。
 - 使用中の自作をアーカイブしても、別の自作への切り替えまたはactive解除が行われる。
