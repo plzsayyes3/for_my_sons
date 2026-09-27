@@ -87,26 +87,17 @@ body.boosting .panel{box-shadow:0 0 0 2px rgba(102,242,255,.36),0 0 18px rgba(83
  #jump{width:112px;height:112px}
  #progressBox{width:min(42vw,360px)}
 }
-@media(max-height:500px) and (orientation:landscape){
- .move{width:66px;height:66px;bottom:max(14px,env(safe-area-inset-bottom))}
- #left{left:max(16px,env(safe-area-inset-left))}
- #right{left:96px}
- #jump{width:82px;height:82px;right:max(18px,env(safe-area-inset-right));bottom:max(14px,env(safe-area-inset-bottom));font-size:13px}
- #jump span{font-size:26px}
- #stageInfo{top:max(8px,env(safe-area-inset-top))}
- #progressBox{top:48px}
-}
 
 @media(max-width:700px){
  #speed{top:max(10px,env(safe-area-inset-top));left:10px;font-size:13px;padding:7px 9px;white-space:nowrap}
  #distance{top:max(10px,env(safe-area-inset-top));right:10px;padding:6px 9px;min-width:84px}
  #distance b{font-size:19px}
- #stageInfo{top:62px;left:50%;min-width:132px;padding:6px 12px}
+ #stageInfo{top:calc(max(10px,env(safe-area-inset-top)) + 52px);left:50%;min-width:132px;padding:6px 12px}
  #stageInfo b{font-size:15px}
  #stageInfo small{font-size:9px}
- #stars{top:106px;left:10px;font-size:13px;padding:6px 9px}
- #score{top:106px;right:10px;font-size:13px;padding:6px 9px}
- #progressBox{top:148px;width:calc(100% - 92px);max-width:330px;height:11px}
+ #stars{top:calc(max(10px,env(safe-area-inset-top)) + 96px);left:10px;font-size:13px;padding:6px 9px}
+ #score{top:calc(max(10px,env(safe-area-inset-top)) + 96px);right:10px;font-size:13px;padding:6px 9px}
+ #progressBox{top:calc(max(10px,env(safe-area-inset-top)) + 138px);width:calc(100% - 92px);max-width:330px;height:11px}
  #scorePop{top:35%;font-size:30px}
  .move{width:72px;height:72px;font-size:36px}
  #jump{width:108px;height:108px}
@@ -115,19 +106,30 @@ body.boosting .panel{box-shadow:0 0 0 2px rgba(102,242,255,.36),0 0 18px rgba(83
  #speed{font-size:12px;padding:6px 8px}
  #distance{min-width:78px;padding:5px 8px}
  #distance b{font-size:17px}
- #stageInfo{top:58px;min-width:124px;padding:5px 10px}
- #stars,#score{top:98px;font-size:12px;padding:5px 8px}
- #progressBox{top:136px;width:calc(100% - 70px)}
+ #stageInfo{top:calc(max(10px,env(safe-area-inset-top)) + 48px);min-width:124px;padding:5px 10px}
+ #stars,#score{top:calc(max(10px,env(safe-area-inset-top)) + 88px);font-size:12px;padding:5px 8px}
+ #progressBox{top:calc(max(10px,env(safe-area-inset-top)) + 126px);width:calc(100% - 70px)}
 }
 @media(orientation:landscape){
- .move{top:auto;bottom:24px;transform:none}
- #left{left:20px}
- #right{left:104px;right:auto}
- #jump{left:auto;right:20px;transform:none;width:98px;height:98px}
- #stageInfo{top:14px}
- #progressBox{top:54px}
- #stars{top:auto;bottom:128px}
- #score{top:auto;right:128px;bottom:128px}
+ .move{top:auto;bottom:max(24px,env(safe-area-inset-bottom));transform:none}
+ #left{left:max(20px,env(safe-area-inset-left))}
+ #right{left:calc(env(safe-area-inset-left) + 104px);right:auto}
+ #jump{left:auto;right:max(20px,env(safe-area-inset-right));bottom:max(24px,env(safe-area-inset-bottom));transform:none;width:98px;height:98px}
+ #stageInfo{top:max(14px,env(safe-area-inset-top))}
+ #progressBox{top:max(54px,calc(env(safe-area-inset-top) + 40px))}
+ #stars{top:auto;bottom:max(128px,calc(env(safe-area-inset-bottom) + 110px))}
+ #score{top:auto;right:max(128px,calc(env(safe-area-inset-right) + 110px));bottom:max(128px,calc(env(safe-area-inset-bottom) + 110px))}
+}
+@media(max-height:500px) and (orientation:landscape){
+ .move{width:66px;height:66px;bottom:max(14px,env(safe-area-inset-bottom))}
+ #left{left:max(16px,env(safe-area-inset-left))}
+ #right{left:calc(env(safe-area-inset-left) + 88px)}
+ #jump{width:82px;height:82px;right:max(18px,env(safe-area-inset-right));bottom:max(14px,env(safe-area-inset-bottom));font-size:13px}
+ #jump span{font-size:26px}
+ #stageInfo{top:max(8px,env(safe-area-inset-top))}
+ #progressBox{top:max(48px,calc(env(safe-area-inset-top) + 36px))}
+ #stars{bottom:max(98px,calc(env(safe-area-inset-bottom) + 86px))}
+ #score{right:max(108px,calc(env(safe-area-inset-right) + 94px));bottom:max(98px,calc(env(safe-area-inset-bottom) + 86px))}
 }
 </style>
 </head>
@@ -474,8 +476,8 @@ function initGame(THREE){
  }
  function addSeaScenery(stage){
    const waterMat=mat(0x2daedb,.38);waterMat.transparent=true;waterMat.opacity=.9;
-   [-14,14].forEach(x=>{
-     const water=new THREE.Mesh(new THREE.BoxGeometry(14,.28,360),waterMat.clone());water.position.set(x,-.72,-145);stageDecor.add(water);
+   [-14,14].forEach((x,i)=>{
+     const water=new THREE.Mesh(new THREE.BoxGeometry(14,.28,360),i===0?waterMat:waterMat.clone());water.position.set(x,-.72,-145);stageDecor.add(water);
    });
    const hullMat=mat(0xffffff,.62),sailMat=mat(0xffe28a,.7);
    for(let i=0;i<4;i++){
