@@ -54,3 +54,11 @@ test('Paint uses the current shared request stack for resend', () => {
   assert.match(html, /for-my-sons\.js\?v=13/);
   assert.match(html, /app\.js\?v=9/);
 });
+
+
+test('Paint reports resend success even when only history persistence is deferred', () => {
+  const source = read('paint/app.js');
+  assert.match(source, /result\.localPersisted === false/);
+  assert.match(source, /履歴更新は次回行います/);
+  assert.match(source, /元の依頼は端末に残っています/);
+});
