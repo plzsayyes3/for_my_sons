@@ -80,6 +80,17 @@ test('uploads artwork before JSON and marks one request synced', async () => {
   assert.deepEqual(calls.map(call => call.kind), ['binary', 'json']);
 });
 
+test('resends an already synced request so corrupted remote artwork can be repaired', async () => {
+  const calls = [];
+  const request = makeRequest();
+  request.status = 'synced';
+  request.syncState = 'synced';
+  const service = createCharacterRequestService({ db: await seededDb(), sync: createFakeSync({ calls }) });
+  const result = await service.resend(request.requestId);
+  assert.equal(result.syncState, 'synced');
+  assert.deepEqual(calls.map(call => call.kind), ['binary', 'json']);
+});
+
 test('retries JSON after artwork succeeds using the same request ID and paths', async () => {
   const calls = [];
   const service = createCharacterRequestService({ db: await seededDb(), sync: createFakeSync({ calls, failJsonOnce: true }) });

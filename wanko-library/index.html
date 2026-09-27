@@ -30,8 +30,8 @@ main{width:min(100%,900px);margin:auto;padding:18px 14px calc(env(safe-area-inse
 <script src="../shared/parent-lock.js?v=3"></script>
 <script src="../shared/save-store.js?v=2"></script>
 <script src="../shared/github-sync.js?v=8"></script>
-<script src="../shared/character-requests.js?v=1"></script>
-<script src="../shared/for-my-sons.js?v=6"></script>
+<script src="../shared/character-requests.js?v=2"></script>
+<script src="../shared/for-my-sons.js?v=7"></script>
 <script src="../shared/wanko-cloud-config.js"></script>
 <script src="../shared/wanko-cloud.js"></script>
 <script src="../shared/official-wankos.js?v=8"></script>
@@ -87,7 +87,7 @@ main{width:min(100%,900px);margin:auto;padding:18px 14px calc(env(safe-area-inse
   else thumb.appendChild(element('span',elementCard?'elementSymbol':'placeholder',placeholder||'🐾'));
   const info=element('div','info');info.append(element('div','name',name),element('div','date',subtitle||''));
   if(badge)info.appendChild(element('span','badge',badge));
-  if(onRequest){const button=element('button','request',requestPending?'依頼済み':'登録依頼を出す');button.type='button';button.disabled=requestPending;button.addEventListener('click',onRequest);info.appendChild(button);}
+  if(onRequest){const button=element('button','request',requestPending?'再送する':'登録依頼を出す');button.type='button';button.addEventListener('click',onRequest);info.appendChild(button);}
   if(requestSubmitted)info.appendChild(element('span','badge','登録依頼済み'));
   if(onUse){const button=element('button','use',active?'バトルで使用中':'このわんこを使う');button.disabled=disabled;button.addEventListener('click',onUse);info.appendChild(button);}
   if(onDelete){const button=element('button','danger','削除');button.type='button';button.addEventListener('click',onDelete);info.appendChild(button);}
@@ -107,7 +107,7 @@ main{width:min(100%,900px);margin:auto;padding:18px 14px calc(env(safe-area-inse
     markRequested:(id,requestId)=>WankoLibrary.markRegistrationRequested(id,requestId)
    });
    closeRequestModal();
-   window.alert(result.duplicate?'このわんこは、もう依頼済みだよ':(result.synced?'登録依頼を出しました ✓':'登録依頼を保存したよ。あとで送るね'));
+   window.alert(result.duplicate?(result.synced?'登録依頼を再送しました ✓':'再送依頼を保存したよ。あとで送るね'):(result.synced?'登録依頼を出しました ✓':'登録依頼を保存したよ。あとで送るね'));
    render();
   }catch(error){requestStatus.textContent='保存できなかったよ。もう一度ためしてね';requestConfirm.disabled=false;console.error(error);}
   finally{requestInFlight=false;}

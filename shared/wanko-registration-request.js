@@ -5,7 +5,9 @@
 })(typeof globalThis !== 'undefined' ? globalThis : this, () => {
   async function createWankoRegistrationRequest({ service, wanko, faction, markRequested } = {}) {
     if (wanko.registrationRequestId) {
-      return { requestId: wanko.registrationRequestId, duplicate: true, synced: false };
+      if (!service?.resend || !wanko.blob) return { requestId: wanko.registrationRequestId, duplicate: true, synced: false };
+      const resent = await service.resend(wanko.registrationRequestId);
+      return { requestId: wanko.registrationRequestId, duplicate: true, resent: true, synced: resent.syncState === 'synced' };
     }
     if (!service?.create || !service?.syncPending) throw new TypeError('request service is required');
     if (!wanko?.name || !wanko?.blob) throw new TypeError('local wanko artwork is required');
