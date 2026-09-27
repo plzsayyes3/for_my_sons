@@ -25,8 +25,8 @@ async function createContext(profileId, stars = 0, db = dbModule.createMemoryDat
   return { db, profiles, save, wallet, shop };
 }
 
-test('shop has five upgrades, five consumables and at least three future slots', () => {
-  assert.equal(shopModule.SHOP_ITEMS.filter(x => x.type === 'upgrade').length, 5);
+test('shop has six upgrades, five consumables and at least three future slots', () => {
+  assert.equal(shopModule.SHOP_ITEMS.filter(x => x.type === 'upgrade').length, 6);
   assert.equal(shopModule.SHOP_ITEMS.filter(x => x.type === 'consumable').length, 5);
   assert.ok(shopModule.SHOP_ITEMS.filter(x => x.type === 'placeholder').length >= 3);
 });
@@ -180,6 +180,17 @@ test('jump shoes increase jump without a large leap', () => {
   state.upgrades.jumpShoes = 5;
   assert.ok(shopModule.getJumpVelocity(state) > base);
   assert.ok(shopModule.getJumpVelocity(state) <= 10.2);
+});
+
+test('speed upgrade raises only normal run speed by three percent per level', () => {
+  const state = shopModule.createDefaultState();
+  assert.equal(shopModule.getRunSpeedMultiplier(state), 1);
+  state.upgrades.runSpeed = 1;
+  assert.equal(shopModule.getRunSpeedMultiplier(state), 1.03);
+  state.upgrades.runSpeed = 5;
+  assert.equal(shopModule.getRunSpeedMultiplier(state), 1.15);
+  assert.match(source, /normalSpeed=\(12\+grow\*18\)\*getRunSpeedMultiplier\(shopState\)/);
+  assert.match(source, /speed=normalSpeed\+\(state\.boost>0\?11:0\)/);
 });
 
 test('duplicate concurrent purchase is blocked before a second charge', async () => {
