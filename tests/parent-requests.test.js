@@ -338,3 +338,67 @@ test('parent request view shows Papa replies and a child-facing read button', ()
   assert.match(parentRequestView, /refreshReplies\(\{ appId, currentProfileOnly: true \}\)/);
   assert.match(parentRequestView, /markReplyRead\(currentReply\.id\)/);
 });
+
+
+test('uploads an optional request image before the request JSON and keeps one request id', async () => {
+  const db = createMemoryDatabase();
+  const profiles = createProfileManager(db);
+  await profiles.setCurrent('soma');
+  const writes = [];
+  const sync = {
+    async readPath(path) {
+      return { exists:false, content:null, sha:null, path };
+    },
+    async writePathKnown(path, value) {
+      writes.push({ path, value });
+      return { status:'created', sha:'sha-' + writes.length };
+    }
+  };
+  const service = createParentRequestService({
+    db,
+    profileManager:profiles,
+    sync,
+    clock:() => Date.parse('2026-09-27T08:30:00.000Z')
+  });
+
+  const image = Uint8Array.from([1,2,3,4]);
+  const created = await service.create({
+    requestId:'request-new-game-photo',
+    appId:'new-game-request',
+    gameName:'新しいゲーム',
+    type:'feature',
+    message:'車をつくるゲーム',
+    image,
+    imageContentType:'image/webp'
+  });
+  assert.equal(created.imagePath, 'requests/pending/assets/request-new-game-photo/image.webp');
+
+  const sent = await service.send(created.id);
+  assert.equal(sent.syncState, 'synced');
+  assert.equal(writes.length, 2);
+  assert.equal(writes[0].path, 'requests/pending/assets/request-new-game-photo/image.webp');
+  assert.equal(writes[1].path, 'requests/pending/2026-09-27_new-game-request_soma_request-new-game-photo.json');
+  assert.equal(writes[1].value.image, 'requests/pending/assets/request-new-game-photo/image.webp');
+  assert.equal(writes[1].value.id, 'request-new-game-photo');
+});
+
+test('request payload stays unchanged for requests without an image', () => {
+  const payload = requestPayload({
+    id:'request-no-photo',
+    profileId:'riku',
+    appId:'wanko-war',
+    gameName:'わんこ大戦争',
+    type:'feature',
+    message:'つよいわんこ',
+    createdAt:'2026-09-27T08:31:00.000Z'
+  });
+  assert.equal('image' in payload, false);
+});
+
+test('shared request view source supports fixed-type new game requests and optional images', () => {
+  assert.match(parentRequestView, /fixedType = ''/);
+  assert.match(parentRequestView, /allowImage = false/);
+  assert.match(parentRequestView, /photoInput\.accept = 'image\/\*'/);
+  assert.match(parentRequestView, /image: selectedImageBlob/);
+  assert.match(parentRequestView, /prepareImage\(file, documentRef\)/);
+});

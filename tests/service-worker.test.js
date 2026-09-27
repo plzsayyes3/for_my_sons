@@ -5,14 +5,14 @@ const vm = require('node:vm');
 
 test('service worker precaches request assets under a new cache version', () => {
   const source = fs.readFileSync('service-worker.js', 'utf8');
-  assert.match(source, /for-my-sons-v82/);
+  assert.match(source, /for-my-sons-v83/);
   assert.match(source, /\.\/shared\/character-requests\.js\?v=3/);
-  assert.match(source, /\.\/shared\/parent-requests\.js\?v=3/);
-  assert.match(source, /\.\/shared\/parent-request-view\.js\?v=3/);
-  assert.match(source, /\.\/shared\/parent-history-view\.js\?v=2/);
-  assert.match(source, /\.\/app\.js\?v=4/);
-  assert.match(source, /\.\/styles\.css\?v=3/);
-  assert.match(source, /\.\/shared\/for-my-sons\.js\?v=12/);
+  assert.match(source, /\.\/shared\/parent-requests\.js\?v=4/);
+  assert.match(source, /\.\/shared\/parent-request-view\.js\?v=4/);
+  assert.match(source, /\.\/shared\/parent-history-view\.js\?v=3/);
+  assert.match(source, /\.\/app\.js\?v=5/);
+  assert.match(source, /\.\/styles\.css\?v=4/);
+  assert.match(source, /\.\/shared\/for-my-sons\.js\?v=13/);
   assert.match(source, /\.\/shared\/wanko-library-store\.js\?v=1/);
   assert.match(source, /\.\/shared\/wanko-registration-request\.js\?v=1/);
   assert.match(source, /\.\/shared\/for-my-sons-db\.js\?v=4/);

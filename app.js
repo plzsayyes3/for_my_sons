@@ -58,6 +58,7 @@ async function setupSharedProfile() {
   const settingsButton = document.querySelector('#parent-settings-button');
   const settingsPanel = document.querySelector('#parent-settings-panel');
   const historyContainer = document.querySelector('#parent-request-history');
+  const newGameContainer = document.querySelector('#new-game-request');
   if (!window.ForMySonsShared || !window.ForMySonsSettingsView || !indicator || !settingsButton || !settingsPanel) return;
   try {
     const api = await window.ForMySonsShared.createForMySons();
@@ -65,11 +66,31 @@ async function setupSharedProfile() {
     const historyView = window.ForMySonsParentHistoryView && historyContainer
       ? window.ForMySonsParentHistoryView.mount({ container: historyContainer, api })
       : null;
+    const newGameView = window.ForMySonsParentRequestView && newGameContainer && api.parentRequests
+      ? window.ForMySonsParentRequestView.mount({
+          container: newGameContainer,
+          service: api.parentRequests,
+          appId: 'new-game-request',
+          gameName: '新しいゲーム',
+          launchLabel: '🎮 新しいゲームを作ってほしい',
+          pendingLaunchLabel: '🎮 まだ送れていないゲーム案',
+          titleText: '🎮 どんなゲームをつくってほしい？',
+          fixedType: 'feature',
+          hideGame: true,
+          messageLabelText: 'ゲームのアイデア',
+          placeholder: 'どんなゲーム？ どうやって遊ぶ？',
+          sendLabel: 'パパにおくる',
+          successText: 'ゲームのアイデアをおくったよ！\nパパがあとでみるね 👋',
+          allowImage: true
+        })
+      : null;
     const refreshProfileUi = async () => {
       const profile = await api.profile.current();
       const unset = profile.id === 'profile-1' && profile.label === 'profile-1';
       indicator.textContent = `プレイヤー: ${unset ? '未設定' : profile.label}`;
+      if (newGameContainer) newGameContainer.hidden = profile.id === 'papa';
       if (historyView) await historyView.refresh();
+      if (newGameView && profile.id !== 'papa') await newGameView.refresh();
     };
     await refreshProfileUi();
     window.ForMySonsSettings = window.ForMySonsSettingsView.renderSettings(settingsPanel, api);
