@@ -1,0 +1,228 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<meta name="theme-color" content="#63c9ff">
+<title>Sky Dash Sample</title>
+<style>
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#69cfff;font-family:ui-rounded,"SF Pro Rounded","Hiragino Maru Gothic ProN",system-ui,sans-serif;touch-action:none}
+#game{position:fixed;inset:0}
+canvas{display:block;width:100%;height:100%}
+.hud{position:fixed;inset:0;z-index:5;pointer-events:none;color:#fff;font-weight:900;text-shadow:0 2px 3px #174a88}
+.panel{position:absolute;background:linear-gradient(#3986ee,#194aa9);border:3px solid #fff;border-radius:22px;box-shadow:0 6px 0 rgba(0,54,139,.3);padding:10px 15px}
+#speed{top:14px;left:14px;font-size:20px}
+#distance{top:14px;right:14px;text-align:center;font-size:14px}
+#distance b{display:block;color:#ffe14d;font-size:28px}
+#stars{left:14px;bottom:112px;font-size:20px}
+#progressBox{position:absolute;top:22px;left:50%;transform:translateX(-50%);width:min(38vw,420px);height:18px;background:#173f96;border:3px solid #fff;border-radius:99px;overflow:hidden}
+#progress{height:100%;width:0;background:linear-gradient(90deg,#4ee8ff,#ffe44f)}
+#boost{position:absolute;top:24%;left:50%;transform:translate(-50%,-50%) scale(.8);font-size:44px;color:#fff45d;opacity:0;transition:.12s}
+#boost.show{opacity:1;transform:translate(-50%,-50%) scale(1)}
+.controls{position:fixed;inset:0;z-index:8;pointer-events:none}
+.btn{position:absolute;pointer-events:auto;border:4px solid #fff;background:radial-gradient(circle at 35% 30%,#88d9ff,#2a8ef2 70%);color:#fff;font-weight:1000;text-shadow:0 2px 2px #15549a;box-shadow:0 6px 0 rgba(0,70,155,.42);touch-action:none;user-select:none}
+#left,#right{bottom:24px;width:66px;height:66px;border-radius:20px;font-size:30px}
+#left{left:18px}#right{left:94px}
+#jump{right:20px;bottom:20px;width:100px;height:100px;border-radius:50%;font-size:15px;line-height:1.15}
+#jump span{display:block;font-size:32px}
+#startLayer{position:fixed;inset:0;z-index:30;display:flex;align-items:center;justify-content:center;padding:20px;background:linear-gradient(rgba(74,187,255,.2),rgba(8,53,130,.38))}
+.card{width:min(520px,92vw);background:rgba(246,253,255,.96);color:#174b8e;border-radius:30px;padding:26px;text-align:center;box-shadow:0 24px 70px rgba(0,44,105,.35)}
+.card h1{margin:0;font-size:40px;color:#1971cd}
+.card p{font-weight:800;line-height:1.55;color:#54709c}
+#run{border:0;border-radius:999px;padding:15px 34px;background:linear-gradient(#ffe96c,#ffb927);color:#174c85;font-size:22px;font-weight:1000;box-shadow:0 7px 0 #c98800}
+#status{min-height:22px;margin-top:14px;font-size:13px;font-weight:800;color:#61799b}
+#error{position:fixed;z-index:40;left:12px;right:12px;bottom:12px;display:none;background:#7b1730;color:#fff;border-radius:14px;padding:12px;font:700 12px/1.4 system-ui}
+@media(max-width:680px){
+ #speed{font-size:16px;padding:8px 11px}
+ #distance{padding:7px 10px}#distance b{font-size:22px}
+ #progressBox{top:62px;width:50vw;height:15px}
+ #boost{font-size:32px}
+}
+</style>
+</head>
+<body>
+<div id="game"></div>
+<div class="hud">
+  <div class="panel" id="speed">⚡ Speed Lv <b id="level">1</b></div>
+  <div class="panel" id="distance">DISTANCE<b id="meters">0m</b></div>
+  <div id="progressBox"><div id="progress"></div></div>
+  <div class="panel" id="stars">⭐ <span id="starCount">0</span></div>
+  <div id="boost">BOOST!</div>
+</div>
+<div class="controls">
+  <button class="btn" id="left">◀</button>
+  <button class="btn" id="right">▶</button>
+  <button class="btn" id="jump"><span>↑</span>JUMP</button>
+</div>
+<div id="startLayer">
+  <div class="card">
+    <h1>SKY DASH</h1>
+    <p>空の道を走って、どんどん加速。<br>星を集めてスターキャッスルを目指そう。</p>
+    <button id="run">▶ RUN!</button>
+    <div id="status">前進は自動です。左右＋ジャンプだけ。</div>
+  </div>
+</div>
+<div id="error"></div>
+<script type="module">
+const runButton=document.getElementById('run');
+const startLayer=document.getElementById('startLayer');
+const status=document.getElementById('status');
+const errorBox=document.getElementById('error');
+let started=false;
+
+runButton.addEventListener('click', async ()=>{
+  if(started)return;
+  started=true;
+  runButton.disabled=true;
+  runButton.textContent='LOADING...';
+  status.textContent='3Dワールドを準備中…';
+  try{
+    const THREE=await import('https://cdn.jsdelivr.net/npm/three@0.169.0/build/three.module.js');
+    initGame(THREE);
+    startLayer.style.display='none';
+  }catch(err){
+    started=false;
+    runButton.disabled=false;
+    runButton.textContent='↻ RETRY';
+    status.textContent='3Dエンジンを読み込めませんでした。';
+    errorBox.style.display='block';
+    errorBox.textContent='読み込みエラー: '+String(err);
+  }
+});
+
+function initGame(THREE){
+ const host=document.getElementById('game');
+ const scene=new THREE.Scene();
+ scene.background=new THREE.Color(0x72d2ff);
+ scene.fog=new THREE.Fog(0xa9e6ff,42,180);
+ const renderer=new THREE.WebGLRenderer({antialias:true,powerPreference:'high-performance'});
+ renderer.setPixelRatio(Math.min(devicePixelRatio,1.6));
+ renderer.setSize(innerWidth,innerHeight);
+ renderer.shadowMap.enabled=true;
+ host.appendChild(renderer.domElement);
+
+ const camera=new THREE.PerspectiveCamera(64,innerWidth/innerHeight,.1,400);
+ camera.position.set(0,5.4,10.5);
+ scene.add(new THREE.HemisphereLight(0xe9fbff,0x70a75f,2.3));
+ const sun=new THREE.DirectionalLight(0xffffff,2.4);
+ sun.position.set(-10,20,8); sun.castShadow=true; scene.add(sun);
+
+ const roadMat=new THREE.MeshStandardMaterial({color:0xf0ca91,roughness:.78});
+ const grassMat=new THREE.MeshStandardMaterial({color:0x68d55d,roughness:.9});
+ const railMat=new THREE.MeshStandardMaterial({color:0xb97935,roughness:.8});
+ const segments=[],segLen=22;
+ for(let i=0;i<14;i++){
+   const g=new THREE.Group();
+   const road=new THREE.Mesh(new THREE.BoxGeometry(11,.42,segLen),roadMat); road.receiveShadow=true; g.add(road);
+   const gl=new THREE.Mesh(new THREE.BoxGeometry(7,.72,segLen),grassMat); gl.position.set(-9,-.1,0); g.add(gl);
+   const gr=gl.clone(); gr.position.x=9; g.add(gr);
+   [-5.65,5.65].forEach(x=>{const r=new THREE.Mesh(new THREE.BoxGeometry(.38,1,segLen),railMat);r.position.set(x,.58,0);g.add(r)});
+   g.position.z=-i*segLen; scene.add(g); segments.push(g);
+ }
+
+ const trunkMat=new THREE.MeshStandardMaterial({color:0x995f34});
+ const leafMat=new THREE.MeshStandardMaterial({color:0x39c76b,roughness:.85});
+ const trees=[];
+ for(let i=0;i<42;i++){
+   const g=new THREE.Group();
+   const trunk=new THREE.Mesh(new THREE.CylinderGeometry(.2,.3,1.8,8),trunkMat);trunk.position.y=.9;g.add(trunk);
+   const top=new THREE.Mesh(new THREE.SphereGeometry(1.2,12,8),leafMat);top.position.y=2.25;top.scale.y=.85;g.add(top);
+   g.position.set((i%2?1:-1)*(8+Math.random()*5),.4,-8-i*7.5);scene.add(g);trees.push(g);
+ }
+
+ const cloudMat=new THREE.MeshLambertMaterial({color:0xffffff,transparent:true,opacity:.95});
+ const clouds=[];
+ for(let i=0;i<18;i++){
+   const g=new THREE.Group();
+   [[0,0,0,1.2],[1,.05,0,.85],[-1,.02,0,.8],[.25,.35,0,.72]].forEach(v=>{
+     const m=new THREE.Mesh(new THREE.SphereGeometry(1.2*v[3],12,8),cloudMat);m.position.set(v[0],v[1],v[2]);g.add(m);
+   });
+   g.position.set((Math.random()-.5)*60,-6-Math.random()*2,-i*18);g.scale.setScalar(1.8+Math.random()*2);scene.add(g);clouds.push(g);
+ }
+
+ const player=new THREE.Group();
+ const skin=new THREE.MeshStandardMaterial({color:0xffcfaa});
+ const red=new THREE.MeshStandardMaterial({color:0xf14f48});
+ const blue=new THREE.MeshStandardMaterial({color:0x287fdc});
+ const navy=new THREE.MeshStandardMaterial({color:0x173c86});
+ const brown=new THREE.MeshStandardMaterial({color:0x62351f});
+ const white=new THREE.MeshStandardMaterial({color:0xffffff});
+ const body=new THREE.Mesh(new THREE.CapsuleGeometry(.6,1.0,6,12),red);body.position.y=1.5;body.castShadow=true;player.add(body);
+ const head=new THREE.Mesh(new THREE.SphereGeometry(.58,16,12),skin);head.position.y=2.68;head.castShadow=true;player.add(head);
+ const hair=new THREE.Mesh(new THREE.SphereGeometry(.61,12,7,0,Math.PI*2,0,Math.PI*.56),brown);hair.position.y=2.84;player.add(hair);
+ const pack=new THREE.Mesh(new THREE.BoxGeometry(.9,.95,.32),blue);pack.position.set(0,1.56,.61);player.add(pack);
+ const legL=new THREE.Mesh(new THREE.CapsuleGeometry(.18,.78,5,8),navy),legR=legL.clone();legL.position.set(-.26,.58,0);legR.position.set(.26,.58,0);player.add(legL,legR);
+ const shoeL=new THREE.Mesh(new THREE.BoxGeometry(.42,.26,.68),white),shoeR=shoeL.clone();shoeL.position.set(-.26,.12,-.18);shoeR.position.set(.26,.12,-.18);player.add(shoeL,shoeR);
+ player.position.set(0,.3,3);scene.add(player);
+
+ const starMat=new THREE.MeshStandardMaterial({color:0xffd631,emissive:0x9e5a00,emissiveIntensity:.4});
+ const starGeo=new THREE.IcosahedronGeometry(.42,0); const stars=[];
+ for(let i=0;i<24;i++){const s=new THREE.Mesh(starGeo,starMat);s.position.set((i%3-1)*2.4,1.25,-12-i*11);scene.add(s);stars.push(s)}
+
+ const padMat=new THREE.MeshStandardMaterial({color:0x168fff,emissive:0x0754d9,emissiveIntensity:.8});
+ const yellow=new THREE.MeshBasicMaterial({color:0xffe454}); const pads=[];
+ [-35,-108,-182].forEach(z=>{
+   const g=new THREE.Group();
+   const base=new THREE.Mesh(new THREE.BoxGeometry(5.4,.16,4),padMat);base.position.y=.35;g.add(base);
+   for(let i=0;i<3;i++){const line=new THREE.Mesh(new THREE.BoxGeometry(3.8,.05,.3),yellow);line.position.set(0,.46,-.8+i*.8);g.add(line)}
+   g.position.z=z;scene.add(g);pads.push(g);
+ });
+
+ const ringMat=new THREE.MeshStandardMaterial({color:0xffc528,emissive:0x7a4300,emissiveIntensity:.35,metalness:.5});
+ const rings=[];
+ for(let i=0;i<7;i++){const r=new THREE.Mesh(new THREE.TorusGeometry(2.2,.25,12,26),ringMat);r.position.set(i%2?8:-8,4,-28-i*40);r.rotation.y=Math.PI/2;scene.add(r);rings.push(r)}
+
+ const trails=[];
+ for(let i=0;i<7;i++){const m=new THREE.Mesh(new THREE.BoxGeometry(.035,.035,5+i*.45),new THREE.MeshBasicMaterial({color:0x73efff,transparent:true,opacity:.12}));m.position.set(0,.6+i*.28,5+i*.4);scene.add(m);trails.push(m)}
+
+ const state={distance:0,count:0,level:1,targetX:0,y:0,vy:0,boost:0,last:performance.now()};
+ const press={left:false,right:false};
+ const levelEl=document.getElementById('level'),meters=document.getElementById('meters'),starCount=document.getElementById('starCount'),progress=document.getElementById('progress'),boost=document.getElementById('boost');
+
+ function jump(){if(state.y<=.02)state.vy=9.2}
+ function bindHold(id,key){
+   const el=document.getElementById(id);
+   el.addEventListener('pointerdown',e=>{e.preventDefault();press[key]=true;el.setPointerCapture&&el.setPointerCapture(e.pointerId)});
+   ['pointerup','pointercancel','lostpointercapture'].forEach(ev=>el.addEventListener(ev,()=>press[key]=false));
+ }
+ bindHold('left','left');bindHold('right','right');
+ document.getElementById('jump').addEventListener('pointerdown',e=>{e.preventDefault();jump()});
+ addEventListener('keydown',e=>{if(e.key==='ArrowLeft'||e.key==='a')press.left=true;if(e.key==='ArrowRight'||e.key==='d')press.right=true;if(e.code==='Space'){e.preventDefault();jump()}});
+ addEventListener('keyup',e=>{if(e.key==='ArrowLeft'||e.key==='a')press.left=false;if(e.key==='ArrowRight'||e.key==='d')press.right=false});
+
+ function doBoost(){state.boost=1.25;boost.classList.add('show');setTimeout(()=>boost.classList.remove('show'),480)}
+
+ function frame(now){
+   requestAnimationFrame(frame);
+   const dt=Math.min((now-state.last)/1000,.034);state.last=now;
+   const grow=Math.min(state.distance/500,1),speed=12+grow*18+(state.boost>0?11:0);
+   if(state.boost>0)state.boost-=dt;
+   const dz=speed*dt;state.distance+=dz*.9;
+   const lateral=(press.right?1:0)-(press.left?1:0);
+   state.targetX=THREE.MathUtils.clamp(state.targetX+lateral*8.5*dt,-4.15,4.15);
+   player.position.x=THREE.MathUtils.lerp(player.position.x,state.targetX,1-Math.pow(.001,dt));
+   state.vy-=22*dt;state.y+=state.vy*dt;if(state.y<0){state.y=0;state.vy=0}player.position.y=.3+state.y;
+   const cycle=now*.016*(1+speed/25);legL.rotation.x=Math.sin(cycle)*.68;legR.rotation.x=-Math.sin(cycle)*.68;body.rotation.z=-player.position.x*.035;
+
+   segments.forEach(g=>{g.position.z+=dz;if(g.position.z>segLen)g.position.z-=segLen*segments.length});
+   trees.forEach(g=>{g.position.z+=dz;if(g.position.z>16)g.position.z-=315});
+   clouds.forEach(g=>{g.position.z+=dz*.45;if(g.position.z>26)g.position.z-=340});
+   rings.forEach(r=>{r.position.z+=dz;if(r.position.z>20)r.position.z-=300});
+   stars.forEach(s=>{s.position.z+=dz;s.rotation.x+=dt*2.5;s.rotation.y+=dt*4;if(s.position.z>10){s.position.z-=265;s.position.x=(Math.floor(Math.random()*3)-1)*2.4;s.visible=true}if(s.visible&&Math.abs(s.position.z-player.position.z)<1.35&&Math.abs(s.position.x-player.position.x)<1.1&&state.y<2.2){s.visible=false;state.count++;starCount.textContent=state.count}});
+   pads.forEach(p=>{p.position.z+=dz;if(p.position.z>15)p.position.z-=220;if(Math.abs(p.position.z-player.position.z)<1.8&&Math.abs(player.position.x)<3&&state.y<.7&&state.boost<=0)doBoost()});
+   trails.forEach((t,i)=>{t.material.opacity=.1+grow*.4+(state.boost>0?.28:0);t.scale.z=1+grow*1.8+(state.boost>0?1.4:0);t.position.x=player.position.x+((i%3)-1)*.72});
+
+   camera.fov=64+grow*12+(state.boost>0?7:0);camera.updateProjectionMatrix();
+   camera.position.x=THREE.MathUtils.lerp(camera.position.x,player.position.x*.3,.08);camera.position.y=5.4+state.y*.12;camera.lookAt(player.position.x*.16,1.5,-14);
+
+   const lv=Math.min(100,1+Math.floor(state.distance/38));if(lv!==state.level){state.level=lv;levelEl.textContent=lv}
+   meters.textContent=Math.floor(state.distance)+'m';progress.style.width=Math.min(100,state.distance/280*100)+'%';
+   renderer.render(scene,camera);
+ }
+ requestAnimationFrame(frame);
+ addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight);renderer.setPixelRatio(Math.min(devicePixelRatio,1.6))});
+}
+</script>
+</body>
+</html>
