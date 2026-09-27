@@ -29,6 +29,11 @@ test('multiplication broadcasts each saved point change', () => {
 
 test('gacha refreshes wallet state on live updates and page restoration', () => {
   const html = read('wanko-gacha/index.html');
+  const storeScript = html.indexOf('shared/wanko-library-store.js?v=1');
+  const libraryScript = html.indexOf('shared/wanko-library.js');
+  assert.ok(storeScript >= 0, 'gacha must load the Wanko library store dependency');
+  assert.ok(libraryScript > storeScript, 'Wanko library store must load before wanko-library.js');
+  assert.match(html, /window\.WankoLibrary\?\.syncNow\?\.\(\)/);
   assert.match(html, /async function refreshProgressState/);
   assert.match(html, /BroadcastChannel\('wanko-progress'\)/);
   assert.match(html, /wanko-economy-updated/);
