@@ -22,12 +22,14 @@ main{width:min(100%,900px);margin:auto;padding:16px 14px calc(env(safe-area-inse
 <div class="bar"><h2>つかえるわんこ</h2><span class="count" id="count">読込中</span></div>
 <div class="grid" id="grid"></div>
 </main>
-<script src="../shared/for-my-sons-db.js?v=2"></script>
+<script src="../shared/for-my-sons-db.js?v=4"></script>
 <script src="../shared/profile-manager.js?v=2"></script>
 <script src="../shared/parent-lock.js?v=3"></script>
 <script src="../shared/save-store.js?v=2"></script>
-<script src="../shared/github-sync.js?v=8"></script>
-<script src="../shared/for-my-sons.js?v=9"></script>
+<script src="../shared/github-sync.js?v=9"></script>
+<script src="../shared/character-requests.js?v=3"></script>
+<script src="../shared/parent-requests.js?v=3"></script>
+<script src="../shared/for-my-sons.js?v=12"></script>
 <script src="../shared/wanko-cloud-config.js"></script>
 <script src="../shared/wanko-cloud.js"></script>
 <script src="../shared/wanko-library-store.js?v=1"></script>
@@ -57,9 +59,17 @@ main{width:min(100%,900px);margin:auto;padding:16px 14px calc(env(safe-area-inse
   }
  }catch(error){
   console.warn('Wanko deck profile init failed; using legacy device state',error);
-  state=await Progress.getState();
+  try{
+   state=await Promise.race([
+    Progress.getState(),
+    new Promise((_,reject)=>setTimeout(()=>reject(new Error('Legacy Wanko state timed out')),1200))
+   ]);
+  }catch(legacyError){
+   console.warn('Legacy Wanko state unavailable; using defaults',legacyError);
+   state={selectedStageId:'S001',clearedStageIds:[],ownedWankoIds:[],deckSlots:[]};
+  }
   document.getElementById('profile').textContent='端末保存';
-  status.textContent='プロフィールを読み込めませんでした';
+  status.textContent=error?.code==='DB_BLOCKED'?'他の画面が保存データを使用中です。基本わんこを表示します':'プロフィールを読み込めませんでした';
  }
  let customList=[];
  if(window.WankoLibrary){

@@ -43,9 +43,29 @@ test('deck editor falls back to profile-local official Wankos when optional load
   assert.match(editor, /id="count">読込中</);
 });
 
-test('Wanko entry points use deck v3', () => {
+test('Wanko entry points use deck v4', () => {
   const home = fs.readFileSync(path.join(__dirname,'../wanko/index.html'),'utf8');
   const battle = fs.readFileSync(path.join(__dirname,'../wanko-war/index.html'),'utf8');
-  assert.match(home, /wanko-deck\/\?v=3/);
-  assert.match(battle, /wanko-deck\/\?v=3/);
+  assert.match(home, /wanko-deck\/\?v=4/);
+  assert.match(battle, /wanko-deck\/\?v=4/);
+});
+
+test('deck loads the complete current shared API dependency chain', () => {
+  const editor = fs.readFileSync(path.join(__dirname,'../wanko-deck/index.html'),'utf8');
+  const db = editor.indexOf('../shared/for-my-sons-db.js?v=4');
+  const github = editor.indexOf('../shared/github-sync.js?v=9');
+  const requests = editor.indexOf('../shared/character-requests.js?v=3');
+  const parentRequests = editor.indexOf('../shared/parent-requests.js?v=3');
+  const facade = editor.indexOf('../shared/for-my-sons.js?v=12');
+  assert.ok(db >= 0 && github > db && requests > github && parentRequests > requests && facade > parentRequests);
+});
+
+test('shared IndexedDB cannot leave the Wanko deck waiting forever on a blocked upgrade', () => {
+  const db = fs.readFileSync(path.join(__dirname,'../shared/for-my-sons-db.js'),'utf8');
+  const editor = fs.readFileSync(path.join(__dirname,'../wanko-deck/index.html'),'utf8');
+  assert.match(db, /request\.onblocked/);
+  assert.match(db, /DB_BLOCKED/);
+  assert.match(db, /database\.onversionchange = \(\) => database\.close\(\)/);
+  assert.match(editor, /Legacy Wanko state timed out/);
+  assert.match(editor, /basicわんこ|基本わんこ/);
 });

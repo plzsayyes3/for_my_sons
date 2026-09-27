@@ -82,13 +82,39 @@
     if (!indexedDB?.open) return Promise.reject(new Error('IndexedDB is unavailable'));
     return new Promise((resolve, reject) => {
       const request = indexedDB.open(DB_NAME, DB_VERSION);
+      let settled = false;
+      let blockedTimer = null;
+      const finishReject = error => {
+        if (settled) return;
+        settled = true;
+        if (blockedTimer) clearTimeout(blockedTimer);
+        reject(error);
+      };
       request.onupgradeneeded = () => {
         for (const name of STORE_NAMES) {
           if (!request.result.objectStoreNames.contains(name)) request.result.createObjectStore(name);
         }
       };
-      request.onsuccess = () => resolve(createIndexedDatabase(request.result));
-      request.onerror = () => reject(request.error || new Error('Unable to open shared IndexedDB'));
+      request.onblocked = () => {
+        if (blockedTimer) return;
+        blockedTimer = setTimeout(() => {
+          const error = new Error('Shared IndexedDB upgrade is blocked by another page');
+          error.code = 'DB_BLOCKED';
+          finishReject(error);
+        }, 1500);
+      };
+      request.onsuccess = () => {
+        const database = request.result;
+        database.onversionchange = () => database.close();
+        if (settled) {
+          database.close();
+          return;
+        }
+        settled = true;
+        if (blockedTimer) clearTimeout(blockedTimer);
+        resolve(createIndexedDatabase(database));
+      };
+      request.onerror = () => finishReject(request.error || new Error('Unable to open shared IndexedDB'));
     });
   }
 
