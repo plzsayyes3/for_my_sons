@@ -35,6 +35,11 @@ canvas{display:block;width:100%;height:100%}
 .clearScore{font-size:30px;font-weight:1000;color:#1556aa;margin:6px 0}
 .clearScore span{color:#ffac22}
 .clearStars{font-size:24px;letter-spacing:4px;min-height:30px;margin-bottom:6px}
+.clearReward{margin:8px auto 10px;padding:10px 12px;border-radius:16px;background:#fff7d6;color:#54709c;font-size:14px;font-weight:900;line-height:1.35}
+.clearReward span,.clearReward b,.clearReward strong,.clearReward small{display:block}
+.clearReward b{color:#1556aa;font-size:16px;margin-top:3px}
+.clearReward strong{color:#ff9e1d;font-size:23px;margin-top:2px}
+.clearReward small{font-size:12px;margin-top:4px}
 .clearCard p{margin:0;font-size:16px;font-weight:900;color:#54709c}
 .clearActions{display:grid;grid-template-columns:1fr;gap:10px;margin-top:18px}
 .clearAction{pointer-events:auto;border:0;border-radius:999px;padding:14px 18px;font-size:18px;font-weight:1000}
@@ -156,6 +161,7 @@ body.boosting .panel{box-shadow:0 0 0 2px rgba(102,242,255,.36),0 0 18px rgba(83
     <strong id="clearTitle">GOAL!</strong>
     <div class="clearScore">SCORE <span id="clearScore">100</span> / 100</div>
     <div class="clearStars" id="clearStars">★★★</div>
+    <div class="clearReward" id="clearReward">クリアボーナス</div>
     <p id="nextPref">つぎは 神奈川県</p>
     <div class="clearActions">
       <button class="clearAction" id="continueBtn" type="button">すすむ（3秒後スタート）</button>
@@ -173,21 +179,57 @@ body.boosting .panel{box-shadow:0 0 0 2px rgba(102,242,255,.36),0 0 18px rgba(83
   </div>
 </div>
 <div id="error"></div>
+<script src="../shared/for-my-sons-db.js?v=2"></script>
+<script src="../shared/profile-manager.js?v=2"></script>
+<script src="../shared/save-store.js?v=2"></script>
+<script src="./star-wallet.js?v=1"></script>
 <script type="module">
 const runButton=document.getElementById('run');
 const startLayer=document.getElementById('startLayer');
 const status=document.getElementById('status');
 const errorBox=document.getElementById('error');
+const {BASE_CLEAR_REWARD,getClearBonusMultiplier,getClearReward,createStarWallet,createClearRewardGuard}=globalThis.SkyDashStarWallet;
 let started=false;
+let starWallet=null;
+let walletPromise=null;
+
+function showWalletError(err){
+  errorBox.style.display='block';
+  errorBox.textContent='星データの保存エラー: '+String(err);
+}
+
+async function loadStarWallet(){
+  const db=await globalThis.ForMySonsDB.openDatabase();
+  const profileManager=globalThis.ForMySonsProfile.createProfileManager(db);
+  const profile=await profileManager.current();
+  const saveStore=globalThis.ForMySonsSaveStore.createSaveStore(db,profileManager);
+  starWallet=createStarWallet(saveStore,{
+    profileId:profile.id,
+    onChange:stars=>{document.getElementById('starCount').textContent=stars},
+    onError:showWalletError
+  });
+  await starWallet.loadStarWallet();
+  return starWallet;
+}
+
+function ensureStarWallet(){
+  if(starWallet)return Promise.resolve(starWallet);
+  if(!walletPromise){
+    walletPromise=loadStarWallet().catch(err=>{walletPromise=null;throw err});
+  }
+  return walletPromise;
+}
 
 runButton.addEventListener('click',async()=>{
   if(started)return;
-  started=true;runButton.disabled=true;runButton.textContent='LOADING...';status.textContent='3Dワールドを準備中…';
+  started=true;runButton.disabled=true;runButton.textContent='LOADING...';status.textContent='ゲームデータを準備中…';
   try{
+    await ensureStarWallet();
+    status.textContent='3Dワールドを準備中…';
     const THREE=await import('https://cdn.jsdelivr.net/npm/three@0.169.0/build/three.module.js');
     initGame(THREE);startLayer.style.display='none';
   }catch(err){
-    started=false;runButton.disabled=false;runButton.textContent='↻ RETRY';status.textContent='3Dエンジンを読み込めませんでした。';
+    started=false;runButton.disabled=false;runButton.textContent='↻ RETRY';status.textContent='ゲームを準備できませんでした。';
     errorBox.style.display='block';errorBox.textContent='読み込みエラー: '+String(err);
   }
 });
@@ -418,14 +460,15 @@ function initGame(THREE){
  const STAGE_LENGTH=500;
  const TOTAL_ROUTE=STAGE_LENGTH*PREFECTURES.length;
  const PASS_SCORE=70;
- const state={totalDistance:0,stageDistance:0,stageIndex:0,count:0,level:1,score:100,targetX:0,y:0,vy:0,boost:0,transition:false,last:performance.now()};
+ const state={totalDistance:0,stageDistance:0,stageIndex:0,level:1,score:100,targetX:0,y:0,vy:0,boost:0,transition:false,last:performance.now()};
  const press={left:false,right:false};
  const levelEl=document.getElementById('level'),meters=document.getElementById('meters'),starCount=document.getElementById('starCount'),progress=document.getElementById('progress'),boost=document.getElementById('boost');
  const scoreValue=document.getElementById('scoreValue'),scorePop=document.getElementById('scorePop');
  const prefectureEl=document.getElementById('prefecture'),stageNoEl=document.getElementById('stageNo'),clearLayer=document.getElementById('clearLayer'),clearPref=document.getElementById('clearPref'),nextPref=document.getElementById('nextPref');
- const clearTitle=document.getElementById('clearTitle'),clearScoreEl=document.getElementById('clearScore'),clearStarsEl=document.getElementById('clearStars');
+ const clearTitle=document.getElementById('clearTitle'),clearScoreEl=document.getElementById('clearScore'),clearStarsEl=document.getElementById('clearStars'),clearRewardEl=document.getElementById('clearReward');
  const continueBtn=document.getElementById('continueBtn'),quitBtn=document.getElementById('quitBtn'),countdownEl=document.getElementById('countdown');
- let pendingNextIndex=null,countdownTimer=null;
+ let pendingNextIndex=null,countdownTimer=null,stageRunId=1;
+ const clearRewardGuard=createClearRewardGuard(amount=>starWallet.addStars(amount));
 
  const ENVIRONMENT_PALETTES={
    city:{sky:0x78d8ff,fog:0xc8efff,road:0xecc995,edge:0xf6b644,ground:0x72ca68},
@@ -571,7 +614,7 @@ function initGame(THREE){
      clearInterval(countdownTimer);countdownTimer=null;
      countdownEl.textContent="GO!";
      setTimeout(()=>{
-       state.stageIndex=pendingNextIndex;state.stageDistance=0;state.score=100;scoreValue.textContent="100";state.targetX=0;player.position.x=0;finishGate.visible=false;
+       state.stageIndex=pendingNextIndex;state.stageDistance=0;state.score=100;scoreValue.textContent="100";state.targetX=0;player.position.x=0;finishGate.visible=false;stageRunId+=1;
        applyStageTheme(state.stageIndex);
        clearLayer.classList.remove('show','neon-clear');
        countdownEl.textContent="";
@@ -581,8 +624,10 @@ function initGame(THREE){
    },1000);
  }
  continueBtn.addEventListener('click',startNextStageAfterCountdown);
- quitBtn.addEventListener('click',()=>{
+ quitBtn.addEventListener('click',async()=>{
    if(countdownTimer){clearInterval(countdownTimer);countdownTimer=null}
+   quitBtn.disabled=true;
+   try{await starWallet.flush()}catch(err){showWalletError(err)}
    location.href="../";
  });
 
@@ -595,9 +640,13 @@ function initGame(THREE){
    clearStarsEl.textContent=rating;
    clearLayer.classList.toggle('neon-clear',state.score>=90);
    const passed=state.score>=PASS_SCORE;
+   const multiplier=getClearBonusMultiplier(state.score);
+   const clearReward=getClearReward(state.score);
+   clearRewardGuard.grant(stageRunId,state.score);
    const nextIndex=state.stageIndex+1;
-   clearTitle.textContent=passed?"CLEAR!":"GOAL!";
+   clearTitle.textContent=state.score===100?"PERFECT!":state.score===99?"GREAT!":passed?"CLEAR!":"GOAL!";
    if(passed){
+     clearRewardEl.innerHTML='<span>クリアボーナス</span><b>'+BASE_CLEAR_REWARD+'⭐ × '+multiplier.toFixed(1)+'</b><strong>+'+clearReward+'⭐</strong>';
      pendingNextIndex=nextIndex<PREFECTURES.length?nextIndex:null;
      continueBtn.hidden=pendingNextIndex===null;
      continueBtn.textContent="すすむ（3秒後スタート）";
@@ -607,6 +656,7 @@ function initGame(THREE){
        nextPref.textContent="東京から北海道まで 47都道府県クリア！";
      }
    }else{
+     clearRewardEl.innerHTML='<span>クリアボーナスなし</span><small>道中で獲得した星は保持されます。</small>';
      pendingNextIndex=state.stageIndex;
      continueBtn.hidden=false;
      continueBtn.textContent="もういちど（3秒後スタート）";
@@ -678,7 +728,7 @@ function initGame(THREE){
        d.userData.taken=true;d.visible=false;changeScore(5);
      }
    });
-   stars.forEach(s=>{s.position.z+=dz;s.rotation.x+=dt*2.5;s.rotation.y+=dt*4;if(s.position.z>10){s.position.z-=265;s.position.x=(Math.floor(Math.random()*3)-1)*2.25;s.visible=true}if(s.visible&&Math.abs(s.position.z-player.position.z)<1.35&&Math.abs(s.position.x-player.position.x)<1.05&&state.y<2.2){s.visible=false;state.count++;starCount.textContent=state.count}});
+   stars.forEach(s=>{s.position.z+=dz;s.rotation.x+=dt*2.5;s.rotation.y+=dt*4;if(s.position.z>10){s.position.z-=265;s.position.x=(Math.floor(Math.random()*3)-1)*2.25;s.visible=true}if(s.visible&&Math.abs(s.position.z-player.position.z)<1.35&&Math.abs(s.position.x-player.position.x)<1.05&&state.y<2.2){s.visible=false;starWallet.addStars(1)}});
    pads.forEach(p=>{p.position.z+=dz;if(p.position.z>15)p.position.z-=220;if(Math.abs(p.position.z-player.position.z)<1.8&&Math.abs(player.position.x)<3&&state.y<.7&&state.boost<=0)doBoost()});
    trails.forEach((t,i)=>{t.material.opacity=.08+grow*.36+(state.boost>0?.28:0);t.scale.z=1+grow*1.8+(state.boost>0?1.5:0);t.position.x=player.position.x+((i%3)-1)*.74});
 
