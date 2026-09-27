@@ -14,12 +14,12 @@ main{width:min(100%,900px);margin:auto;padding:16px 14px calc(env(safe-area-inse
 </style>
 </head>
 <body>
-<header><a class="back" href="../wanko/?v=11">‹</a><h1>デッキ編集</h1><span class="profile" id="profile">端末</span></header>
+<header><a class="back" href="../wanko/?v=13">‹</a><h1>デッキ編集</h1><span class="profile" id="profile">端末</span></header>
 <main>
 <p class="lead">バトルにつれていくわんこを8体まで選べます。カードを押した順に並びます。</p>
 <div class="slots" id="slots"></div>
 <button class="save" id="save">このデッキで保存</button><div class="status" id="status"></div>
-<div class="bar"><h2>つかえるわんこ</h2><span class="count" id="count">0 / 8</span></div>
+<div class="bar"><h2>つかえるわんこ</h2><span class="count" id="count">読込中</span></div>
 <div class="grid" id="grid"></div>
 </main>
 <script src="../shared/for-my-sons-db.js?v=2"></script>
@@ -38,19 +38,42 @@ main{width:min(100%,900px);margin:auto;padding:16px 14px calc(env(safe-area-inse
 <script>
 (async()=>{
  const GameData=window.WankoGameData,slotsEl=document.getElementById('slots'),grid=document.getElementById('grid'),count=document.getElementById('count'),status=document.getElementById('status'),save=document.getElementById('save');
- let Progress=window.WankoGameProgress,sync=null,state=null,items=[],deck=[];
+ let Progress=window.WankoGameProgress,sync=null,state=null,items=[],deck=[],scoped=null,profile=null;
  try{
-  const api=await ForMySonsShared.createForMySons(),profile=await api.profile.current();
+  const api=await ForMySonsShared.createForMySons();
+  profile=await api.profile.current();
   document.getElementById('profile').textContent=profile?.label&&profile.label!=='profile-1'?profile.label:'未設定';
-  const scoped=WankoGameProgress.createProfileStore(profile.id,api.save,GameData);
-  sync=WankoProfileSync.createWankoProfileSync({api,profileId:profile.id,definitions:GameData,progressStore:scoped,legacyStorage:window.WankoLibrary,confirmLegacy:async()=>false});
-  const initialized=await sync.initialize();Progress=scoped;state=initialized.state;
- }catch(error){console.warn(error);state=await Progress.getState();document.getElementById('profile').textContent='端末保存';}
- const customList=window.WankoLibrary?await WankoLibrary.listWankos():[];
- const owned=new Set(state.ownedWankoIds||[]);
+  scoped=WankoGameProgress.createProfileStore(profile.id,api.save,GameData);
+  Progress=scoped;
+  try{
+   sync=WankoProfileSync.createWankoProfileSync({api,profileId:profile.id,definitions:GameData,progressStore:scoped,legacyStorage:window.WankoLibrary,confirmLegacy:async()=>false});
+   const initialized=await sync.initialize();
+   state=initialized.state;
+  }catch(error){
+   console.warn('Wanko deck sync init failed; using profile-local state',error);
+   sync=null;
+   state=await scoped.getState();
+   status.textContent='端末のデータで表示しています';
+  }
+ }catch(error){
+  console.warn('Wanko deck profile init failed; using legacy device state',error);
+  state=await Progress.getState();
+  document.getElementById('profile').textContent='端末保存';
+  status.textContent='プロフィールを読み込めませんでした';
+ }
+ let customList=[];
+ if(window.WankoLibrary){
+  try{
+   customList=await WankoLibrary.listWankos();
+  }catch(error){
+   console.warn('Custom Wanko list failed; continuing with official Wankos',error);
+   status.textContent=status.textContent||'カスタムわんこを読み込めませんでした';
+  }
+ }
+ const owned=new Set(state?.ownedWankoIds||[]);
  for(const id of GameData.getSelectableAllyIds()){
   const c=GameData.getCharacter(id);
-  const stageUnlocked=!c.unlockAfterStage||state.clearedStageIds.includes(c.unlockAfterStage);
+  const stageUnlocked=!c.unlockAfterStage||state?.clearedStageIds?.includes(c.unlockAfterStage);
   const gachaOwned=owned.has('game:'+id);
   if(stageUnlocked||gachaOwned)items.push({
    key:'game:'+id,
