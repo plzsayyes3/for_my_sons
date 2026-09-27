@@ -243,7 +243,7 @@ body.boosting .panel{box-shadow:0 0 0 2px rgba(102,242,255,.36),0 0 18px rgba(83
 <script src="../shared/parent-requests.js?v=2"></script>
 <script src="../shared/parent-request-view.js?v=2"></script>
 <script src="./star-wallet.js?v=2"></script>
-<script src="./shop-system.js?v=1"></script>
+<script src="./shop-system.js?v=2"></script>
 <script type="module">
 const runButton=document.getElementById('run');
 const startLayer=document.getElementById('startLayer');
@@ -252,7 +252,7 @@ const errorBox=document.getElementById('error');
 const shopOpen=document.getElementById('shopOpen'),shopClose=document.getElementById('shopClose'),shopLayer=document.getElementById('shopLayer'),shopStatus=document.getElementById('shopStatus');
 const upgradeShop=document.getElementById('upgradeShop'),consumableShop=document.getElementById('consumableShop'),futureShop=document.getElementById('futureShop');
 const {BASE_CLEAR_REWARD,getClearBonusMultiplier,getClearReward,createStarWallet,createClearRewardGuard}=globalThis.SkyDashStarWallet;
-const {SHOP_ITEMS,STAR_DOUBLE_MS,INVINCIBLE_MS,createDefaultState,createShopStore,getItemByEffect,getPrice,getConsumableCount,getStarPickupRange,getBoostDuration,getDrinkHeal,getJumpVelocity,getRoadStarAmount,resolveObstacleImpact}=globalThis.SkyDashShopSystem;
+const {SHOP_ITEMS,STAR_DOUBLE_MS,INVINCIBLE_MS,createDefaultState,createShopStore,getItemByEffect,getPrice,getConsumableCount,getStarPickupRange,getBoostDuration,getDrinkHeal,getJumpVelocity,getRunSpeedMultiplier,getRoadStarAmount,resolveObstacleImpact}=globalThis.SkyDashShopSystem;
 let started=false;
 let starWallet=null,walletPromise=null,shopStore=null,shopPromise=null,saveStore=null,currentProfile=null;
 let sharedContextPromise=null;
@@ -910,7 +910,9 @@ function initGame(THREE){
  function frame(now){
    requestAnimationFrame(frame);
    const dt=Math.min((now-state.last)/1000,.034);state.last=now;
-   const grow=Math.min(1,Math.sqrt(state.totalDistance/TOTAL_ROUTE)),speed=12+grow*18+(state.boost>0?11:0);
+   const grow=Math.min(1,Math.sqrt(state.totalDistance/TOTAL_ROUTE));
+   const normalSpeed=(12+grow*18)*getRunSpeedMultiplier(shopState);
+   const speed=normalSpeed+(state.boost>0?11:0);
    if(state.boost>0)state.boost-=dt;
    const dz=state.transition?0:speed*dt;
    if(!state.transition){
