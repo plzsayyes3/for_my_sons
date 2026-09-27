@@ -1,4 +1,4 @@
-const CACHE_NAME = 'for-my-sons-v85';
+const CACHE_NAME = 'for-my-sons-v86';
 const SHELL = [
   './',
   './index.html',
@@ -37,7 +37,7 @@ const SHELL = [
   './wanko-war/index.html',
   './wanko-deck/?v=4',
   './wanko-deck/index.html',
-  './wanko-gacha/?v=7',
+  './wanko-gacha/?v=8',
   './wanko-gacha/index.html',
   './wanko-mini/?v=4',
   './wanko-mini/index.html',
@@ -68,7 +68,7 @@ const SHELL = [
   './shared/wanko-library-store.js?v=1',
   './shared/wanko-library.js',
   './shared/wanko-game-data.js?v=4',
-  './shared/wanko-game-progress.js?v=8',
+  './shared/wanko-game-progress.js?v=9',
   './shared/wanko-profile-sync.js?v=1',
   './shared/wanko-mini-addition.js?v=2',
   './shared/wanko-mini-subtraction.js?v=1',
