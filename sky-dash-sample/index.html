@@ -16,8 +16,17 @@ canvas{display:block;width:100%;height:100%}
 #distance{top:max(12px,env(safe-area-inset-top));right:12px;text-align:center;font-size:11px;letter-spacing:.04em}
 #distance b{display:block;color:#ffe05d;font-size:23px;line-height:1.05;margin-top:2px}
 #stars{left:12px;top:78px;font-size:16px}
-#progressBox{position:absolute;top:17px;left:50%;transform:translateX(-50%);width:min(30vw,290px);height:14px;background:#153f96;border:2px solid #fff;border-radius:99px;overflow:hidden}
+#stageInfo{position:absolute;top:max(12px,env(safe-area-inset-top));left:50%;transform:translateX(-50%);text-align:center;min-width:128px;padding:7px 12px}
+#stageInfo b{display:block;font-size:16px;line-height:1.05}
+#stageInfo small{font-size:10px;opacity:.9}
+#progressBox{position:absolute;top:58px;left:50%;transform:translateX(-50%);width:min(36vw,330px);height:13px;background:#153f96;border:2px solid #fff;border-radius:99px;overflow:hidden}
 #progress{height:100%;width:0;background:linear-gradient(90deg,#63f1ff,#fff05d)}
+#clearLayer{position:fixed;inset:0;z-index:25;display:flex;align-items:center;justify-content:center;pointer-events:none;opacity:0;transform:scale(.96);transition:.2s}
+#clearLayer.show{opacity:1;transform:scale(1)}
+.clearCard{min-width:min(78vw,360px);padding:22px 28px;text-align:center;border-radius:28px;background:rgba(255,255,255,.96);border:5px solid #ffe05c;box-shadow:0 18px 50px rgba(0,55,140,.3);color:#1556aa;text-shadow:none}
+.clearCard .pref{font-size:20px;font-weight:950}
+.clearCard strong{display:block;font-size:44px;line-height:1;color:#ffac22;margin:8px 0}
+.clearCard p{margin:0;font-size:16px;font-weight:900;color:#54709c}
 #boost{position:absolute;top:23%;left:50%;transform:translate(-50%,-50%) scale(.75);font-size:38px;color:#fff35c;opacity:0;transition:.12s}
 #boost.show{opacity:1;transform:translate(-50%,-50%) scale(1)}
 .controls{position:fixed;inset:0;z-index:10;pointer-events:none}
@@ -35,7 +44,8 @@ canvas{display:block;width:100%;height:100%}
 #status{min-height:22px;margin-top:14px;font-size:13px;font-weight:800;color:#61799b}
 #error{position:fixed;z-index:40;left:12px;right:12px;bottom:12px;display:none;background:#7b1730;color:#fff;border-radius:14px;padding:12px;font:700 12px/1.4 system-ui}
 @media(max-width:700px){
- #progressBox{top:62px;width:44vw;height:13px}
+ #stageInfo{top:58px}
+ #progressBox{top:100px;width:52vw;height:12px}
  #speed{font-size:14px;padding:7px 10px}
  #distance{padding:7px 9px}
  #distance b{font-size:20px}
@@ -48,7 +58,8 @@ canvas{display:block;width:100%;height:100%}
  #left{left:20px}
  #right{left:104px;right:auto}
  #jump{left:auto;right:20px;transform:none;width:98px;height:98px}
- #progressBox{top:18px}
+ #stageInfo{top:14px}
+ #progressBox{top:54px}
  #stars{top:auto;bottom:128px}
 }
 </style>
@@ -57,7 +68,8 @@ canvas{display:block;width:100%;height:100%}
 <div id="game"></div>
 <div class="hud">
   <div class="panel" id="speed">⚡ Speed Lv <b id="level">1</b></div>
-  <div class="panel" id="distance">DISTANCE<b id="meters">0m</b></div>
+  <div class="panel" id="distance">GOALまで<b id="meters">500m</b></div>
+  <div class="panel" id="stageInfo"><b id="prefecture">東京都</b><small id="stageNo">1 / 47</small></div>
   <div id="progressBox"><div id="progress"></div></div>
   <div class="panel" id="stars">⭐ <span id="starCount">0</span></div>
   <div id="boost">BOOST!</div>
@@ -66,6 +78,13 @@ canvas{display:block;width:100%;height:100%}
   <button class="btn move" id="left" aria-label="左へ">←</button>
   <button class="btn move" id="right" aria-label="右へ">→</button>
   <button class="btn" id="jump" aria-label="ジャンプ"><span>↑</span>JUMP</button>
+</div>
+<div id="clearLayer" aria-live="polite">
+  <div class="clearCard">
+    <div class="pref" id="clearPref">東京都</div>
+    <strong>CLEAR!</strong>
+    <p id="nextPref">つぎは 神奈川県</p>
+  </div>
 </div>
 <div id="startLayer">
   <div class="card">
@@ -252,9 +271,96 @@ function initGame(THREE){
  const trails=[];
  for(let i=0;i<9;i++){const m=new THREE.Mesh(new THREE.BoxGeometry(.03,.03,5+i*.4),new THREE.MeshBasicMaterial({color:i%2?0x6fefff:0xffffff,transparent:true,opacity:.1}));m.position.set(0,.55+i*.23,5+i*.35);scene.add(m);trails.push(m)}
 
- const state={distance:0,count:0,level:1,targetX:0,y:0,vy:0,boost:0,last:performance.now()};
+ const PREFECTURES=["東京都","神奈川県","山梨県","静岡県","愛知県","岐阜県","三重県","滋賀県","京都府","大阪府","兵庫県","鳥取県","島根県","山口県","福岡県","佐賀県","長崎県","熊本県","鹿児島県","沖縄県","宮崎県","大分県","愛媛県","高知県","徳島県","香川県","岡山県","広島県","和歌山県","奈良県","福井県","石川県","富山県","長野県","新潟県","群馬県","埼玉県","千葉県","茨城県","栃木県","福島県","山形県","宮城県","岩手県","秋田県","青森県","北海道"];
+ const STAGE_LENGTH=500;
+ const TOTAL_ROUTE=STAGE_LENGTH*PREFECTURES.length;
+ const state={totalDistance:0,stageDistance:0,stageIndex:0,count:0,level:1,targetX:0,y:0,vy:0,boost:0,transition:false,last:performance.now()};
  const press={left:false,right:false};
  const levelEl=document.getElementById('level'),meters=document.getElementById('meters'),starCount=document.getElementById('starCount'),progress=document.getElementById('progress'),boost=document.getElementById('boost');
+ const prefectureEl=document.getElementById('prefecture'),stageNoEl=document.getElementById('stageNo'),clearLayer=document.getElementById('clearLayer'),clearPref=document.getElementById('clearPref'),nextPref=document.getElementById('nextPref');
+
+ const stageDecor=new THREE.Group();scene.add(stageDecor);
+ const stageMovers=[];
+ function clearStageDecor(){
+   while(stageDecor.children.length){
+     const obj=stageDecor.children.pop();
+     obj.traverse?.(n=>{n.geometry?.dispose?.();if(n.material){(Array.isArray(n.material)?n.material:[n.material]).forEach(m=>m.dispose?.())}});
+   }
+   stageMovers.length=0;
+ }
+ function addMover(obj,wrap=330){obj.userData.wrap=wrap;stageDecor.add(obj);stageMovers.push(obj);return obj}
+ function applyStageTheme(index){
+   clearStageDecor();
+   const name=PREFECTURES[index];
+   prefectureEl.textContent=name;
+   stageNoEl.textContent=(index+1)+" / "+PREFECTURES.length;
+   if(index===0){
+     scene.background.set(0x75d7ff);scene.fog.color.set(0xbdeeff);
+     roadMat.color.set(0xf0c995);edgeMat.color.set(0xf2b23b);grassMat.color.set(0x67ce62);
+     const cityColors=[0xdde8f4,0xb8cee2,0xf3e3ca,0xa9bad5];
+     for(let i=0;i<22;i++){
+       const h=4+(i%5)*1.7;
+       const m=new THREE.Mesh(new THREE.BoxGeometry(3+(i%3),h,3.4),new THREE.MeshStandardMaterial({color:cityColors[i%cityColors.length],roughness:.82}));
+       m.position.set((i%2?1:-1)*(10.5+(i%4)*1.8),h/2+.4,-22-i*14);addMover(m,330);
+     }
+     const tower=new THREE.Group();
+     const mastMat=new THREE.MeshStandardMaterial({color:0xf05a4f,roughness:.6});
+     const mast=new THREE.Mesh(new THREE.CylinderGeometry(.32,.65,9,8),mastMat);mast.position.y=4.5;tower.add(mast);
+     const deck=new THREE.Mesh(new THREE.BoxGeometry(3,.45,1.6),new THREE.MeshStandardMaterial({color:0xffffff}));deck.position.y=5.7;tower.add(deck);
+     tower.position.set(-13,.3,-110);addMover(tower,330);
+   }else if(index===1){
+     scene.background.set(0x65d9f1);scene.fog.color.set(0xb8f3f4);
+     roadMat.color.set(0xf4d7a1);edgeMat.color.set(0xf0b345);grassMat.color.set(0x6ccf70);
+     const waterMat=new THREE.MeshStandardMaterial({color:0x35b7e8,roughness:.35,metalness:.08,transparent:true,opacity:.88});
+     [-14,14].forEach(x=>{
+       const water=new THREE.Mesh(new THREE.BoxGeometry(15,.35,330),waterMat.clone());water.position.set(x,-1.0,-135);stageDecor.add(water);
+     });
+     const bridgeMat=new THREE.MeshStandardMaterial({color:0xf4f6fa,roughness:.6});
+     for(let i=0;i<8;i++){
+       const p=new THREE.Group();
+       const column=new THREE.Mesh(new THREE.BoxGeometry(.7,5,.7),bridgeMat);column.position.y=2.5;p.add(column);
+       const cable=new THREE.Mesh(new THREE.TorusGeometry(2.4,.08,6,18,Math.PI),new THREE.MeshStandardMaterial({color:0xe8eef7}));cable.rotation.z=Math.PI;cable.position.set(0,4.5,0);p.add(cable);
+       p.position.set((i%2?1:-1)*12,.4,-30-i*38);addMover(p,340);
+     }
+   }else{
+     const hue=(index*29)%360;
+     const bg=new THREE.Color().setHSL(hue/360,.55,.72);
+     scene.background.copy(bg);scene.fog.color.copy(bg.clone().lerp(new THREE.Color(0xffffff),.48));
+     roadMat.color.setHSL(((hue+35)%360)/360,.45,.72);
+     edgeMat.color.setHSL(((hue+5)%360)/360,.72,.56);
+     grassMat.color.setHSL(((hue+110)%360)/360,.45,.52);
+   }
+ }
+
+ const finishGate=new THREE.Group();
+ const finishWhite=new THREE.MeshStandardMaterial({color:0xffffff,roughness:.45});
+ const finishGold=new THREE.MeshStandardMaterial({color:0xffd83f,emissive:0x8a5b00,emissiveIntensity:.4});
+ [-4.3,4.3].forEach(x=>{
+   const pillar=new THREE.Mesh(new THREE.BoxGeometry(.75,6,.75),finishWhite);pillar.position.set(x,3,0);finishGate.add(pillar);
+ });
+ const topBar=new THREE.Mesh(new THREE.BoxGeometry(9.3,.8,.8),finishGold);topBar.position.y=6.1;finishGate.add(topBar);
+ const flagL=new THREE.Mesh(new THREE.BoxGeometry(1.6,1.0,.08),finishGold);flagL.position.set(-3.1,6.9,0);finishGate.add(flagL);
+ const flagR=flagL.clone();flagR.position.x=3.1;finishGate.add(flagR);
+ finishGate.visible=false;scene.add(finishGate);
+
+ function triggerClear(){
+   if(state.transition)return;
+   state.transition=true;press.left=false;press.right=false;
+   clearPref.textContent=PREFECTURES[state.stageIndex];
+   const nextIndex=state.stageIndex+1;
+   nextPref.textContent=nextIndex<PREFECTURES.length?"つぎは "+PREFECTURES[nextIndex]:"日本一周 COMPLETE!";
+   clearLayer.classList.add('show');
+   setTimeout(()=>{
+     if(nextIndex<PREFECTURES.length){
+       state.stageIndex=nextIndex;state.stageDistance=0;state.targetX=0;player.position.x=0;finishGate.visible=false;
+       applyStageTheme(state.stageIndex);
+       clearLayer.classList.remove('show');state.transition=false;state.last=performance.now();
+     }else{
+       nextPref.textContent="東京から北海道まで 47都道府県クリア！";
+     }
+   },1700);
+ }
+ applyStageTheme(0);
 
  function jump(){if(state.y<=.02)state.vy=9.3}
  function bindHold(id,key){
@@ -272,9 +378,13 @@ function initGame(THREE){
  function frame(now){
    requestAnimationFrame(frame);
    const dt=Math.min((now-state.last)/1000,.034);state.last=now;
-   const grow=Math.min(state.distance/520,1),speed=12+grow*18+(state.boost>0?11:0);
+   const grow=Math.min(1,Math.sqrt(state.totalDistance/TOTAL_ROUTE)),speed=12+grow*18+(state.boost>0?11:0);
    if(state.boost>0)state.boost-=dt;
-   const dz=speed*dt;state.distance+=dz*.9;
+   const dz=state.transition?0:speed*dt;
+   if(!state.transition){
+     const gained=dz*.9;state.totalDistance+=gained;state.stageDistance+=gained;
+     if(state.stageDistance>=STAGE_LENGTH)triggerClear();
+   }
 
    const lateral=(press.right?1:0)-(press.left?1:0);
    state.targetX=THREE.MathUtils.clamp(state.targetX+lateral*8.3*dt,-4.0,4.0);
@@ -293,6 +403,10 @@ function initGame(THREE){
    clouds.forEach(g=>{g.position.z+=dz*.45;if(g.position.z>26)g.position.z-=350});
    islands.forEach(g=>{g.position.z+=dz*.35;if(g.position.z>32)g.position.z-=330});
    castle.position.z+=dz*.18;if(castle.position.z>8)castle.position.z=-150;
+   stageMovers.forEach(o=>{o.position.z+=dz;if(o.position.z>28)o.position.z-=o.userData.wrap||330});
+   const remaining=Math.max(0,STAGE_LENGTH-state.stageDistance);
+   finishGate.visible=remaining<=120&&!state.transition;
+   if(finishGate.visible)finishGate.position.set(0,.35,player.position.z-(remaining/.9));
    rings.forEach(r=>{r.position.z+=dz;if(r.position.z>20)r.position.z-=300});
    stars.forEach(s=>{s.position.z+=dz;s.rotation.x+=dt*2.5;s.rotation.y+=dt*4;if(s.position.z>10){s.position.z-=265;s.position.x=(Math.floor(Math.random()*3)-1)*2.25;s.visible=true}if(s.visible&&Math.abs(s.position.z-player.position.z)<1.35&&Math.abs(s.position.x-player.position.x)<1.05&&state.y<2.2){s.visible=false;state.count++;starCount.textContent=state.count}});
    pads.forEach(p=>{p.position.z+=dz;if(p.position.z>15)p.position.z-=220;if(Math.abs(p.position.z-player.position.z)<1.8&&Math.abs(player.position.x)<3&&state.y<.7&&state.boost<=0)doBoost()});
@@ -305,8 +419,9 @@ function initGame(THREE){
    camera.position.z=portrait?11.7:10.4;
    camera.lookAt(player.position.x*.14,1.75,portrait?-16:-14);
 
-   const lv=Math.min(100,1+Math.floor(state.distance/38));if(lv!==state.level){state.level=lv;levelEl.textContent=lv}
-   meters.textContent=Math.floor(state.distance)+'m';progress.style.width=Math.min(100,state.distance/280*100)+'%';
+   const lv=Math.min(100,1+Math.floor(state.totalDistance/(TOTAL_ROUTE/99)));if(lv!==state.level){state.level=lv;levelEl.textContent=lv}
+   meters.textContent=Math.max(0,Math.ceil(STAGE_LENGTH-state.stageDistance))+'m';
+   progress.style.width=Math.min(100,state.stageDistance/STAGE_LENGTH*100)+'%';
    renderer.render(scene,camera);
  }
  requestAnimationFrame(frame);
