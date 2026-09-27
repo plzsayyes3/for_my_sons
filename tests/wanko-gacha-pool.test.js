@@ -45,3 +45,11 @@ test('gacha uses Web Audio feedback for taps, reveals, exchange, and ten-pull fa
   assert.match(source, /playSound\('exchange'\)/);
   assert.match(source, /playSound\('ten'\)/);
 });
+
+
+test('gacha inline script remains valid JavaScript', () => {
+  const source = fs.readFileSync(path.join(root, 'wanko-gacha', 'index.html'), 'utf8');
+  const match = source.match(/<script>\s*([\s\S]*?)<\/script>/);
+  assert.ok(match);
+  assert.doesNotThrow(() => new Function(match[1]));
+});
