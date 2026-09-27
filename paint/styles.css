@@ -66,6 +66,7 @@ button { color: inherit; }
 }
 
 .topbar-spacer { width: 44px; height: 44px; }
+.history-button { font-size: 23px; font-weight: 850; }
 
 .icon-button:active,
 .tool-button:active,
@@ -75,7 +76,8 @@ button { color: inherit; }
 .save-choice:active,
 .modal-close:active,
 .primary-action:active,
-.secondary-action:active {
+.secondary-action:active,
+.wanko-resend-button:active {
   transform: scale(.95);
 }
 
@@ -578,8 +580,53 @@ main { padding-top: 10px; }
 .wanko-name-input:focus { border-color:var(--ink); }
 .wanko-note { margin:9px 2px 0; color:var(--muted); font-size:11px; font-weight:700; line-height:1.45; }
 .wanko-request-status { min-height:18px; margin:10px 2px 0; color:var(--muted); font-size:12px; font-weight:800; line-height:1.4; }
+.wanko-history-card { max-width: 560px; }
+.wanko-history-help { margin: 10px 2px 14px; color: var(--muted); font-size: 12px; font-weight: 750; line-height: 1.5; }
+.wanko-history-list { display: grid; gap: 9px; }
+.wanko-history-item {
+  display: grid;
+  grid-template-columns: 62px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 10px;
+  padding: 9px;
+  border: 1px solid rgba(44,41,38,.1);
+  border-radius: 18px;
+  background: #fff;
+  box-shadow: 0 4px 14px rgba(71,56,43,.05);
+}
+.wanko-history-thumb {
+  width: 62px;
+  height: 62px;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  border-radius: 15px;
+  background: linear-gradient(#cce9ef 0 66%, #c8d995 66%);
+  font-size: 28px;
+}
+.wanko-history-thumb img { width: 92%; height: 92%; object-fit: contain; }
+.wanko-history-body { min-width: 0; display: grid; gap: 3px; }
+.wanko-history-body strong { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 14px; }
+.wanko-history-body span { color: var(--muted); font-size: 10px; font-weight: 750; }
+.wanko-history-state { color: var(--ink) !important; font-weight: 900 !important; }
+.wanko-resend-button {
+  min-height: 42px;
+  padding: 0 11px;
+  border: 0;
+  border-radius: 13px;
+  background: #f3ede6;
+  font-size: 11px;
+  font-weight: 900;
+  white-space: nowrap;
+}
+.wanko-resend-button:disabled { opacity: .38; }
+.wanko-history-status { min-height: 18px; margin: 10px 2px 0; color: var(--muted); font-size: 12px; font-weight: 850; line-height: 1.4; }
+.wanko-history-empty { margin: 18px 4px; color: var(--muted); text-align: center; font-size: 12px; font-weight: 800; }
 .primary-action:disabled { opacity:.45; }
 @media (max-width: 520px) {
   .save-actions { grid-template-columns: 1fr 1fr; }
   .wanko-save { grid-column: 1 / -1; }
+  .wanko-history-item { grid-template-columns: 54px minmax(0, 1fr); }
+  .wanko-history-thumb { width: 54px; height: 54px; }
+  .wanko-resend-button { grid-column: 1 / -1; width: 100%; }
 }
