@@ -5,7 +5,7 @@ const vm = require('node:vm');
 
 test('service worker precaches request assets under a new cache version', () => {
   const source = fs.readFileSync('service-worker.js', 'utf8');
-  assert.match(source, /for-my-sons-v84/);
+  assert.match(source, /for-my-sons-v85/);
   assert.match(source, /\.\/shared\/character-requests\.js\?v=4/);
   assert.match(source, /\.\/shared\/parent-requests\.js\?v=4/);
   assert.match(source, /\.\/shared\/parent-request-view\.js\?v=4/);
@@ -30,7 +30,7 @@ test('Paint loads shared request dependencies before its app script', () => {
   const db = source.indexOf('../shared/for-my-sons-db.js');
   const requests = source.indexOf('../shared/character-requests.js');
   const facade = source.indexOf('../shared/for-my-sons.js');
-  const app = source.indexOf('./app.js?v=9');
+  const app = source.indexOf('./app.js?v=10');
   assert.ok(db >= 0 && requests > db && facade > requests && app > facade);
 });
 
