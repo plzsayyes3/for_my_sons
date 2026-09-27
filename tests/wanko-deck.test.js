@@ -33,3 +33,19 @@ test('deck editor and battle are wired to the saved deck', () => {
   assert.match(battle, /deckKeys\.has\('game:'\+id\)/);
   assert.match(battle, /deckKeys\.has\('custom:'\+wanko\.id\)/);
 });
+
+test('deck editor falls back to profile-local official Wankos when optional loading fails', () => {
+  const editor = fs.readFileSync(path.join(__dirname,'../wanko-deck/index.html'),'utf8');
+  assert.match(editor, /state=await scoped\.getState\(\)/);
+  assert.match(editor, /Custom Wanko list failed; continuing with official Wankos/);
+  assert.match(editor, /let customList=\[\]/);
+  assert.match(editor, /state\?\.ownedWankoIds/);
+  assert.match(editor, /id="count">読込中</);
+});
+
+test('Wanko entry points use deck v3', () => {
+  const home = fs.readFileSync(path.join(__dirname,'../wanko/index.html'),'utf8');
+  const battle = fs.readFileSync(path.join(__dirname,'../wanko-war/index.html'),'utf8');
+  assert.match(home, /wanko-deck\/\?v=3/);
+  assert.match(battle, /wanko-deck\/\?v=3/);
+});
