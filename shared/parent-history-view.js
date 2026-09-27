@@ -134,6 +134,14 @@
     return node;
   }
 
+  function imageContentType(path) {
+    const value = String(path || '').toLowerCase();
+    if (value.endsWith('.webp')) return 'image/webp';
+    if (value.endsWith('.jpg') || value.endsWith('.jpeg')) return 'image/jpeg';
+    if (value.endsWith('.png')) return 'image/png';
+    return 'application/octet-stream';
+  }
+
   function formatDate(value) {
     const date = new Date(value);
     if (Number.isNaN(date.getTime())) return '';
@@ -164,8 +172,17 @@
     container.replaceChildren(header, summary, list);
 
     let loading = false;
+    let imageUrls = [];
+
+    function clearImageUrls() {
+      for (const url of imageUrls) {
+        try { URL.revokeObjectURL(url); } catch {}
+      }
+      imageUrls = [];
+    }
 
     async function render(records) {
+      clearImageUrls();
       const profiles = await api.profile.list();
       const names = new Map(profiles.map(profile => [profile.id, profile.label || profile.id]));
       list.replaceChildren();
@@ -196,10 +213,32 @@
           documentRef,
           'div',
           'papa-history-meta',
-          formatDate(record.createdAt) + ' ・ ' + (record.type === 'problem' ? '😵 こまってる' : '✨ 新しい機能')
+          formatDate(record.createdAt) + ' ・ ' + (
+            record.appId === 'new-game-request'
+              ? '🎮 新しいゲーム'
+              : record.type === 'problem' ? '😵 こまってる' : '✨ 新しい機能'
+          )
         );
         const message = make(documentRef, 'div', 'papa-history-message', record.message);
         card.append(top, meta, message);
+
+        if (record.image) {
+          const imageWrap = make(documentRef, 'div', 'papa-history-image');
+          const image = make(documentRef, 'img', '');
+          image.alt = '子どもが送った画像';
+          imageWrap.append(image);
+          card.append(imageWrap);
+          void api.sync.readPath(record.image).then(remote => {
+            if (!remote?.exists || !remote.content) return;
+            const bytes = remote.content instanceof Uint8Array ? remote.content : new Uint8Array(remote.content);
+            const blob = new Blob([bytes], { type: imageContentType(record.image) });
+            const url = URL.createObjectURL(blob);
+            imageUrls.push(url);
+            image.src = url;
+          }).catch(() => {
+            imageWrap.replaceChildren(make(documentRef, 'span', 'papa-history-image-error', '画像を読み込めませんでした'));
+          });
+        }
 
         if (record.reply?.message) {
           const reply = make(documentRef, 'div', 'papa-history-reply');
@@ -327,7 +366,14 @@
 
     refreshButton.addEventListener('click', refresh);
 
-    return { refresh, loadHistory: () => loadHistory(api) };
+    return {
+      refresh,
+      loadHistory: () => loadHistory(api),
+      destroy() {
+        clearImageUrls();
+        container.replaceChildren();
+      }
+    };
   }
 
   return { STATUS_LABELS, normalizeRecord, loadHistory, saveReply, mount };
