@@ -15,10 +15,10 @@ test('service worker precaches request assets under a new cache version', () => 
   assert.match(source, /\.\/shared\/for-my-sons\.js\?v=12/);
   assert.match(source, /\.\/shared\/wanko-library-store\.js\?v=1/);
   assert.match(source, /\.\/shared\/wanko-registration-request\.js\?v=1/);
-  assert.match(source, /\.\/shared\/for-my-sons-db\.js\?v=3/);
+  assert.match(source, /\.\/shared\/for-my-sons-db\.js\?v=4/);
   assert.match(source, /\.\/wanko-gacha\/\?v=7/);
   assert.match(source, /\.\/wanko-war\/\?v=26/);
-  assert.match(source, /\.\/wanko-deck\/\?v=3/);
+  assert.match(source, /\.\/wanko-deck\/\?v=4/);
   assert.doesNotThrow(() => new vm.Script(source));
   assert.doesNotMatch(source, /\\n/);
 });
