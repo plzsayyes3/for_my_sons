@@ -16,6 +16,12 @@ canvas{display:block;width:100%;height:100%}
 #distance{top:max(12px,env(safe-area-inset-top));right:12px;text-align:center;font-size:11px;letter-spacing:.04em}
 #distance b{display:block;color:#ffe05d;font-size:23px;line-height:1.05;margin-top:2px}
 #stars{left:12px;top:78px;font-size:16px}
+#score{right:12px;top:78px;font-size:16px}
+#score b{color:#ffe05d}
+#scorePop{position:absolute;left:50%;top:31%;transform:translate(-50%,-50%) scale(.8);font-size:34px;font-weight:1000;opacity:0;transition:.18s;text-shadow:0 3px 6px rgba(0,0,0,.22)}
+#scorePop.show{opacity:1;transform:translate(-50%,-50%) scale(1)}
+#scorePop.plus{color:#71ff9c}
+#scorePop.minus{color:#ff7d72}
 #stageInfo{position:absolute;top:max(12px,env(safe-area-inset-top));left:50%;transform:translateX(-50%);text-align:center;min-width:128px;padding:7px 12px}
 #stageInfo b{display:block;font-size:16px;line-height:1.05}
 #stageInfo small{font-size:10px;opacity:.9}
@@ -26,6 +32,9 @@ canvas{display:block;width:100%;height:100%}
 .clearCard{min-width:min(78vw,360px);padding:22px 28px;text-align:center;border-radius:28px;background:rgba(255,255,255,.96);border:5px solid #ffe05c;box-shadow:0 18px 50px rgba(0,55,140,.3);color:#1556aa;text-shadow:none}
 .clearCard .pref{font-size:20px;font-weight:950}
 .clearCard strong{display:block;font-size:44px;line-height:1;color:#ffac22;margin:8px 0}
+.clearScore{font-size:30px;font-weight:1000;color:#1556aa;margin:6px 0}
+.clearScore span{color:#ffac22}
+.clearStars{font-size:24px;letter-spacing:4px;min-height:30px;margin-bottom:6px}
 .clearCard p{margin:0;font-size:16px;font-weight:900;color:#54709c}
 .clearActions{display:grid;grid-template-columns:1fr;gap:10px;margin-top:18px}
 .clearAction{pointer-events:auto;border:0;border-radius:999px;padding:14px 18px;font-size:18px;font-weight:1000}
@@ -55,6 +64,7 @@ canvas{display:block;width:100%;height:100%}
  #distance{padding:7px 9px}
  #distance b{font-size:20px}
  #stars{top:61px;font-size:14px;padding:7px 10px}
+ #score{top:61px;font-size:14px;padding:7px 10px}
  .move{width:72px;height:72px;font-size:36px}
  #jump{width:108px;height:108px}
 }
@@ -66,6 +76,7 @@ canvas{display:block;width:100%;height:100%}
  #stageInfo{top:14px}
  #progressBox{top:54px}
  #stars{top:auto;bottom:128px}
+ #score{top:auto;right:128px;bottom:128px}
 }
 </style>
 </head>
@@ -77,6 +88,8 @@ canvas{display:block;width:100%;height:100%}
   <div class="panel" id="stageInfo"><b id="prefecture">東京都</b><small id="stageNo">1 / 47</small></div>
   <div id="progressBox"><div id="progress"></div></div>
   <div class="panel" id="stars">⭐ <span id="starCount">0</span></div>
+  <div class="panel" id="score">SCORE <b id="scoreValue">100</b></div>
+  <div id="scorePop"></div>
   <div id="boost">BOOST!</div>
 </div>
 <div class="controls">
@@ -87,7 +100,9 @@ canvas{display:block;width:100%;height:100%}
 <div id="clearLayer" aria-live="polite">
   <div class="clearCard">
     <div class="pref" id="clearPref">東京都</div>
-    <strong>CLEAR!</strong>
+    <strong id="clearTitle">GOAL!</strong>
+    <div class="clearScore">SCORE <span id="clearScore">100</span> / 100</div>
+    <div class="clearStars" id="clearStars">★★★</div>
     <p id="nextPref">つぎは 神奈川県</p>
     <div class="clearActions">
       <button class="clearAction" id="continueBtn" type="button">すすむ（3秒後スタート）</button>
@@ -278,16 +293,63 @@ function initGame(THREE){
  const rings=[];
  for(let i=0;i<7;i++){const r=new THREE.Mesh(new THREE.TorusGeometry(2.1,.24,12,26),ringMat);r.position.set(i%2?8:-8,4,-28-i*40);r.rotation.y=Math.PI/2;scene.add(r);rings.push(r)}
 
+
+ const obstacleMat=new THREE.MeshStandardMaterial({color:0xf36b4e,roughness:.62});
+ const obstacleStripe=new THREE.MeshStandardMaterial({color:0xffe45b,roughness:.55});
+ const obstacles=[];
+ function makeObstacle(x,z,index){
+   const g=new THREE.Group();
+   const base=new THREE.Mesh(new THREE.BoxGeometry(2.2,1.15,.9),obstacleMat);base.position.y=.92;base.castShadow=true;g.add(base);
+   const stripe=new THREE.Mesh(new THREE.BoxGeometry(1.6,.22,.94),obstacleStripe);stripe.position.set(0,1.0,0);g.add(stripe);
+   g.position.set(x,.32,z);g.userData.hit=false;g.userData.index=index;scene.add(g);obstacles.push(g);
+ }
+ const laneXs=[-3.0,0,3.0];
+ for(let i=0;i<9;i++)makeObstacle(laneXs[(i*2+1)%3],-50-i*48,i);
+
+ const drinkBodyMat=new THREE.MeshStandardMaterial({color:0x39aaf2,roughness:.38,metalness:.08});
+ const drinkCapMat=new THREE.MeshStandardMaterial({color:0xffffff,roughness:.4});
+ const drinkGoldMat=new THREE.MeshStandardMaterial({color:0xffdc45,emissive:0x7a5200,emissiveIntensity:.3});
+ const drinks=[];
+ function makeDrink(x,z,index){
+   const g=new THREE.Group();
+   const body=new THREE.Mesh(new THREE.CylinderGeometry(.34,.42,.95,12),drinkBodyMat);body.position.y=.55;g.add(body);
+   const cap=new THREE.Mesh(new THREE.CylinderGeometry(.24,.24,.22,10),drinkCapMat);cap.position.y=1.13;g.add(cap);
+   const mark=new THREE.Mesh(new THREE.IcosahedronGeometry(.16,0),drinkGoldMat);mark.position.set(0,.58,.39);mark.scale.z=.3;g.add(mark);
+   const ring=new THREE.Mesh(new THREE.TorusGeometry(.58,.07,8,20),new THREE.MeshBasicMaterial({color:0x8cf4ff,transparent:true,opacity:.75}));ring.rotation.x=Math.PI/2;ring.position.y=.5;g.add(ring);
+   g.position.set(x,.35,z);g.userData.taken=false;g.userData.index=index;scene.add(g);drinks.push(g);
+ }
+ makeDrink(-3,-105,0);makeDrink(3,-245,1);makeDrink(0,-385,2);
+
+ function showScorePop(text,type){
+   scorePop.textContent=text;scorePop.className=type+" show";
+   clearTimeout(showScorePop.timer);
+   showScorePop.timer=setTimeout(()=>scorePop.className="",550);
+ }
+ function changeScore(delta){
+   const before=state.score;
+   state.score=Math.max(0,Math.min(100,state.score+delta));
+   const actual=state.score-before;
+   scoreValue.textContent=state.score;
+   if(actual!==0)showScorePop((actual>0?"+":"")+actual,actual>0?"plus":"minus");
+ }
+ function resetChallengeObjects(){
+   obstacles.forEach((o,i)=>{o.position.z=-50-i*48;o.position.x=laneXs[(i*2+state.stageIndex+1)%3];o.userData.hit=false;o.visible=true});
+   drinks.forEach((d,i)=>{d.position.z=-105-i*140;d.position.x=laneXs[(i+state.stageIndex)%3];d.userData.taken=false;d.visible=true});
+ }
+
  const trails=[];
  for(let i=0;i<9;i++){const m=new THREE.Mesh(new THREE.BoxGeometry(.03,.03,5+i*.4),new THREE.MeshBasicMaterial({color:i%2?0x6fefff:0xffffff,transparent:true,opacity:.1}));m.position.set(0,.55+i*.23,5+i*.35);scene.add(m);trails.push(m)}
 
  const PREFECTURES=["東京都","神奈川県","山梨県","静岡県","愛知県","岐阜県","三重県","滋賀県","京都府","大阪府","兵庫県","鳥取県","島根県","山口県","福岡県","佐賀県","長崎県","熊本県","鹿児島県","沖縄県","宮崎県","大分県","愛媛県","高知県","徳島県","香川県","岡山県","広島県","和歌山県","奈良県","福井県","石川県","富山県","長野県","新潟県","群馬県","埼玉県","千葉県","茨城県","栃木県","福島県","山形県","宮城県","岩手県","秋田県","青森県","北海道"];
  const STAGE_LENGTH=500;
  const TOTAL_ROUTE=STAGE_LENGTH*PREFECTURES.length;
- const state={totalDistance:0,stageDistance:0,stageIndex:0,count:0,level:1,targetX:0,y:0,vy:0,boost:0,transition:false,last:performance.now()};
+ const PASS_SCORE=70;
+ const state={totalDistance:0,stageDistance:0,stageIndex:0,count:0,level:1,score:100,targetX:0,y:0,vy:0,boost:0,transition:false,last:performance.now()};
  const press={left:false,right:false};
  const levelEl=document.getElementById('level'),meters=document.getElementById('meters'),starCount=document.getElementById('starCount'),progress=document.getElementById('progress'),boost=document.getElementById('boost');
+ const scoreValue=document.getElementById('scoreValue'),scorePop=document.getElementById('scorePop');
  const prefectureEl=document.getElementById('prefecture'),stageNoEl=document.getElementById('stageNo'),clearLayer=document.getElementById('clearLayer'),clearPref=document.getElementById('clearPref'),nextPref=document.getElementById('nextPref');
+ const clearTitle=document.getElementById('clearTitle'),clearScoreEl=document.getElementById('clearScore'),clearStarsEl=document.getElementById('clearStars');
  const continueBtn=document.getElementById('continueBtn'),quitBtn=document.getElementById('quitBtn'),countdownEl=document.getElementById('countdown');
  let pendingNextIndex=null,countdownTimer=null;
 
@@ -306,6 +368,7 @@ function initGame(THREE){
    const name=PREFECTURES[index];
    prefectureEl.textContent=name;
    stageNoEl.textContent=(index+1)+" / "+PREFECTURES.length;
+   resetChallengeObjects();
    if(index===0){
      scene.background.set(0x75d7ff);scene.fog.color.set(0xbdeeff);
      roadMat.color.set(0xf0c995);edgeMat.color.set(0xf2b23b);grassMat.color.set(0x67ce62);
@@ -369,7 +432,7 @@ function initGame(THREE){
      clearInterval(countdownTimer);countdownTimer=null;
      countdownEl.textContent="GO!";
      setTimeout(()=>{
-       state.stageIndex=pendingNextIndex;state.stageDistance=0;state.targetX=0;player.position.x=0;finishGate.visible=false;
+       state.stageIndex=pendingNextIndex;state.stageDistance=0;state.score=100;scoreValue.textContent="100";state.targetX=0;player.position.x=0;finishGate.visible=false;
        applyStageTheme(state.stageIndex);
        clearLayer.classList.remove('show');
        countdownEl.textContent="";
@@ -388,15 +451,28 @@ function initGame(THREE){
    if(state.transition)return;
    state.transition=true;press.left=false;press.right=false;
    clearPref.textContent=PREFECTURES[state.stageIndex];
+   clearScoreEl.textContent=state.score;
+   const rating=state.score===100?"★★★":state.score>=90?"★★★":state.score>=80?"★★☆":state.score>=70?"★☆☆":"";
+   clearStarsEl.textContent=rating;
+   const passed=state.score>=PASS_SCORE;
    const nextIndex=state.stageIndex+1;
-   pendingNextIndex=nextIndex<PREFECTURES.length?nextIndex:null;
-   continueBtn.hidden=pendingNextIndex===null;
-   quitBtn.disabled=false;continueBtn.disabled=false;countdownEl.textContent="";
-   if(pendingNextIndex!==null){
-     nextPref.textContent="つぎは "+PREFECTURES[nextIndex];
+   clearTitle.textContent=passed?"CLEAR!":"GOAL!";
+   if(passed){
+     pendingNextIndex=nextIndex<PREFECTURES.length?nextIndex:null;
+     continueBtn.hidden=pendingNextIndex===null;
+     continueBtn.textContent="すすむ（3秒後スタート）";
+     if(pendingNextIndex!==null){
+       nextPref.textContent="つぎは "+PREFECTURES[nextIndex];
+     }else{
+       nextPref.textContent="東京から北海道まで 47都道府県クリア！";
+     }
    }else{
-     nextPref.textContent="東京から北海道まで 47都道府県クリア！";
+     pendingNextIndex=state.stageIndex;
+     continueBtn.hidden=false;
+     continueBtn.textContent="もういちど（3秒後スタート）";
+     nextPref.textContent="あと "+(PASS_SCORE-state.score)+"点で つぎへ！";
    }
+   quitBtn.disabled=false;continueBtn.disabled=false;countdownEl.textContent="";
    clearLayer.classList.add('show');
  }
  applyStageTheme(0);
@@ -447,6 +523,21 @@ function initGame(THREE){
    finishGate.visible=remaining<=120&&!state.transition;
    if(finishGate.visible)finishGate.position.set(0,.35,player.position.z-(remaining/.9));
    rings.forEach(r=>{r.position.z+=dz;if(r.position.z>20)r.position.z-=300});
+   obstacles.forEach((o,i)=>{
+     o.position.z+=dz;
+     if(o.position.z>12){o.position.z-=430;o.position.x=laneXs[(i+state.stageIndex+Math.floor(state.stageDistance/120))%3];o.userData.hit=false;o.visible=true}
+     if(!state.transition&&!o.userData.hit&&Math.abs(o.position.z-player.position.z)<1.15&&Math.abs(o.position.x-player.position.x)<1.05&&state.y<1.05){
+       o.userData.hit=true;changeScore(-10);player.rotation.z=(player.position.x-o.position.x)*.08;
+       setTimeout(()=>player.rotation.z=0,180);
+     }
+   });
+   drinks.forEach((d,i)=>{
+     d.position.z+=dz;d.rotation.y+=dt*2.8;
+     if(d.position.z>12){d.position.z-=430;d.position.x=laneXs[(i+1+state.stageIndex)%3];d.userData.taken=false;d.visible=true}
+     if(!state.transition&&!d.userData.taken&&Math.abs(d.position.z-player.position.z)<1.25&&Math.abs(d.position.x-player.position.x)<1.0&&state.y<2.0){
+       d.userData.taken=true;d.visible=false;changeScore(5);
+     }
+   });
    stars.forEach(s=>{s.position.z+=dz;s.rotation.x+=dt*2.5;s.rotation.y+=dt*4;if(s.position.z>10){s.position.z-=265;s.position.x=(Math.floor(Math.random()*3)-1)*2.25;s.visible=true}if(s.visible&&Math.abs(s.position.z-player.position.z)<1.35&&Math.abs(s.position.x-player.position.x)<1.05&&state.y<2.2){s.visible=false;state.count++;starCount.textContent=state.count}});
    pads.forEach(p=>{p.position.z+=dz;if(p.position.z>15)p.position.z-=220;if(Math.abs(p.position.z-player.position.z)<1.8&&Math.abs(player.position.x)<3&&state.y<.7&&state.boost<=0)doBoost()});
    trails.forEach((t,i)=>{t.material.opacity=.08+grow*.36+(state.boost>0?.28:0);t.scale.z=1+grow*1.8+(state.boost>0?1.5:0);t.position.x=player.position.x+((i%3)-1)*.74});
