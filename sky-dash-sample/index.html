@@ -60,6 +60,36 @@ canvas{display:block;width:100%;height:100%}
 .card h1{margin:0;font-size:42px;color:#1971cd;letter-spacing:-.03em}
 .card p{font-weight:850;line-height:1.55;color:#54709c}
 #run{border:0;border-radius:999px;padding:15px 35px;background:linear-gradient(#fff17a,#ffb927);color:#174c85;font-size:22px;font-weight:1000;box-shadow:0 7px 0 #c98800}
+.startActions{display:flex;justify-content:center;align-items:center;gap:10px;flex-wrap:wrap}
+#shopOpen{border:0;border-radius:999px;padding:13px 24px;background:#e8f5ff;color:#1556aa;font-size:18px;font-weight:1000;box-shadow:0 5px 0 #b9d6e9}
+.startWallet{margin-top:12px;font-size:14px;font-weight:950;color:#59779b}
+#itemButton{left:max(16px,env(safe-area-inset-left));bottom:calc(max(18px,env(safe-area-inset-bottom)) + 126px);min-width:98px;height:58px;border-radius:20px;background:linear-gradient(#82e6ff,#328dde);font-size:12px;padding:7px 10px;line-height:1.1}
+#itemButton b{display:block;font-size:16px;margin-top:2px}
+#itemButton:disabled{opacity:.82}
+#shopLayer{position:fixed;inset:0;z-index:35;background:linear-gradient(180deg,#dff5ff,#f8fdff);color:#174b8e;padding:max(10px,env(safe-area-inset-top)) max(10px,env(safe-area-inset-right)) max(10px,env(safe-area-inset-bottom)) max(10px,env(safe-area-inset-left));overflow:hidden;touch-action:pan-y}
+#shopLayer[hidden]{display:none}
+.shopShell{height:100%;max-width:920px;margin:0 auto;display:grid;grid-template-rows:auto 1fr;background:rgba(255,255,255,.92);border:3px solid #fff;border-radius:26px;box-shadow:0 20px 55px rgba(21,86,145,.22);overflow:hidden}
+.shopHeader{display:flex;align-items:center;gap:12px;padding:14px 16px;border-bottom:2px solid #d7ebf8;background:#f7fcff}
+.shopHeader h2{margin:0;flex:1;font-size:24px}
+.shopBalance{font-size:17px;font-weight:1000;color:#f39b22;white-space:nowrap}
+#shopClose{border:0;border-radius:999px;background:#e9f1f8;color:#45647e;padding:10px 15px;font-weight:950}
+.shopBody{overflow:auto;-webkit-overflow-scrolling:touch;padding:16px}
+.shopSection{margin-bottom:24px}
+.shopSection h3{margin:0 0 10px;font-size:18px}
+.shopGrid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.shopCard{min-width:0;border:2px solid #dcecf7;border-radius:20px;background:#fff;padding:12px;display:grid;grid-template-columns:42px 1fr;gap:9px;box-shadow:0 4px 12px rgba(23,87,140,.08)}
+.shopCard.placeholder{background:#f4f7fa;border-style:dashed}
+.shopIcon{width:42px;height:42px;border-radius:14px;background:#eaf7ff;display:flex;align-items:center;justify-content:center;font-size:25px}
+.shopCard h4{margin:0;font-size:16px;line-height:1.25;overflow-wrap:anywhere}
+.shopCard p{margin:5px 0 8px;color:#617a98;font-size:12px;font-weight:750;line-height:1.4}
+.shopMeta{display:flex;gap:7px;align-items:center;flex-wrap:wrap;font-size:12px;font-weight:950}
+.shopActions{grid-column:1/-1;display:flex;gap:8px;align-items:center}
+.shopBuy,.shopEquip{flex:1;border:0;border-radius:14px;padding:10px 8px;font-weight:1000;font-size:13px}
+.shopBuy{background:#ffdb58;color:#174b8e}
+.shopBuy:disabled{background:#e5ebf1;color:#8493a2}
+.shopEquip{background:#dff5ff;color:#17629a}
+.shopEquip.equipped{background:#dff7df;color:#287343}
+#shopStatus{min-height:22px;margin:0 0 10px;font-size:13px;font-weight:900;color:#587597}
 #status{min-height:22px;margin-top:14px;font-size:13px;font-weight:800;color:#61799b}
 #error{position:fixed;z-index:40;left:12px;right:12px;bottom:12px;display:none;background:#7b1730;color:#fff;border-radius:14px;padding:12px;font:700 12px/1.4 system-ui}
 
@@ -94,6 +124,11 @@ body.boosting .panel{box-shadow:0 0 0 2px rgba(102,242,255,.36),0 0 18px rgba(83
 }
 
 @media(max-width:700px){
+ .shopGrid{grid-template-columns:1fr}
+ .shopBody{padding:12px}
+ .shopHeader{padding:12px}
+ .shopHeader h2{font-size:20px}
+ .shopBalance{font-size:15px}
  #speed{top:max(10px,env(safe-area-inset-top));left:10px;font-size:13px;padding:7px 9px;white-space:nowrap}
  #distance{top:max(10px,env(safe-area-inset-top));right:10px;padding:6px 9px;min-width:84px}
  #distance b{font-size:19px}
@@ -116,6 +151,7 @@ body.boosting .panel{box-shadow:0 0 0 2px rgba(102,242,255,.36),0 0 18px rgba(83
  #progressBox{top:calc(max(10px,env(safe-area-inset-top)) + 126px);width:calc(100% - 70px)}
 }
 @media(orientation:landscape){
+ #itemButton{left:auto;right:max(132px,calc(env(safe-area-inset-right) + 116px));bottom:max(24px,env(safe-area-inset-bottom));height:54px}
  .move{top:auto;bottom:max(24px,env(safe-area-inset-bottom));transform:none}
  #left{left:max(20px,env(safe-area-inset-left))}
  #right{left:calc(env(safe-area-inset-left) + 104px);right:auto}
@@ -154,6 +190,7 @@ body.boosting .panel{box-shadow:0 0 0 2px rgba(102,242,255,.36),0 0 18px rgba(83
   <button class="btn move" id="left" aria-label="左へ">←</button>
   <button class="btn move" id="right" aria-label="右へ">→</button>
   <button class="btn" id="jump" aria-label="ジャンプ"><span>↑</span>JUMP</button>
+  <button class="btn" id="itemButton" type="button" hidden aria-label="お助けアイテム">ITEM<b>--</b></button>
 </div>
 <div id="clearLayer" aria-live="polite">
   <div class="clearCard">
@@ -174,9 +211,28 @@ body.boosting .panel{box-shadow:0 0 0 2px rgba(102,242,255,.36),0 0 18px rgba(83
   <div class="card">
     <h1>SKY DASH</h1>
     <p>空の道を走って、どんどん加速。<br>左右とジャンプだけで遊べます。</p>
-    <button id="run">▶ RUN!</button>
+    <div class="startActions">
+      <button id="run">▶ RUN!</button>
+      <button id="shopOpen" type="button">🛒 SHOP</button>
+    </div>
+    <div class="startWallet">所持 ⭐ <span id="startStarCount">0</span></div>
     <div id="status">前進は自動です。</div>
     <div id="papaRequestMount"></div>
+  </div>
+</div>
+<div id="shopLayer" hidden aria-label="Sky Dash ショップ">
+  <div class="shopShell">
+    <header class="shopHeader">
+      <h2>🛒 SKY SHOP</h2>
+      <div class="shopBalance">⭐ <span id="shopStars">0</span></div>
+      <button id="shopClose" type="button">もどる</button>
+    </header>
+    <div class="shopBody">
+      <div id="shopStatus" aria-live="polite"></div>
+      <section class="shopSection"><h3>ずっと使える パワーアップ</h3><div class="shopGrid" id="upgradeShop"></div></section>
+      <section class="shopSection"><h3>お助けアイテム</h3><div class="shopGrid" id="consumableShop"></div></section>
+      <section class="shopSection"><h3>みらいのアイテム</h3><div class="shopGrid" id="futureShop"></div></section>
+    </div>
   </div>
 </div>
 <div id="error"></div>
@@ -186,21 +242,31 @@ body.boosting .panel{box-shadow:0 0 0 2px rgba(102,242,255,.36),0 0 18px rgba(83
 <script src="../shared/github-sync.js?v=9"></script>
 <script src="../shared/parent-requests.js?v=1"></script>
 <script src="../shared/parent-request-view.js?v=1"></script>
-<script src="./star-wallet.js?v=1"></script>
+<script src="./star-wallet.js?v=2"></script>
+<script src="./shop-system.js?v=1"></script>
 <script type="module">
 const runButton=document.getElementById('run');
 const startLayer=document.getElementById('startLayer');
 const status=document.getElementById('status');
 const errorBox=document.getElementById('error');
+const shopOpen=document.getElementById('shopOpen'),shopClose=document.getElementById('shopClose'),shopLayer=document.getElementById('shopLayer'),shopStatus=document.getElementById('shopStatus');
+const upgradeShop=document.getElementById('upgradeShop'),consumableShop=document.getElementById('consumableShop'),futureShop=document.getElementById('futureShop');
 const {BASE_CLEAR_REWARD,getClearBonusMultiplier,getClearReward,createStarWallet,createClearRewardGuard}=globalThis.SkyDashStarWallet;
+const {SHOP_ITEMS,STAR_DOUBLE_MS,INVINCIBLE_MS,createDefaultState,createShopStore,getItemByEffect,getPrice,getConsumableCount,getStarPickupRange,getBoostDuration,getDrinkHeal,getJumpVelocity,getRoadStarAmount,resolveObstacleImpact}=globalThis.SkyDashShopSystem;
 let started=false;
-let starWallet=null;
-let walletPromise=null;
+let starWallet=null,walletPromise=null,shopStore=null,shopPromise=null,saveStore=null,currentProfile=null;
 let sharedContextPromise=null;
+let shopState=createDefaultState();
 
 function showWalletError(err){
   errorBox.style.display='block';
   errorBox.textContent='星データの保存エラー: '+String(err);
+}
+
+function updateWalletDisplays(stars){
+  document.getElementById('starCount').textContent=stars;
+  document.getElementById('startStarCount').textContent=stars;
+  document.getElementById('shopStars').textContent=stars;
 }
 
 function ensureSharedContext(){
@@ -209,11 +275,11 @@ function ensureSharedContext(){
     const db=await globalThis.ForMySonsDB.openDatabase();
     const profileManager=globalThis.ForMySonsProfile.createProfileManager(db);
     const profile=await profileManager.current();
-    const saveStore=globalThis.ForMySonsSaveStore.createSaveStore(db,profileManager);
+    const sharedSaveStore=globalThis.ForMySonsSaveStore.createSaveStore(db,profileManager);
     const sync=globalThis.ForMySonsGithubSync.createGithubSync({
       fetch:globalThis.fetch,
       tokenProvider:async()=>(await db.get('settings','githubToken'))?.value||'',
-      saveStore,
+      saveStore:sharedSaveStore,
       profileManager
     });
     const parentRequests=globalThis.ForMySonsParentRequests.createParentRequestService({
@@ -221,7 +287,7 @@ function ensureSharedContext(){
       profileManager,
       sync
     });
-    return {db,profileManager,profile,saveStore,sync,parentRequests};
+    return {db,profileManager,profile,saveStore:sharedSaveStore,sync,parentRequests};
   })().catch(err=>{sharedContextPromise=null;throw err});
   return sharedContextPromise;
 }
@@ -241,10 +307,12 @@ async function setupParentRequest(){
 }
 
 async function loadStarWallet(){
-  const {profile,saveStore}=await ensureSharedContext();
+  const context=await ensureSharedContext();
+  currentProfile=context.profile;
+  saveStore=context.saveStore;
   starWallet=createStarWallet(saveStore,{
-    profileId:profile.id,
-    onChange:stars=>{document.getElementById('starCount').textContent=stars},
+    profileId:currentProfile.id,
+    onChange:updateWalletDisplays,
     onError:showWalletError
   });
   await starWallet.loadStarWallet();
@@ -253,19 +321,85 @@ async function loadStarWallet(){
 
 function ensureStarWallet(){
   if(starWallet)return Promise.resolve(starWallet);
-  if(!walletPromise){
-    walletPromise=loadStarWallet().catch(err=>{walletPromise=null;throw err});
-  }
+  if(!walletPromise)walletPromise=loadStarWallet().catch(err=>{walletPromise=null;throw err});
   return walletPromise;
 }
 
+async function loadShopStore(){
+  await ensureStarWallet();
+  shopStore=createShopStore(saveStore,starWallet,{
+    profileId:currentProfile.id,
+    onChange:next=>{shopState=next;renderShop()},
+    onError:showWalletError
+  });
+  shopState=await shopStore.loadShopState();
+  renderShop();
+  return shopStore;
+}
+
+function ensureShopStore(){
+  if(shopStore)return Promise.resolve(shopStore);
+  if(!shopPromise)shopPromise=loadShopStore().catch(err=>{shopPromise=null;throw err});
+  return shopPromise;
+}
+
 setupParentRequest();
+ensureShopStore().catch(err=>console.warn('Sky Shop preload unavailable.',err));
+
+function shopCard(item){
+  const level=item.type==='upgrade'?(shopState.upgrades[item.effect]||0):0;
+  const count=item.type==='consumable'?getConsumableCount(shopState,item.effect):0;
+  const price=getPrice(item,shopState);
+  const maxed=item.type==='upgrade'&&price==null;
+  const equipped=item.type==='consumable'&&shopState.selectedConsumable===item.effect;
+  const meta=item.type==='upgrade'?'Lv '+level+' / '+item.maxLevel:item.type==='consumable'?'所持 '+count:'COMING SOON';
+  const buyLabel=item.type==='placeholder'?'購入できません':maxed?'MAX':'⭐ '+price+' で購入';
+  const buyDisabled=item.type==='placeholder'||maxed||price==null||starWallet&&starWallet.getStars()<price;
+  const equip=item.type==='consumable'?'<button class="shopEquip '+(equipped?'equipped':'')+'" data-equip="'+item.effect+'" '+(count<=0?'disabled':'')+'>'+(equipped?'装備中':'もっていく')+'</button>':'';
+  return '<article class="shopCard '+(item.type==='placeholder'?'placeholder':'')+'"><div class="shopIcon">'+item.icon+'</div><div><h4>'+item.name+'</h4><p>'+item.description+'</p><div class="shopMeta"><span>'+meta+'</span></div></div><div class="shopActions"><button class="shopBuy" data-buy="'+item.id+'" '+(buyDisabled?'disabled':'')+'>'+buyLabel+'</button>'+equip+'</div></article>';
+}
+
+function renderShop(){
+  if(!upgradeShop)return;
+  upgradeShop.innerHTML=SHOP_ITEMS.filter(x=>x.type==='upgrade').map(shopCard).join('');
+  consumableShop.innerHTML=SHOP_ITEMS.filter(x=>x.type==='consumable').map(shopCard).join('');
+  futureShop.innerHTML=SHOP_ITEMS.filter(x=>x.type==='placeholder').map(shopCard).join('');
+}
+
+shopOpen.addEventListener('click',async()=>{
+  shopOpen.disabled=true;shopStatus.textContent='ショップを準備中…';
+  try{
+    await ensureShopStore();
+    renderShop();shopStatus.textContent='パワーアップやアイテムをえらべます。';shopLayer.hidden=false;
+  }catch(err){showWalletError(err);shopStatus.textContent='ショップを開けませんでした。'}
+  finally{shopOpen.disabled=false}
+});
+shopClose.addEventListener('click',()=>{shopLayer.hidden=true});
+
+shopLayer.addEventListener('click',async e=>{
+  const buy=e.target.closest?.('[data-buy]');
+  const equip=e.target.closest?.('[data-equip]');
+  if(buy){
+    buy.disabled=true;shopStatus.textContent='購入中…';
+    try{
+      const result=await shopStore.purchase(buy.dataset.buy);
+      shopStatus.textContent=result.ok?'購入しました！':result.reason==='insufficient-stars'?'星がたりません':result.reason==='max-level'?'レベルMAXです':'この商品はまだ買えません';
+    }catch(err){showWalletError(err);shopStatus.textContent='購入を保存できませんでした。'}
+    renderShop();
+    return;
+  }
+  if(equip){
+    const ok=shopStore.selectConsumable(equip.dataset.equip);
+    shopStatus.textContent=ok?'次のステージに持っていきます。':'先にアイテムを購入してください。';
+    renderShop();
+  }
+});
 
 runButton.addEventListener('click',async()=>{
   if(started)return;
   started=true;runButton.disabled=true;runButton.textContent='LOADING...';status.textContent='ゲームデータを準備中…';
   try{
-    await ensureStarWallet();
+    await ensureShopStore();
     status.textContent='3Dワールドを準備中…';
     const THREE=await import('https://cdn.jsdelivr.net/npm/three@0.169.0/build/three.module.js');
     initGame(THREE);startLayer.style.display='none';
@@ -656,6 +790,7 @@ function initGame(THREE){
      countdownEl.textContent="GO!";
      setTimeout(()=>{
        state.stageIndex=pendingNextIndex;state.stageDistance=0;state.score=100;scoreValue.textContent="100";state.targetX=0;player.position.x=0;finishGate.visible=false;stageRunId+=1;
+       prepareStageItem();
        applyStageTheme(state.stageIndex);
        clearLayer.classList.remove('show','neon-clear');
        countdownEl.textContent="";
@@ -668,7 +803,7 @@ function initGame(THREE){
  quitBtn.addEventListener('click',async()=>{
    if(countdownTimer){clearInterval(countdownTimer);countdownTimer=null}
    quitBtn.disabled=true;
-   try{await starWallet.flush()}catch(err){showWalletError(err)}
+   try{await Promise.all([starWallet.flush(),shopStore?.flush?.()])}catch(err){showWalletError(err)}
    location.href="../";
  });
 
@@ -708,7 +843,38 @@ function initGame(THREE){
  }
  applyStageTheme(0);
 
- function jump(){if(state.y<=.02)state.vy=9.3}
+ const itemButton=document.getElementById('itemButton');
+ const runEffects={itemUsed:false,invincibleUntil:0,starDoubleUntil:0};
+ function selectedStageItem(){return getItemByEffect(shopState.selectedConsumable)}
+ function updateStageItemButton(){
+   const item=selectedStageItem();
+   if(!item){itemButton.hidden=true;return}
+   itemButton.hidden=false;
+   const count=getConsumableCount(shopState,item.effect);
+   const automatic=item.activation==='auto-hit';
+   itemButton.disabled=automatic||runEffects.itemUsed||count<=0;
+   itemButton.innerHTML=(automatic?'AUTO':'ITEM')+'<b>'+item.icon+' '+count+'</b>';
+ }
+ function prepareStageItem(){
+   runEffects.itemUsed=false;runEffects.invincibleUntil=0;runEffects.starDoubleUntil=0;
+   updateStageItemButton();
+ }
+ function consumeStageItem(effect){
+   if(runEffects.itemUsed||shopState.selectedConsumable!==effect)return false;
+   if(!shopStore.consumeSelected(effect))return false;
+   runEffects.itemUsed=true;updateStageItemButton();return true;
+ }
+ itemButton.addEventListener('pointerdown',e=>{
+   e.preventDefault();
+   const item=selectedStageItem();
+   if(!item||item.activation!=='manual'||runEffects.itemUsed)return;
+   if(item.effect==='starDouble'&&consumeStageItem('starDouble'))runEffects.starDoubleUntil=performance.now()+STAR_DOUBLE_MS;
+   else if(item.effect==='invincible'&&consumeStageItem('invincible'))runEffects.invincibleUntil=performance.now()+INVINCIBLE_MS;
+   else if(item.effect==='boostBottle'&&consumeStageItem('boostBottle'))doBoost();
+ });
+ prepareStageItem();
+
+ function jump(){if(state.y<=.02)state.vy=getJumpVelocity(shopState)}
  function bindHold(id,key){
    const el=document.getElementById(id);
    el.addEventListener('pointerdown',e=>{e.preventDefault();press[key]=true;el.setPointerCapture?.(e.pointerId)});
@@ -719,7 +885,31 @@ function initGame(THREE){
  addEventListener('keydown',e=>{if(e.key==='ArrowLeft'||e.key==='a')press.left=true;if(e.key==='ArrowRight'||e.key==='d')press.right=true;if(e.code==='Space'){e.preventDefault();jump()}});
  addEventListener('keyup',e=>{if(e.key==='ArrowLeft'||e.key==='a')press.left=false;if(e.key==='ArrowRight'||e.key==='d')press.right=false});
 
- function doBoost(){state.boost=1.25;boost.classList.add('show');document.body.classList.add('boosting');setTimeout(()=>{boost.classList.remove('show');document.body.classList.remove('boosting')},470)}
+ function doBoost(){
+   const duration=getBoostDuration(shopState,1.25);
+   state.boost=Math.max(state.boost,duration);
+   boost.classList.add('show');document.body.classList.add('boosting');
+   setTimeout(()=>{boost.classList.remove('show');document.body.classList.remove('boosting')},Math.min(900,470+(duration-1.25)*300));
+ }
+
+ function applyObstacleHit(){
+   let impact=resolveObstacleImpact({
+     state:shopState,
+     selectedEffect:shopState.selectedConsumable,
+     itemUsed:runEffects.itemUsed,
+     invincibleActive:runEffects.invincibleUntil>performance.now()
+   });
+   if(impact.blockedBy==='invincible'){showScorePop('MUTEKI!','plus');return 0}
+   if(impact.consumeEffect==='scoreGuard'){
+     if(consumeStageItem('scoreGuard')){showScorePop('GUARD!','plus');return 0}
+     impact=resolveObstacleImpact({state:shopState,itemUsed:true,invincibleActive:false});
+   }
+   if(impact.damage===10)changeScore(-10);else if(impact.damage>0)changeScore(-impact.damage);
+   if(impact.consumeEffect==='startEnergy'&&consumeStageItem('startEnergy')&&impact.recovery>0){
+     if(impact.recovery===5)changeScore(5);else changeScore(impact.recovery);
+   }
+   return impact.damage;
+ }
 
  function frame(now){
    requestAnimationFrame(frame);
@@ -758,7 +948,7 @@ function initGame(THREE){
      o.position.z+=dz;
      if(o.position.z>12){o.position.z-=430;o.position.x=laneXs[(i+state.stageIndex+Math.floor(state.stageDistance/120))%3];o.userData.hit=false;o.visible=true}
      if(!state.transition&&!o.userData.hit&&Math.abs(o.position.z-player.position.z)<1.15&&Math.abs(o.position.x-player.position.x)<1.05&&state.y<1.05){
-       o.userData.hit=true;changeScore(-10);player.rotation.z=(player.position.x-o.position.x)*.08;
+       o.userData.hit=true;applyObstacleHit();player.rotation.z=(player.position.x-o.position.x)*.08;
        setTimeout(()=>player.rotation.z=0,180);
      }
    });
@@ -766,10 +956,12 @@ function initGame(THREE){
      d.position.z+=dz;d.rotation.y+=dt*2.8;
      if(d.position.z>12){d.position.z-=430;d.position.x=laneXs[(i+1+state.stageIndex)%3];d.userData.taken=false;d.visible=true}
      if(!state.transition&&!d.userData.taken&&Math.abs(d.position.z-player.position.z)<1.25&&Math.abs(d.position.x-player.position.x)<1.0&&state.y<2.0){
-       d.userData.taken=true;d.visible=false;changeScore(5);
+       d.userData.taken=true;d.visible=false;
+       const heal=getDrinkHeal(shopState);if(heal===5)changeScore(5);else changeScore(heal);
      }
    });
-   stars.forEach(s=>{s.position.z+=dz;s.rotation.x+=dt*2.5;s.rotation.y+=dt*4;if(s.position.z>10){s.position.z-=265;s.position.x=(Math.floor(Math.random()*3)-1)*2.25;s.visible=true}if(s.visible&&Math.abs(s.position.z-player.position.z)<1.35&&Math.abs(s.position.x-player.position.x)<1.05&&state.y<2.2){s.visible=false;starWallet.addStars(1)}});
+   const starRange=getStarPickupRange(shopState);
+   stars.forEach(s=>{s.position.z+=dz;s.rotation.x+=dt*2.5;s.rotation.y+=dt*4;if(s.position.z>10){s.position.z-=265;s.position.x=(Math.floor(Math.random()*3)-1)*2.25;s.visible=true}if(s.visible&&Math.abs(s.position.z-player.position.z)<starRange.z&&Math.abs(s.position.x-player.position.x)<starRange.x&&state.y<2.2){s.visible=false;const amount=getRoadStarAmount(runEffects.starDoubleUntil>now);if(amount===1)starWallet.addStars(1);else starWallet.addStars(amount)}});
    pads.forEach(p=>{p.position.z+=dz;if(p.position.z>15)p.position.z-=220;if(Math.abs(p.position.z-player.position.z)<1.8&&Math.abs(player.position.x)<3&&state.y<.7&&state.boost<=0)doBoost()});
    trails.forEach((t,i)=>{t.material.opacity=.08+grow*.36+(state.boost>0?.28:0);t.scale.z=1+grow*1.8+(state.boost>0?1.5:0);t.position.x=player.position.x+((i%3)-1)*.74});
 
