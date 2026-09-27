@@ -78,6 +78,17 @@
       return stars;
     }
 
+    function spendStars(amount) {
+      if (!loaded) throw new Error('star wallet is not loaded');
+      const value = Math.trunc(Number(amount));
+      if (!Number.isFinite(value) || value <= 0) return false;
+      if (stars < value) return false;
+      stars -= value;
+      notify();
+      saveStarWallet().catch(onError);
+      return true;
+    }
+
     async function flush() {
       await writeQueue;
       return stars;
@@ -87,6 +98,7 @@
       loadStarWallet,
       saveStarWallet,
       addStars,
+      spendStars,
       flush,
       getStars: () => stars,
       getProfileId: () => profileId
