@@ -46,8 +46,8 @@ test('deck editor falls back to profile-local official Wankos when optional load
 test('Wanko entry points use deck v4', () => {
   const home = fs.readFileSync(path.join(__dirname,'../wanko/index.html'),'utf8');
   const battle = fs.readFileSync(path.join(__dirname,'../wanko-war/index.html'),'utf8');
-  assert.match(home, /wanko-deck\/\?v=3/);
-  assert.match(battle, /wanko-deck\/\?v=3/);
+  assert.match(home, /wanko-deck\/\?v=4/);
+  assert.match(battle, /wanko-deck\/\?v=4/);
 });
 
 test('deck loads the complete current shared API dependency chain', () => {
