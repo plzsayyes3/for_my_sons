@@ -99,3 +99,60 @@ test('home mounts Papa-only request history UI', () => {
   assert.match(app, /ForMySonsParentHistoryView\.mount/);
   assert.match(app, /historyView\.refresh/);
 });
+
+
+test('Papa can reply from history and resets child readAt', async () => {
+  const remote = {
+    id:'request-reply-ui',
+    profileId:'sora',
+    appId:'sky-dash',
+    gameName:'Sky Dash',
+    type:'feature',
+    message:'もっとはやく',
+    createdAt:'2026-09-27T01:00:00.000Z',
+    status:'done',
+    reply:{
+      message:'前の返事',
+      repliedAt:'2026-09-27T02:00:00.000Z',
+      readAt:'2026-09-27T03:00:00.000Z'
+    }
+  };
+  let written = null;
+  let writeOptions = null;
+  const api = {
+    profile:{ async current(){ return { id:'papa' }; } },
+    sync:{
+      async readPath(){ return { exists:true, content:encoded(remote), sha:'sha-old' }; },
+      async writePathKnown(path, value, options){
+        written = { path, value };
+        writeOptions = options;
+        return { status:'synced', sha:'sha-new' };
+      }
+    }
+  };
+  const saved = await historyModule.saveReply(api, {
+    ...remote,
+    path:'requests/pending/reply.json'
+  }, {
+    message:'新しい返事',
+    status:'working'
+  });
+  assert.equal(written.path, 'requests/pending/reply.json');
+  assert.equal(written.value.status, 'working');
+  assert.equal(written.value.reply.message, '新しい返事');
+  assert.equal(written.value.reply.readAt, null);
+  assert.equal(writeOptions.sha, 'sha-old');
+  assert.equal(saved.status, 'working');
+  assert.equal(saved.reply.readAt, null);
+});
+
+test('Papa reply writer rejects non-Papa profile', async () => {
+  const api = {
+    profile:{ async current(){ return { id:'sora' }; } },
+    sync:{ async readPath(){ throw new Error('should not read'); }, async writePathKnown(){} }
+  };
+  await assert.rejects(
+    historyModule.saveReply(api, { path:'requests/pending/x.json' }, { message:'返事', status:'done' }),
+    /Papa profile is required/
+  );
+});
