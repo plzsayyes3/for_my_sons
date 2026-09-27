@@ -9,7 +9,7 @@
   {
     "id": "sky-dash",
     "name": "Sky Dash",
-    "url": "./sky-dash-sample/?v=6",
+    "url": "./sky-dash-sample/?v=7",
     "icon": "./assets/sky-dash.svg?v=1",
     "description": "空の道を走って、左右とジャンプでどんどん加速"
   },
