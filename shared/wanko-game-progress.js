@@ -20,6 +20,7 @@
     clearedStageIds: [],
     selectedWanko: null,
     deckSlots: [],
+    deckUpdatedAt: 0,
     ownedWankoIds: [],
     wankoDuplicateDraws: {},
     economy: {
@@ -126,6 +127,7 @@
         .filter(id => typeof id === 'string' && /^(game:W\d{2}|custom:[A-Za-z0-9:_-]{1,120})$/.test(id.trim()))
         .map(id => id.trim())
     )].slice(0, 8);
+    const deckUpdatedAt = Math.max(0, Math.floor(Number(value.deckUpdatedAt) || 0));
     const duplicateSource = normalizeWankoCounterMap(value.wankoDuplicateDraws);
     const wankoDuplicateDraws = {};
     for (const id of ownedWankoIds) {
@@ -140,7 +142,7 @@
       ticketEarned: normalizeCounterMap(economySource.ticketEarned),
       ticketSpent: normalizeCounterMap(economySource.ticketSpent)
     };
-    return { selectedStageId, discoveredElementIds, discoveredCharacterIds, clearedStageIds, selectedWanko, deckSlots, ownedWankoIds, wankoDuplicateDraws, economy };
+    return { selectedStageId, discoveredElementIds, discoveredCharacterIds, clearedStageIds, selectedWanko, deckSlots, deckUpdatedAt, ownedWankoIds, wankoDuplicateDraws, economy };
   }
 
   function mergeStates(left, right, definitions) {
@@ -155,7 +157,8 @@
       discoveredCharacterIds: [...a.discoveredCharacterIds, ...b.discoveredCharacterIds],
       clearedStageIds: [...a.clearedStageIds, ...b.clearedStageIds],
       selectedWanko: a.selectedWanko || b.selectedWanko,
-      deckSlots: a.deckSlots.length ? a.deckSlots : b.deckSlots,
+      deckSlots: a.deckUpdatedAt >= b.deckUpdatedAt ? a.deckSlots : b.deckSlots,
+      deckUpdatedAt: Math.max(a.deckUpdatedAt, b.deckUpdatedAt),
       ownedWankoIds: [...a.ownedWankoIds, ...b.ownedWankoIds],
       wankoDuplicateDraws: mergeWankoCounterMaps(a.wankoDuplicateDraws, b.wankoDuplicateDraws),
       economy: {
@@ -268,7 +271,7 @@
 
     async function setDeckSlots(slots) {
       if (!Array.isArray(slots)) throw new TypeError('slots must be an array');
-      return writeState(current => ({ ...current, deckSlots: slots }));
+      return writeState(current => ({ ...current, deckSlots: slots, deckUpdatedAt: Date.now() }));
     }
 
     async function ownWanko(wankoId) {
