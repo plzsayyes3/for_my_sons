@@ -37,6 +37,30 @@
       name: "ハンマー",
       faction: "ally",
       path: "../official-wankos/hammer.wanko.json?v=2"
+    },
+    {
+      id: "nagaashi",
+      name: "強裏長足",
+      faction: "ally",
+      path: "../official-wankos/nagaashi.wanko.json?v=1"
+    },
+    {
+      id: "big-monster",
+      name: "ビックな怪物",
+      faction: "ally",
+      path: "../official-wankos/big-monster.wanko.json?v=1"
+    },
+    {
+      id: "dorisha",
+      name: "ドリ車",
+      faction: "ally",
+      path: "../official-wankos/dorisha.wanko.json?v=1"
+    },
+    {
+      id: "ebifurai-fura",
+      name: "エビフライフラ",
+      faction: "ally",
+      path: "../official-wankos/ebifurai-fura.wanko.json?v=1"
     }
   ];
   const cache = new Map();
@@ -54,7 +78,8 @@
       id,
       name: source.name || meta.name,
       createdAt: source.createdAt,
-      image: source.imagePath || source.image,
+      image: source.imagePath || source.image || null,
+      placeholder: source.placeholder || "🐾",
       faction: source.faction || meta.faction || "ally",
       stats: source.stats || {},
       behavior: source.behavior || {},
