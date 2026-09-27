@@ -367,7 +367,7 @@
       const device = safeDeviceId(deviceId);
       if (!Number.isFinite(tickets) || tickets <= 0) throw new TypeError('count must be positive');
       return writeState(current => {
-        if (walletFromState(current).tickets < tickets) throw new Error('Not enough gacha tickets');
+        if (walletFromState(current).tickets < tickets) throw new Error(tickets === 1 ? 'No gacha ticket' : 'Not enough gacha tickets');
         return {
           ...current,
           economy: {
