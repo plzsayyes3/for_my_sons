@@ -290,3 +290,138 @@ a {
   box-shadow:0 5px 14px rgba(35,56,69,.16); text-decoration:none;
 }
 .recent-wanko-link img { width:88%; height:88%; object-fit:contain; filter:drop-shadow(0 4px 1px rgba(0,0,0,.16)); }
+
+
+.papa-history {
+  margin-top: 18px;
+  padding: 18px;
+  border: 1px solid var(--glass-border);
+  border-radius: 24px;
+  background: rgba(255,255,255,.58);
+  box-shadow: var(--shadow);
+  backdrop-filter: blur(22px) saturate(130%);
+  -webkit-backdrop-filter: blur(22px) saturate(130%);
+}
+.papa-history[hidden] { display:none; }
+.papa-history-header {
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:14px;
+}
+.papa-history-header h2 {
+  margin:0;
+  font-size:20px;
+  letter-spacing:-.02em;
+}
+.papa-history-refresh {
+  border:0;
+  border-radius:999px;
+  padding:9px 13px;
+  background:rgba(255,255,255,.82);
+  color:#0f172a;
+  font:inherit;
+  font-size:12px;
+  font-weight:800;
+  box-shadow:0 2px 8px rgba(32,68,81,.08);
+}
+.papa-history-refresh:disabled { opacity:.6; }
+.papa-history-summary {
+  margin:10px 0 0;
+  color:rgba(15,23,42,.58);
+  font-size:12px;
+  font-weight:700;
+}
+.papa-history-list {
+  display:grid;
+  gap:10px;
+  margin-top:12px;
+}
+.papa-history-card {
+  padding:14px;
+  border:1px solid rgba(15,23,42,.08);
+  border-radius:18px;
+  background:rgba(255,255,255,.72);
+}
+.papa-history-card-top {
+  display:flex;
+  align-items:flex-start;
+  justify-content:space-between;
+  gap:10px;
+}
+.papa-history-card-top strong {
+  min-width:0;
+  font-size:14px;
+  line-height:1.35;
+}
+.papa-history-status {
+  flex:0 0 auto;
+  border-radius:999px;
+  padding:4px 8px;
+  font-size:10px;
+  font-weight:850;
+  background:#eef2f5;
+  color:#526170;
+}
+.papa-history-status-working { background:#fff1c2; color:#7a5a00; }
+.papa-history-status-done { background:#ddf6e5; color:#27633a; }
+.papa-history-status-declined { background:#f0e8f6; color:#695078; }
+.papa-history-meta {
+  margin-top:5px;
+  color:rgba(15,23,42,.5);
+  font-size:10.5px;
+  font-weight:700;
+}
+.papa-history-message {
+  margin-top:10px;
+  padding:11px 12px;
+  border-radius:14px;
+  background:#eef6ff;
+  color:#203b55;
+  font-size:14px;
+  font-weight:750;
+  line-height:1.5;
+  white-space:pre-wrap;
+}
+.papa-history-reply {
+  margin-top:10px;
+  padding:11px 12px;
+  border-radius:14px;
+  background:#fff7d6;
+}
+.papa-history-reply-label {
+  display:block;
+  margin-bottom:4px;
+  color:#80671d;
+  font-size:10px;
+  font-weight:850;
+}
+.papa-history-reply p {
+  margin:0;
+  color:#4c3e18;
+  font-size:13px;
+  font-weight:750;
+  line-height:1.5;
+  white-space:pre-wrap;
+}
+.papa-history-read {
+  display:inline-block;
+  margin-top:8px;
+  border-radius:999px;
+  padding:3px 7px;
+  background:#fff0b3;
+  color:#846000;
+  font-size:10px;
+  font-weight:850;
+}
+.papa-history-read.is-read {
+  background:#def4e4;
+  color:#2c6840;
+}
+.papa-history-no-reply,
+.papa-history-empty {
+  margin-top:10px;
+  color:rgba(15,23,42,.52);
+  font-size:12px;
+  font-weight:700;
+}
