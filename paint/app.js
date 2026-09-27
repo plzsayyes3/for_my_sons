@@ -781,13 +781,15 @@ async function renderWankoHistory() {
           const result = await shared.characterRequests.resend(record.requestId);
           if (result.syncState === "synced") {
             showToast("もう一度送りました");
-            wankoHistoryStatus.textContent = `${record.name} をもう一度送りました`;
+            wankoHistoryStatus.textContent = result.localPersisted === false
+              ? `${record.name} を送りました。履歴更新は次回行います`
+              : `${record.name} をもう一度送りました`;
           } else if (result.syncState === "auth-required") {
-            wankoHistoryStatus.textContent = "認証が必要です";
+            wankoHistoryStatus.textContent = "認証が必要です。元の依頼は端末に残っています";
           } else if (result.syncState === "conflict") {
-            wankoHistoryStatus.textContent = "競合しています";
+            wankoHistoryStatus.textContent = "競合しています。元の依頼は端末に残っています";
           } else {
-            wankoHistoryStatus.textContent = "端末に保存しました。通信できたら再送します";
+            wankoHistoryStatus.textContent = "送信待ちです。元の依頼は端末に残っています";
           }
           await renderWankoHistory();
         } catch (error) {

@@ -45,12 +45,20 @@ test('Paint exposes sent Wanko history and can force-resend local artwork', () =
 test('Paint uses the current shared request stack for resend', () => {
   const html = read('paint/index.html');
   assert.match(html, /for-my-sons-db\.js\?v=4/);
-  assert.match(html, /character-requests\.js\?v=4/);
+  assert.match(html, /character-requests\.js\?v=5/);
   assert.match(html, /profile-manager\.js\?v=2/);
   assert.match(html, /parent-lock\.js\?v=3/);
   assert.match(html, /save-store\.js\?v=2/);
   assert.match(html, /github-sync\.js\?v=9/);
   assert.match(html, /parent-requests\.js\?v=4/);
   assert.match(html, /for-my-sons\.js\?v=13/);
-  assert.match(html, /app\.js\?v=9/);
+  assert.match(html, /app\.js\?v=10/);
+});
+
+
+test('Paint reports resend success even when only history persistence is deferred', () => {
+  const source = read('paint/app.js');
+  assert.match(source, /result\.localPersisted === false/);
+  assert.match(source, /履歴更新は次回行います/);
+  assert.match(source, /元の依頼は端末に残っています/);
 });

@@ -247,3 +247,44 @@ test('resend stays locally queued when the remote is unavailable', async () => {
   assert.equal(result.lastError, 'remote-unavailable');
   assert.equal((await service.get(request.requestId)).syncState, 'error');
 });
+
+
+test('resend does not rewrite the saved artwork before remote sending', async () => {
+  const base = createMemoryDatabase();
+  const seed = createCharacterRequestService({ db: base });
+  const request = await seed.create({
+    requestId: 'request-ios-history-write',
+    name: 'iOSさいそうしん',
+    faction: 'ally',
+    artwork: new Uint8Array([3, 1, 4])
+  });
+
+  const writes = [];
+  const db = {
+    get: (...args) => base.get(...args),
+    list: (...args) => base.list(...args),
+    delete: (...args) => base.delete(...args),
+    async put() {
+      throw new Error('iOS IndexedDB history update failed');
+    }
+  };
+  const service = createCharacterRequestService({
+    db,
+    sync: {
+      async readPath() { return { exists: false, sha: null, content: null }; },
+      async writePath(path) {
+        writes.push(path);
+        return { status: 'created' };
+      }
+    }
+  });
+
+  const result = await service.resend(request.requestId);
+  assert.equal(result.syncState, 'synced');
+  assert.equal(result.localPersisted, false);
+  assert.deepEqual(writes, [
+    'character-requests/pending/request-ios-history-write/artwork.webp',
+    'character-requests/pending/request-ios-history-write/request.json'
+  ]);
+  assert.equal((await base.get('characterRequests', request.requestId)).name, 'iOSさいそうしん');
+});
