@@ -94,8 +94,8 @@ test('home mounts Papa-only request history UI', () => {
   const index = fs.readFileSync('index.html', 'utf8');
   const app = fs.readFileSync('app.js', 'utf8');
   assert.match(index, /id="parent-request-history"/);
-  assert.match(index, /parent-history-view\.js\?v=2/);
-  assert.match(index, /app\.js\?v=4/);
+  assert.match(index, /parent-history-view\.js\?v=3/);
+  assert.match(index, /app\.js\?v=5/);
   assert.match(app, /ForMySonsParentHistoryView\.mount/);
   assert.match(app, /historyView\.refresh/);
 });
@@ -155,4 +155,32 @@ test('Papa reply writer rejects non-Papa profile', async () => {
     historyModule.saveReply(api, { path:'requests/pending/x.json' }, { message:'返事', status:'done' }),
     /Papa profile is required/
   );
+});
+
+
+test('Papa history preserves image references on new game requests', () => {
+  const record = historyModule.normalizeRecord({
+    id:'request-new-game-photo',
+    profileId:'soma',
+    appId:'new-game-request',
+    gameName:'新しいゲーム',
+    type:'feature',
+    message:'車をつくるゲーム',
+    image:'requests/pending/assets/request-new-game-photo/image.webp',
+    createdAt:'2026-09-27T08:30:00.000Z',
+    status:'pending'
+  }, 'requests/pending/new-game.json');
+  assert.equal(record.appId, 'new-game-request');
+  assert.equal(record.image, 'requests/pending/assets/request-new-game-photo/image.webp');
+});
+
+test('home includes the new game request entry and photo-enabled request scripts', () => {
+  const index = fs.readFileSync('index.html', 'utf8');
+  const app = fs.readFileSync('app.js', 'utf8');
+  assert.match(index, /id="new-game-request"/);
+  assert.match(index, /parent-requests\.js\?v=4/);
+  assert.match(index, /parent-request-view\.js\?v=4/);
+  assert.match(app, /appId: 'new-game-request'/);
+  assert.match(app, /launchLabel: '🎮 新しいゲームを作ってほしい'/);
+  assert.match(app, /allowImage: true/);
 });
