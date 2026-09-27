@@ -167,11 +167,11 @@
       return { ...record };
     }
 
-    async function syncOne(record) {
+    async function syncOne(record, { forceArtwork = false } = {}) {
       if (!sync?.readPath || !sync?.writePath) throw new Error('Character request sync is not configured');
       const paths = requestPaths(record.requestId);
       const artworkRemote = await sync.readPath(paths.pendingArtwork);
-      if (!artworkRemote.exists) {
+      if (forceArtwork || !artworkRemote.exists) {
         assertWriteSucceeded(await sync.writePath(paths.pendingArtwork, record.artworkBlob, {
           kind: 'binary',
           contentType: record.artworkContentType,
@@ -197,6 +197,21 @@
       };
       await db.put('characterRequests', next, record.requestId);
       return { ...next };
+    }
+
+    async function resend(requestId) {
+      const record = await get(requestId);
+      if (!record) throw new Error('Character request not found');
+      if (!record.artworkBlob) throw new Error('Character request artwork is missing');
+      const pending = {
+        ...record,
+        status: 'pending',
+        syncState: 'pending',
+        lastError: null,
+        updatedAt: new Date(clock()).toISOString()
+      };
+      await db.put('characterRequests', pending, requestId);
+      return syncOne(pending, { forceArtwork: true });
     }
 
     async function syncPending() {
@@ -253,7 +268,7 @@
       return { ...next };
     }
 
-    return { create, get, listPending, prepareArtwork, syncPending, markCompleted };
+    return { create, get, listPending, prepareArtwork, syncPending, resend, markCompleted };
   }
 
   return {

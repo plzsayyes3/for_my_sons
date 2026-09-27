@@ -1,4 +1,4 @@
-const CACHE_NAME = 'for-my-sons-v71';
+const CACHE_NAME = 'for-my-sons-v72';
 const SHELL = [
   './',
   './index.html',
@@ -11,8 +11,8 @@ const SHELL = [
   './shared/parent-lock.js?v=3',
   './shared/save-store.js?v=2',
   './shared/github-sync.js?v=9',
-  './shared/character-requests.js?v=1',
-  './shared/for-my-sons.js?v=9',
+  './shared/character-requests.js?v=2',
+  './shared/for-my-sons.js?v=10',
   './shared/settings-view.js?v=6',
   './shared/for-my-sons.css?v=3',
   './kids-3d-playgrand/?v=5',

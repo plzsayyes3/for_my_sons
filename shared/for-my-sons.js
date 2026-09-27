@@ -141,6 +141,7 @@
         get: characterRequests.get,
         listPending: characterRequests.listPending,
         syncPending: characterRequests.syncPending,
+        resend: characterRequests.resend,
         markCompleted: characterRequests.markCompleted
       }
     };
