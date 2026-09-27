@@ -97,6 +97,10 @@
     .primaryAction{background:#ffe58f}.secondaryAction,.startLink{background:#fff}
     .primaryAction:active,.secondaryAction:active,.startLink:active{transform:translateY(3px);box-shadow:0 1px 0 var(--line)}
     .result p{margin:0 0 16px;font-weight:700}
+    #orientationHint{position:fixed;inset:0;z-index:120;display:grid;place-items:center;padding:22px;background:rgba(247,240,228,.94);backdrop-filter:blur(10px)}
+    #orientationHint[hidden]{display:none}.orientationHintCard{width:min(92vw,340px);border:3px solid var(--line);border-radius:24px;background:#fff9ee;padding:22px;text-align:center;box-shadow:0 7px 0 var(--line)}
+    .orientationHintIcon{font-size:54px;font-weight:1000}.orientationHintCard b{display:block;font-size:22px;margin-top:5px}.orientationHintCard span{display:block;font-size:12px;font-weight:800;color:#71665a;margin:8px 0 15px}.orientationHintCard button{border:2px solid var(--line);border-radius:13px;background:#ffe58f;padding:10px 16px;font-weight:1000;box-shadow:0 3px 0 var(--line)}
+
     @media (max-width:560px) and (orientation:portrait){
       header{padding-bottom:5px}.home{width:36px;height:36px}.boneBox{padding:5px 8px;min-width:80px}.pointBox{padding:5px 7px;min-width:64px}
       .base{bottom:17%;width:70px;height:96px}.unit{bottom:19%}
@@ -106,6 +110,7 @@
   </style>
 </head>
 <body>
+  <div id="orientationHint" hidden><div class="orientationHintCard"><div class="orientationHintIcon">↻</div><b id="orientationHintTitle">端末を回してね</b><span id="orientationHintText"></span><button id="orientationHintContinue" type="button">このまま遊ぶ</button></div></div>
 <div id="app">
   <header>
     <a class="home" href="../wanko/?v=10" aria-label="わんこトップへ">⌂</a>
@@ -195,6 +200,27 @@
 <script src="../shared/wanko-game-progress.js?v=8"></script>
 <script src="../shared/wanko-profile-sync.js?v=1"></script>
 <script>
+  const requestedPlayMode=new URLSearchParams(location.search).get('mode');
+  const orientationHint=document.getElementById('orientationHint');
+  const orientationHintTitle=document.getElementById('orientationHintTitle');
+  const orientationHintText=document.getElementById('orientationHintText');
+  const orientationHintContinue=document.getElementById('orientationHintContinue');
+  let orientationHintDismissed=false;
+  function orientationMatchesMode(){
+    if(requestedPlayMode==='landscape')return matchMedia('(orientation: landscape)').matches;
+    if(requestedPlayMode==='portrait')return matchMedia('(orientation: portrait)').matches;
+    return true;
+  }
+  function refreshOrientationHint(){
+    if(!['landscape','portrait'].includes(requestedPlayMode)||orientationHintDismissed||orientationMatchesMode()){orientationHint.hidden=true;return}
+    orientationHintTitle.textContent=requestedPlayMode==='landscape'?'横向きにしてね':'縦向きにしてね';
+    orientationHintText.textContent=requestedPlayMode==='landscape'?'「横で遊ぶ」を選びました':'「縦で遊ぶ」を選びました';
+    orientationHint.hidden=false;
+  }
+  orientationHintContinue.addEventListener('click',()=>{orientationHintDismissed=true;orientationHint.hidden=true});
+  addEventListener('orientationchange',()=>setTimeout(refreshOrientationHint,120));
+  addEventListener('resize',refreshOrientationHint);
+  refreshOrientationHint();
 (() => {
   const field = document.getElementById('field');
   const unitsLayer = document.getElementById('units');
