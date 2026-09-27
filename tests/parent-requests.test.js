@@ -283,8 +283,8 @@ test('keeps the message and request id when remote sending fails', async () => {
 });
 
 test('Sky Dash mounts the reusable papa request form and never embeds a token', () => {
-  assert.match(skyDashIndex, /parent-requests\.js\?v=2/);
-  assert.match(skyDashIndex, /parent-request-view\.js\?v=2/);
+  assert.match(skyDashIndex, /parent-requests\.js\?v=3/);
+  assert.match(skyDashIndex, /parent-request-view\.js\?v=3/);
   assert.match(skyDashIndex, /appId:'sky-dash'/);
   assert.match(skyDashIndex, /gameName:'Sky Dash'/);
   assert.match(skyDashIndex, /papaRequestMount/);
@@ -294,8 +294,8 @@ test('Sky Dash mounts the reusable papa request form and never embeds a token', 
 
 
 test('Wanko War mounts the reusable papa request form through the shared API', () => {
-  assert.match(wankoWarIndex, /parent-requests\.js\?v=2/);
-  assert.match(wankoWarIndex, /parent-request-view\.js\?v=2/);
+  assert.match(wankoWarIndex, /parent-requests\.js\?v=3/);
+  assert.match(wankoWarIndex, /parent-request-view\.js\?v=3/);
   assert.match(wankoWarIndex, /for-my-sons\.js\?v=11/);
   assert.match(wankoWarIndex, /appId:'wanko-war'/);
   assert.match(wankoWarIndex, /gameName:'わんこ大戦争'/);
