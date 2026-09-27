@@ -17,7 +17,7 @@ function memoryStorage(initialValue = null) {
 test('starts with only S001 playable and unlocked ally slots available', async () => {
   const store = createProgressStore(memoryStorage(), game);
   assert.deepEqual(await store.getState(), {
-    selectedStageId: 'S001', discoveredElementIds: [], discoveredCharacterIds: [], clearedStageIds: [], selectedWanko: null, ownedWankoIds: [], wankoDuplicateDraws: {}, economy: { pointEarned: {}, pointSpent: {}, ticketEarned: {}, ticketSpent: {} }
+    selectedStageId: 'S001', discoveredElementIds: [], discoveredCharacterIds: [], clearedStageIds: [], selectedWanko: null, deckSlots: [], deckUpdatedAt: 0, ownedWankoIds: [], wankoDuplicateDraws: {}, economy: { pointEarned: {}, pointSpent: {}, ticketEarned: {}, ticketSpent: {} }
   });
   assert.equal(await store.isStageUnlocked('S001'), true);
   assert.equal(await store.isStageUnlocked('S002'), false);
@@ -47,7 +47,7 @@ test('starting an unlocked stage selects it and discovers its element', async ()
   const store = createProgressStore(storage, game);
   await store.startStage('S001');
   assert.deepEqual(await store.getState(), {
-    selectedStageId: 'S001', discoveredElementIds: [1], discoveredCharacterIds: [], clearedStageIds: [], selectedWanko: null, ownedWankoIds: [], wankoDuplicateDraws: {}, economy: { pointEarned: {}, pointSpent: {}, ticketEarned: {}, ticketSpent: {} }
+    selectedStageId: 'S001', discoveredElementIds: [1], discoveredCharacterIds: [], clearedStageIds: [], selectedWanko: null, deckSlots: [], deckUpdatedAt: 0, ownedWankoIds: [], wankoDuplicateDraws: {}, economy: { pointEarned: {}, pointSpent: {}, ticketEarned: {}, ticketSpent: {} }
   });
   assert.equal(storage.key(), 'wankoGameProgressV1');
 });
@@ -114,7 +114,7 @@ test('repairs malformed saved progress without losing valid IDs', async () => {
   });
   const store = createProgressStore(storage, game);
   assert.deepEqual(await store.getState(), {
-    selectedStageId: 'S001', discoveredElementIds: [1, 79], discoveredCharacterIds: ['E01'], clearedStageIds: ['S001'], selectedWanko: null, ownedWankoIds: [], wankoDuplicateDraws: {}, economy: { pointEarned: {}, pointSpent: {}, ticketEarned: {}, ticketSpent: {} }
+    selectedStageId: 'S001', discoveredElementIds: [1, 79], discoveredCharacterIds: ['E01'], clearedStageIds: ['S001'], selectedWanko: null, deckSlots: [], deckUpdatedAt: 0, ownedWankoIds: [], wankoDuplicateDraws: {}, economy: { pointEarned: {}, pointSpent: {}, ticketEarned: {}, ticketSpent: {} }
   });
 });
 
