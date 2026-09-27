@@ -2,7 +2,7 @@
 <html lang="ja">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
 <meta name="theme-color" content="#59c7ff">
 <title>Sky Dash Sample</title>
 <style>
@@ -57,16 +57,47 @@ canvas{display:block;width:100%;height:100%}
 #run{border:0;border-radius:999px;padding:15px 35px;background:linear-gradient(#fff17a,#ffb927);color:#174c85;font-size:22px;font-weight:1000;box-shadow:0 7px 0 #c98800}
 #status{min-height:22px;margin-top:14px;font-size:13px;font-weight:800;color:#61799b}
 #error{position:fixed;z-index:40;left:12px;right:12px;bottom:12px;display:none;background:#7b1730;color:#fff;border-radius:14px;padding:12px;font:700 12px/1.4 system-ui}
+
+/* Pattern 1 "Pop Sky" + Pattern 2 "Adventure Badge" */
+:root{--stage-accent:#ff665e;--hud-blue:#176db5;--hud-deep:#0d4f91;--cream:#fffdf4}
+html,body{-webkit-text-size-adjust:100%}
+.panel{background:linear-gradient(180deg,rgba(255,255,255,.94),rgba(235,247,255,.94));border:2px solid rgba(255,255,255,.98);border-radius:18px;box-shadow:0 5px 0 rgba(16,87,151,.18),0 10px 22px rgba(26,88,145,.17);color:var(--hud-deep);text-shadow:none}
+#speed{border-left:5px solid #42c8ff}
+#distance{border-right:5px solid #ffd84d}
+#distance b{color:#f39b22}
+#stageInfo{border-bottom:4px solid var(--stage-accent);box-shadow:0 5px 0 rgba(16,87,151,.18),0 10px 22px rgba(26,88,145,.17)}
+#progressBox{background:rgba(16,72,127,.32);border:2px solid rgba(255,255,255,.94);box-shadow:0 3px 10px rgba(25,72,126,.15)}
+#progress{background:linear-gradient(90deg,var(--stage-accent),#ffe467 72%,#fff9bf)}
+#stars,#score{color:var(--hud-deep)}
+#score b{color:#f39b22}
+.btn{border:4px solid rgba(255,255,255,.98);box-shadow:0 7px 0 rgba(10,79,145,.26),0 12px 24px rgba(21,91,153,.16)}
+.move{background:radial-gradient(circle at 35% 28%,#99e5ff,#318eea 72%)}
+#jump{background:radial-gradient(circle at 35% 28%,#fff39a,#ffae35 72%);box-shadow:0 7px 0 rgba(190,104,10,.42),0 12px 28px rgba(255,155,33,.22)}
+.card{border:4px solid rgba(255,255,255,.9);background:linear-gradient(180deg,rgba(255,255,255,.98),rgba(243,250,255,.97));box-shadow:0 22px 60px rgba(16,72,125,.26)}
+.card h1::before{content:"JAPAN RUN · 47 STAGES";display:block;margin-bottom:6px;font-size:11px;letter-spacing:.18em;color:#6b86a6}
+#run{border:2px solid #fff7c5}
+.clearCard{background:linear-gradient(180deg,rgba(255,255,255,.98),rgba(250,253,255,.98));border:4px solid #ffe166;box-shadow:0 18px 46px rgba(12,69,122,.25)}
+#boost{font-size:34px;letter-spacing:.06em;text-shadow:0 0 8px #32dfff,0 0 18px #387bff}
+body.boosting #progress{background:linear-gradient(90deg,#35efff,#7a7bff,#ff5fd2,#fff45e)}
+body.boosting .panel{box-shadow:0 0 0 2px rgba(102,242,255,.36),0 0 18px rgba(83,137,255,.34)}
+#clearLayer.neon-clear .clearCard{box-shadow:0 0 0 4px rgba(255,255,255,.85),0 0 24px rgba(64,225,255,.62),0 0 46px rgba(255,91,206,.28)}
+#clearLayer.neon-clear .clearStars{text-shadow:0 0 10px #66e7ff,0 0 16px #ff76d5}
+@media(min-width:701px) and (max-width:1100px){
+ .move{width:82px;height:82px}
+ #jump{width:112px;height:112px}
+ #progressBox{width:min(42vw,360px)}
+}
+
 @media(max-width:700px){
  #speed{top:max(10px,env(safe-area-inset-top));left:10px;font-size:13px;padding:7px 9px;white-space:nowrap}
  #distance{top:max(10px,env(safe-area-inset-top));right:10px;padding:6px 9px;min-width:84px}
  #distance b{font-size:19px}
- #stageInfo{top:62px;left:50%;min-width:132px;padding:6px 12px}
+ #stageInfo{top:calc(max(10px,env(safe-area-inset-top)) + 52px);left:50%;min-width:132px;padding:6px 12px}
  #stageInfo b{font-size:15px}
  #stageInfo small{font-size:9px}
- #stars{top:106px;left:10px;font-size:13px;padding:6px 9px}
- #score{top:106px;right:10px;font-size:13px;padding:6px 9px}
- #progressBox{top:148px;width:calc(100% - 92px);max-width:330px;height:11px}
+ #stars{top:calc(max(10px,env(safe-area-inset-top)) + 96px);left:10px;font-size:13px;padding:6px 9px}
+ #score{top:calc(max(10px,env(safe-area-inset-top)) + 96px);right:10px;font-size:13px;padding:6px 9px}
+ #progressBox{top:calc(max(10px,env(safe-area-inset-top)) + 138px);width:calc(100% - 92px);max-width:330px;height:11px}
  #scorePop{top:35%;font-size:30px}
  .move{width:72px;height:72px;font-size:36px}
  #jump{width:108px;height:108px}
@@ -75,19 +106,30 @@ canvas{display:block;width:100%;height:100%}
  #speed{font-size:12px;padding:6px 8px}
  #distance{min-width:78px;padding:5px 8px}
  #distance b{font-size:17px}
- #stageInfo{top:58px;min-width:124px;padding:5px 10px}
- #stars,#score{top:98px;font-size:12px;padding:5px 8px}
- #progressBox{top:136px;width:calc(100% - 70px)}
+ #stageInfo{top:calc(max(10px,env(safe-area-inset-top)) + 48px);min-width:124px;padding:5px 10px}
+ #stars,#score{top:calc(max(10px,env(safe-area-inset-top)) + 88px);font-size:12px;padding:5px 8px}
+ #progressBox{top:calc(max(10px,env(safe-area-inset-top)) + 126px);width:calc(100% - 70px)}
 }
 @media(orientation:landscape){
- .move{top:auto;bottom:24px;transform:none}
- #left{left:20px}
- #right{left:104px;right:auto}
- #jump{left:auto;right:20px;transform:none;width:98px;height:98px}
- #stageInfo{top:14px}
- #progressBox{top:54px}
- #stars{top:auto;bottom:128px}
- #score{top:auto;right:128px;bottom:128px}
+ .move{top:auto;bottom:max(24px,env(safe-area-inset-bottom));transform:none}
+ #left{left:max(20px,env(safe-area-inset-left))}
+ #right{left:calc(env(safe-area-inset-left) + 104px);right:auto}
+ #jump{left:auto;right:max(20px,env(safe-area-inset-right));bottom:max(24px,env(safe-area-inset-bottom));transform:none;width:98px;height:98px}
+ #stageInfo{top:max(14px,env(safe-area-inset-top))}
+ #progressBox{top:max(54px,calc(env(safe-area-inset-top) + 40px))}
+ #stars{top:auto;bottom:max(128px,calc(env(safe-area-inset-bottom) + 110px))}
+ #score{top:auto;right:max(128px,calc(env(safe-area-inset-right) + 110px));bottom:max(128px,calc(env(safe-area-inset-bottom) + 110px))}
+}
+@media(max-height:500px) and (orientation:landscape){
+ .move{width:66px;height:66px;bottom:max(14px,env(safe-area-inset-bottom))}
+ #left{left:max(16px,env(safe-area-inset-left))}
+ #right{left:calc(env(safe-area-inset-left) + 88px)}
+ #jump{width:82px;height:82px;right:max(18px,env(safe-area-inset-right));bottom:max(14px,env(safe-area-inset-bottom));font-size:13px}
+ #jump span{font-size:26px}
+ #stageInfo{top:max(8px,env(safe-area-inset-top))}
+ #progressBox{top:max(48px,calc(env(safe-area-inset-top) + 36px))}
+ #stars{bottom:max(98px,calc(env(safe-area-inset-bottom) + 86px))}
+ #score{right:max(108px,calc(env(safe-area-inset-right) + 94px));bottom:max(98px,calc(env(safe-area-inset-bottom) + 86px))}
 }
 </style>
 </head>
@@ -157,10 +199,10 @@ function initGame(THREE){
  scene.fog=new THREE.Fog(0xb9ebff,50,190);
 
  const renderer=new THREE.WebGLRenderer({antialias:true,powerPreference:'high-performance'});
- renderer.setPixelRatio(Math.min(devicePixelRatio,1.5));
+ renderer.setPixelRatio(Math.min(devicePixelRatio,1.35));
  renderer.setSize(innerWidth,innerHeight);
  renderer.shadowMap.enabled=true;
- renderer.shadowMap.type=THREE.PCFSoftShadowMap;
+ renderer.shadowMap.type=THREE.PCFShadowMap;
  renderer.outputColorSpace=THREE.SRGBColorSpace;
  host.appendChild(renderer.domElement);
 
@@ -351,7 +393,28 @@ function initGame(THREE){
  const trails=[];
  for(let i=0;i<9;i++){const m=new THREE.Mesh(new THREE.BoxGeometry(.03,.03,5+i*.4),new THREE.MeshBasicMaterial({color:i%2?0x6fefff:0xffffff,transparent:true,opacity:.1}));m.position.set(0,.55+i*.23,5+i*.35);scene.add(m);trails.push(m)}
 
- const PREFECTURES=["東京都","神奈川県","山梨県","静岡県","愛知県","岐阜県","三重県","滋賀県","京都府","大阪府","兵庫県","鳥取県","島根県","山口県","福岡県","佐賀県","長崎県","熊本県","鹿児島県","沖縄県","宮崎県","大分県","愛媛県","高知県","徳島県","香川県","岡山県","広島県","和歌山県","奈良県","福井県","石川県","富山県","長野県","新潟県","群馬県","埼玉県","千葉県","茨城県","栃木県","福島県","山形県","宮城県","岩手県","秋田県","青森県","北海道"];
+ const STAGE_ROUTE=[
+   ["東京都","city",null,0xff665e,"tokyo"],
+   ["神奈川県","sea",null,0x27bfe8,"kanagawa"],
+   ["山梨県","mountain",null,0x63ad5d,"yamanashi"],
+   ["静岡県","sea","mountain",0x28b8c7,"shizuoka"],
+   ["愛知県","city",null,0xff8a4a],["岐阜県","mountain",null,0x6fad5d],["三重県","sea",null,0x34b9dd],
+   ["滋賀県","river",null,0x42aada],["京都府","city","mountain",0xc77db6],["大阪府","city",null,0xff725f],
+   ["兵庫県","sea","city",0x3aa9dd],["鳥取県","sea","mountain",0xe0aa54],["島根県","sea","mountain",0x4aa0bf],
+   ["山口県","sea",null,0x45a9d1],["福岡県","city","sea",0xf06f55],["佐賀県","river",null,0x66a75d],
+   ["長崎県","sea",null,0x3db7d9],["熊本県","mountain",null,0x69a653],["鹿児島県","sea","mountain",0xe28b43],
+   ["沖縄県","sea",null,0x23c4cf],["宮崎県","sea",null,0x37b8d3],["大分県","mountain","sea",0x6da565],
+   ["愛媛県","sea","mountain",0xf0a049],["高知県","river","sea",0x43b99d],["徳島県","river","mountain",0x67a85e],
+   ["香川県","sea",null,0x4eb7d7],["岡山県","river",null,0x65a95d],["広島県","sea","city",0xe2765f],
+   ["和歌山県","sea","mountain",0x4bb596],["奈良県","mountain",null,0x78a85c],["福井県","sea","mountain",0x529db6],
+   ["石川県","sea","city",0x5aa5bd],["富山県","mountain","sea",0x61a881],["長野県","mountain",null,0x6ca85f],
+   ["新潟県","mountain","sea",0x4aaeb4],["群馬県","mountain",null,0x70a45a],["埼玉県","river","city",0x5b9fd2],
+   ["千葉県","sea",null,0x42b9d2],["茨城県","river","sea",0x4baa9d],["栃木県","mountain","river",0x69a75e],
+   ["福島県","mountain",null,0x75a45f],["山形県","mountain",null,0x72a360],["宮城県","sea","city",0x4f9fd0],
+   ["岩手県","mountain","sea",0x659e84],["秋田県","mountain",null,0x7b9f5f],["青森県","sea","mountain",0x4fa7b7],
+   ["北海道","mountain","river",0x63a76f]
+ ].map(([name,environment,mix,accent,landmark=null])=>({name,environment,mix,accent,landmark}));
+ const PREFECTURES=STAGE_ROUTE.map(stage=>stage.name);
  const STAGE_LENGTH=500;
  const TOTAL_ROUTE=STAGE_LENGTH*PREFECTURES.length;
  const PASS_SCORE=70;
@@ -364,6 +427,12 @@ function initGame(THREE){
  const continueBtn=document.getElementById('continueBtn'),quitBtn=document.getElementById('quitBtn'),countdownEl=document.getElementById('countdown');
  let pendingNextIndex=null,countdownTimer=null;
 
+ const ENVIRONMENT_PALETTES={
+   city:{sky:0x78d8ff,fog:0xc8efff,road:0xecc995,edge:0xf6b644,ground:0x72ca68},
+   sea:{sky:0x69d9f2,fog:0xc9f5f6,road:0xf0d2a0,edge:0xf3b84b,ground:0x77cf75},
+   mountain:{sky:0x8ad5ef,fog:0xd6f0e9,road:0xe6c996,edge:0xe7a943,ground:0x62b75d},
+   river:{sky:0x83d6ef,fog:0xd1f1ef,road:0xe8ca98,edge:0xe6ad49,ground:0x6bc86b}
+ };
  const stageDecor=new THREE.Group();scene.add(stageDecor);
  const stageMovers=[];
  function clearStageDecor(){
@@ -373,49 +442,108 @@ function initGame(THREE){
    }
    stageMovers.length=0;
  }
- function addMover(obj,wrap=330){obj.userData.wrap=wrap;stageDecor.add(obj);stageMovers.push(obj);return obj}
+ function addMover(obj,wrap=340){obj.userData.wrap=wrap;stageDecor.add(obj);stageMovers.push(obj);return obj}
+ function mat(color,roughness=.8){return new THREE.MeshStandardMaterial({color,roughness})}
+ function accentCss(value){return "#"+value.toString(16).padStart(6,"0")}
+ function setStagePalette(stage){
+   const primary=ENVIRONMENT_PALETTES[stage.environment]||ENVIRONMENT_PALETTES.city;
+   const secondary=stage.mix?ENVIRONMENT_PALETTES[stage.mix]:null;
+   const blend=(key)=>secondary?new THREE.Color(primary[key]).lerp(new THREE.Color(secondary[key]),.28):new THREE.Color(primary[key]);
+   scene.background.copy(blend("sky"));scene.fog.color.copy(blend("fog"));
+   roadMat.color.copy(blend("road"));edgeMat.color.copy(blend("edge"));grassMat.color.copy(blend("ground"));
+   document.documentElement.style.setProperty("--stage-accent",accentCss(stage.accent));
+ }
+ function addCityScenery(stage){
+   const colors=[0xeaf3fa,0xc6d9ea,0xf5e5cc,0xacc4df,0xded5ed];
+   const mats=colors.map(c=>mat(c,.82));
+   const count=stage.landmark==="tokyo"?18:12;
+   for(let i=0;i<count;i++){
+     const h=4+(i%5)*1.65;
+     const building=new THREE.Mesh(new THREE.BoxGeometry(3+(i%3)*.7,h,3.2),mats[i%mats.length]);
+     building.position.set((i%2?1:-1)*(10.6+(i%4)*1.8),h/2+.35,-20-i*17);
+     addMover(building,360);
+   }
+   if(stage.landmark==="tokyo"){
+     const tower=new THREE.Group();
+     for(let i=0;i<5;i++){
+       const section=new THREE.Mesh(new THREE.CylinderGeometry(.28+i*.07,.52+i*.09,1.55,6),mat(i%2?0xffffff:0xee5d52,.6));
+       section.position.y=.8+i*1.5;tower.add(section);
+     }
+     const deck=new THREE.Mesh(new THREE.BoxGeometry(2.6,.38,1.45),mat(0xffffff,.5));deck.position.y=5.15;tower.add(deck);
+     const mast=new THREE.Mesh(new THREE.CylinderGeometry(.13,.22,3.0,6),mat(0xee5d52,.55));mast.position.y=7.0;tower.add(mast);
+     tower.position.set(-13,.25,-105);addMover(tower,360);
+   }
+ }
+ function addSeaScenery(stage){
+   const waterMat=mat(0x2daedb,.38);waterMat.transparent=true;waterMat.opacity=.9;
+   [-14,14].forEach((x,i)=>{
+     const water=new THREE.Mesh(new THREE.BoxGeometry(14,.28,360),i===0?waterMat:waterMat.clone());water.position.set(x,-.72,-145);stageDecor.add(water);
+   });
+   const hullMat=mat(0xffffff,.62),sailMat=mat(0xffe28a,.7);
+   for(let i=0;i<4;i++){
+     const boat=new THREE.Group();
+     const hull=new THREE.Mesh(new THREE.BoxGeometry(1.8,.42,3.2),hullMat);boat.add(hull);
+     const mast=new THREE.Mesh(new THREE.BoxGeometry(.08,2,.08),mat(0x80543a,.8));mast.position.y=1.05;boat.add(mast);
+     const sail=new THREE.Mesh(new THREE.ConeGeometry(.75,1.7,3),sailMat);sail.position.set(.42,1.2,0);sail.rotation.z=-.18;boat.add(sail);
+     boat.position.set((i%2?1:-1)*(12.5+(i%2)*2),.1,-45-i*72);addMover(boat,360);
+   }
+   if(stage.landmark==="kanagawa"){
+     const bridge=new THREE.Group(),bridgeMat=mat(0xf5f7fa,.55),cableMat=mat(0xd9e5ef,.5);
+     const deck=new THREE.Mesh(new THREE.BoxGeometry(18,.42,2),bridgeMat);deck.position.y=3.2;bridge.add(deck);
+     [-7,7].forEach(x=>{
+       const p=new THREE.Mesh(new THREE.BoxGeometry(.7,7,.7),bridgeMat);p.position.set(x,3.7,0);bridge.add(p);
+       const cable=new THREE.Mesh(new THREE.TorusGeometry(3.5,.08,6,20,Math.PI),cableMat);cable.rotation.z=Math.PI;cable.position.set(x,6.0,0);bridge.add(cable);
+     });
+     bridge.position.set(0,.25,-118);addMover(bridge,360);
+     const skylineMat=mat(0xb8d1e0,.8);
+     for(let i=0;i<6;i++){const h=3+(i%3)*1.4;const b=new THREE.Mesh(new THREE.BoxGeometry(2.4,h,2.4),skylineMat);b.position.set(11+i*1.7,h/2,-175-i*9);addMover(b,360)}
+   }
+ }
+ function addMountainScenery(stage){
+   const mountainMats=[mat(0x6c9b72,.95),mat(0x7da57c,.95),mat(0x5f8f6d,.95)];
+   for(let i=0;i<10;i++){
+     const scale=1+(i%4)*.22;
+     const mountain=new THREE.Mesh(new THREE.ConeGeometry(5.2*scale,9.5*scale,6),mountainMats[i%mountainMats.length]);
+     mountain.position.set((i%2?1:-1)*(14+(i%3)*4),3.8*scale,-30-i*34);addMover(mountain,390);
+   }
+   if(stage.landmark==="yamanashi"){
+     const icon=new THREE.Group();
+     const body=new THREE.Mesh(new THREE.ConeGeometry(10.5,15,7),mat(0x638a78,.95));body.position.y=6.5;icon.add(body);
+     const snow=new THREE.Mesh(new THREE.ConeGeometry(4.25,5.5,7),mat(0xf9fbf5,.75));snow.position.y=12.1;icon.add(snow);
+     icon.position.set(-15,-.3,-128);addMover(icon,390);
+   }
+   if(stage.landmark==="shizuoka"){
+     const icon=new THREE.Group();
+     const body=new THREE.Mesh(new THREE.ConeGeometry(8.7,13.5,7),mat(0x5c8b77,.95));body.position.y=5.9;icon.add(body);
+     const snow=new THREE.Mesh(new THREE.ConeGeometry(3.45,4.8,7),mat(0xffffff,.72));snow.position.y=10.9;icon.add(snow);
+     icon.position.set(16,-.6,-150);addMover(icon,390);
+   }
+ }
+ function addRiverScenery(){
+   const riverMat=mat(0x36add3,.42);riverMat.transparent=true;riverMat.opacity=.9;
+   const river=new THREE.Mesh(new THREE.BoxGeometry(10,.24,360),riverMat);river.position.set(-13,-.7,-145);stageDecor.add(river);
+   const bankMat=mat(0x87cd70,.9);
+   const bank=new THREE.Mesh(new THREE.BoxGeometry(3,.46,360),bankMat);bank.position.set(-7.8,-.5,-145);stageDecor.add(bank);
+   const bridgeMat=mat(0xe9dcc5,.78);
+   for(let i=0;i<3;i++){
+     const bridge=new THREE.Mesh(new THREE.BoxGeometry(10,.32,2.6),bridgeMat);bridge.position.set(-13,.2,-70-i*95);addMover(bridge,360);
+   }
+ }
  function applyStageTheme(index){
    clearStageDecor();
-   const name=PREFECTURES[index];
-   prefectureEl.textContent=name;
+   const stage=STAGE_ROUTE[index]||STAGE_ROUTE[0];
+   prefectureEl.textContent=stage.name;
    stageNoEl.textContent=(index+1)+" / "+PREFECTURES.length;
    resetChallengeObjects();
-   if(index===0){
-     scene.background.set(0x75d7ff);scene.fog.color.set(0xbdeeff);
-     roadMat.color.set(0xf0c995);edgeMat.color.set(0xf2b23b);grassMat.color.set(0x67ce62);
-     const cityColors=[0xdde8f4,0xb8cee2,0xf3e3ca,0xa9bad5];
-     for(let i=0;i<22;i++){
-       const h=4+(i%5)*1.7;
-       const m=new THREE.Mesh(new THREE.BoxGeometry(3+(i%3),h,3.4),new THREE.MeshStandardMaterial({color:cityColors[i%cityColors.length],roughness:.82}));
-       m.position.set((i%2?1:-1)*(10.5+(i%4)*1.8),h/2+.4,-22-i*14);addMover(m,330);
-     }
-     const tower=new THREE.Group();
-     const mastMat=new THREE.MeshStandardMaterial({color:0xf05a4f,roughness:.6});
-     const mast=new THREE.Mesh(new THREE.CylinderGeometry(.32,.65,9,8),mastMat);mast.position.y=4.5;tower.add(mast);
-     const deck=new THREE.Mesh(new THREE.BoxGeometry(3,.45,1.6),new THREE.MeshStandardMaterial({color:0xffffff}));deck.position.y=5.7;tower.add(deck);
-     tower.position.set(-13,.3,-110);addMover(tower,330);
-   }else if(index===1){
-     scene.background.set(0x65d9f1);scene.fog.color.set(0xb8f3f4);
-     roadMat.color.set(0xf4d7a1);edgeMat.color.set(0xf0b345);grassMat.color.set(0x6ccf70);
-     const waterMat=new THREE.MeshStandardMaterial({color:0x35b7e8,roughness:.35,metalness:.08,transparent:true,opacity:.88});
-     [-14,14].forEach(x=>{
-       const water=new THREE.Mesh(new THREE.BoxGeometry(15,.35,330),waterMat.clone());water.position.set(x,-1.0,-135);stageDecor.add(water);
-     });
-     const bridgeMat=new THREE.MeshStandardMaterial({color:0xf4f6fa,roughness:.6});
-     for(let i=0;i<8;i++){
-       const p=new THREE.Group();
-       const column=new THREE.Mesh(new THREE.BoxGeometry(.7,5,.7),bridgeMat);column.position.y=2.5;p.add(column);
-       const cable=new THREE.Mesh(new THREE.TorusGeometry(2.4,.08,6,18,Math.PI),new THREE.MeshStandardMaterial({color:0xe8eef7}));cable.rotation.z=Math.PI;cable.position.set(0,4.5,0);p.add(cable);
-       p.position.set((i%2?1:-1)*12,.4,-30-i*38);addMover(p,340);
-     }
-   }else{
-     const hue=(index*29)%360;
-     const bg=new THREE.Color().setHSL(hue/360,.55,.72);
-     scene.background.copy(bg);scene.fog.color.copy(bg.clone().lerp(new THREE.Color(0xffffff),.48));
-     roadMat.color.setHSL(((hue+35)%360)/360,.45,.72);
-     edgeMat.color.setHSL(((hue+5)%360)/360,.72,.56);
-     grassMat.color.setHSL(((hue+110)%360)/360,.45,.52);
-   }
+   setStagePalette(stage);
+   const environments=[stage.environment,stage.mix].filter(Boolean);
+   trees.forEach((tree,i)=>tree.visible=environments.includes("mountain")||environments.includes("river")||(environments.includes("city")&&i%4===0)||(environments.includes("sea")&&i%7===0));
+   islands.forEach(island=>island.visible=false);
+   castle.visible=false;
+   if(environments.includes("city"))addCityScenery(stage);
+   if(environments.includes("sea"))addSeaScenery(stage);
+   if(environments.includes("mountain"))addMountainScenery(stage);
+   if(environments.includes("river"))addRiverScenery(stage);
  }
 
  const finishGate=new THREE.Group();
@@ -445,7 +573,7 @@ function initGame(THREE){
      setTimeout(()=>{
        state.stageIndex=pendingNextIndex;state.stageDistance=0;state.score=100;scoreValue.textContent="100";state.targetX=0;player.position.x=0;finishGate.visible=false;
        applyStageTheme(state.stageIndex);
-       clearLayer.classList.remove('show');
+       clearLayer.classList.remove('show','neon-clear');
        countdownEl.textContent="";
        continueBtn.disabled=false;quitBtn.disabled=false;
        pendingNextIndex=null;state.transition=false;state.last=performance.now();
@@ -465,6 +593,7 @@ function initGame(THREE){
    clearScoreEl.textContent=state.score;
    const rating=state.score===100?"★★★":state.score>=90?"★★★":state.score>=80?"★★☆":state.score>=70?"★☆☆":"";
    clearStarsEl.textContent=rating;
+   clearLayer.classList.toggle('neon-clear',state.score>=90);
    const passed=state.score>=PASS_SCORE;
    const nextIndex=state.stageIndex+1;
    clearTitle.textContent=passed?"CLEAR!":"GOAL!";
@@ -499,7 +628,7 @@ function initGame(THREE){
  addEventListener('keydown',e=>{if(e.key==='ArrowLeft'||e.key==='a')press.left=true;if(e.key==='ArrowRight'||e.key==='d')press.right=true;if(e.code==='Space'){e.preventDefault();jump()}});
  addEventListener('keyup',e=>{if(e.key==='ArrowLeft'||e.key==='a')press.left=false;if(e.key==='ArrowRight'||e.key==='d')press.right=false});
 
- function doBoost(){state.boost=1.25;boost.classList.add('show');setTimeout(()=>boost.classList.remove('show'),470)}
+ function doBoost(){state.boost=1.25;boost.classList.add('show');document.body.classList.add('boosting');setTimeout(()=>{boost.classList.remove('show');document.body.classList.remove('boosting')},470)}
 
  function frame(now){
    requestAnimationFrame(frame);
@@ -566,7 +695,7 @@ function initGame(THREE){
    renderer.render(scene,camera);
  }
  requestAnimationFrame(frame);
- addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight);renderer.setPixelRatio(Math.min(devicePixelRatio,1.5))});
+ addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight);renderer.setPixelRatio(Math.min(devicePixelRatio,1.35))});
 }
 </script>
 </body>
