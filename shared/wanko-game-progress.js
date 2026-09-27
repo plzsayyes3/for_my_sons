@@ -19,6 +19,7 @@
     discoveredCharacterIds: [],
     clearedStageIds: [],
     selectedWanko: null,
+    deckSlots: [],
     ownedWankoIds: [],
     wankoDuplicateDraws: {},
     economy: {
@@ -120,6 +121,11 @@
         .filter(id => typeof id === 'string' && id.trim())
         .map(id => id.trim().slice(0, 120))
     )].sort();
+    const deckSlots = [...new Set(
+      (Array.isArray(value.deckSlots) ? value.deckSlots : [])
+        .filter(id => typeof id === 'string' && /^(game:W\d{2}|custom:[A-Za-z0-9:_-]{1,120})$/.test(id.trim()))
+        .map(id => id.trim())
+    )].slice(0, 8);
     const duplicateSource = normalizeWankoCounterMap(value.wankoDuplicateDraws);
     const wankoDuplicateDraws = {};
     for (const id of ownedWankoIds) {
@@ -134,7 +140,7 @@
       ticketEarned: normalizeCounterMap(economySource.ticketEarned),
       ticketSpent: normalizeCounterMap(economySource.ticketSpent)
     };
-    return { selectedStageId, discoveredElementIds, discoveredCharacterIds, clearedStageIds, selectedWanko, ownedWankoIds, wankoDuplicateDraws, economy };
+    return { selectedStageId, discoveredElementIds, discoveredCharacterIds, clearedStageIds, selectedWanko, deckSlots, ownedWankoIds, wankoDuplicateDraws, economy };
   }
 
   function mergeStates(left, right, definitions) {
@@ -149,6 +155,7 @@
       discoveredCharacterIds: [...a.discoveredCharacterIds, ...b.discoveredCharacterIds],
       clearedStageIds: [...a.clearedStageIds, ...b.clearedStageIds],
       selectedWanko: a.selectedWanko || b.selectedWanko,
+      deckSlots: a.deckSlots.length ? a.deckSlots : b.deckSlots,
       ownedWankoIds: [...a.ownedWankoIds, ...b.ownedWankoIds],
       wankoDuplicateDraws: mergeWankoCounterMaps(a.wankoDuplicateDraws, b.wankoDuplicateDraws),
       economy: {
@@ -257,6 +264,11 @@
           ? { source: selection.source, id: selection.id }
           : null
       }));
+    }
+
+    async function setDeckSlots(slots) {
+      if (!Array.isArray(slots)) throw new TypeError('slots must be an array');
+      return writeState(current => ({ ...current, deckSlots: slots }));
     }
 
     async function ownWanko(wankoId) {
@@ -390,6 +402,7 @@
       startStage,
       completeStage,
       setSelectedWanko,
+      setDeckSlots,
       ownWanko,
       isWankoOwned,
       recordDuplicateWankoDraw,
