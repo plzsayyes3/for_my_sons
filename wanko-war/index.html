@@ -148,6 +148,7 @@
           <a class="startLink" href="../wanko-gacha/?v=5">わんこガチャ</a>
           <a class="startLink" href="../wanko-library/?v=19">わんこ大図鑑</a>
           <a class="startLink" href="../wanko-deck/?v=1">デッキ編集</a>
+          <div id="papaRequestMount"></div>
         </div>
       </div>
     </div>
@@ -184,13 +185,15 @@
   </footer>
 </div>
 
-<script src="../shared/for-my-sons-db.js?v=2"></script>
+<script src="../shared/for-my-sons-db.js?v=3"></script>
 <script src="../shared/profile-manager.js?v=2"></script>
 <script src="../shared/parent-lock.js?v=3"></script>
 <script src="../shared/save-store.js?v=2"></script>
-<script src="../shared/github-sync.js?v=7"></script>
+<script src="../shared/github-sync.js?v=10"></script>
 <script src="../shared/character-requests.js?v=1"></script>
-<script src="../shared/for-my-sons.js?v=7"></script>
+<script src="../shared/parent-requests.js?v=1"></script>
+<script src="../shared/parent-request-view.js?v=1"></script>
+<script src="../shared/for-my-sons.js?v=11"></script>
 <script src="../shared/wanko-cloud-config.js"></script>
 <script src="../shared/wanko-cloud.js"></script>
 <script src="../shared/official-wankos.js?v=8"></script>
@@ -206,6 +209,7 @@
   const orientationHintText=document.getElementById('orientationHintText');
   const orientationHintContinue=document.getElementById('orientationHintContinue');
   let orientationHintDismissed=false;
+  let papaRequestView=null;
   function orientationMatchesMode(){
     if(requestedPlayMode==='landscape')return matchMedia('(orientation: landscape)').matches;
     if(requestedPlayMode==='portrait')return matchMedia('(orientation: portrait)').matches;
@@ -334,10 +338,23 @@
     }).catch(error=>console.warn('Wanko point save failed',error));
   }
 
+  function mountPapaRequest(){
+    if(papaRequestView||!sharedApi?.parentRequests||!window.ForMySonsParentRequestView)return;
+    const mount=document.getElementById('papaRequestMount');
+    if(!mount)return;
+    papaRequestView=window.ForMySonsParentRequestView.mount({
+      container:mount,
+      service:sharedApi.parentRequests,
+      appId:'wanko-war',
+      gameName:'わんこ大戦争'
+    });
+  }
+
   async function setupProfileProgress(){
     if(!window.ForMySonsShared?.createForMySons||!window.WankoProfileSync?.createWankoProfileSync)return;
     try{
       sharedApi=await window.ForMySonsShared.createForMySons();
+      mountPapaRequest();
       sessionProfile=await sharedApi.profile.current();
       const label=sessionProfile?.label&&sessionProfile.label!=='profile-1'?sessionProfile.label:'未設定';
       playerBadge.textContent=label;
