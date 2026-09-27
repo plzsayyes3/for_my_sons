@@ -26,12 +26,19 @@ const wankoPreviewImg = document.querySelector("#wanko-preview-img");
 const wankoFactionButtons = [...document.querySelectorAll("[data-faction]")];
 const wankoDetails = document.querySelector("#wanko-details");
 const wankoRequestStatus = document.querySelector("#wanko-request-status");
+const wankoHistoryOpenButton = document.querySelector("#wanko-history-open");
+const wankoHistoryModal = document.querySelector("#wanko-history-modal");
+const wankoHistoryCloseButton = document.querySelector("#wanko-history-close");
+const wankoHistoryList = document.querySelector("#wanko-history-list");
+const wankoHistoryStatus = document.querySelector("#wanko-history-status");
 let pendingWankoBlob = null;
 let pendingWankoDataUrl = null;
 let pendingWankoUrl = null;
 let selectedWankoFaction = null;
 let requestSubmitInFlight = false;
+let requestResendInFlight = null;
 let sharedForMySons = null;
+let wankoHistoryObjectUrls = [];
 
 const cropModal = document.querySelector("#crop-modal");
 const cropPreview = document.querySelector("#crop-preview");
@@ -637,16 +644,15 @@ async function confirmWankoRegistration() {
   wankoConfirmButton.disabled = true;
 
   try {
-    if (!window.ForMySonsShared?.createForMySons) throw new Error("REQUEST_SERVICE_UNAVAILABLE");
-    sharedForMySons ||= await window.ForMySonsShared.createForMySons();
-    const request = await sharedForMySons.characterRequests.create({
+    const shared = await getSharedForMySons();
+    const request = await shared.characterRequests.create({
       name,
       faction: selectedWankoFaction,
       artwork: pendingWankoBlob
     });
     let result = request;
     try {
-      const results = await sharedForMySons.characterRequests.syncPending();
+      const results = await shared.characterRequests.syncPending();
       result = results.find((item) => item.requestId === request.requestId) || request;
     } catch (error) {
       console.warn("Character request sync deferred", error);
@@ -686,6 +692,141 @@ async function confirmWankoRegistration() {
   } finally {
     requestSubmitInFlight = false;
     wankoConfirmButton.disabled = false;
+  }
+}
+
+async function getSharedForMySons() {
+  if (!window.ForMySonsShared?.createForMySons) throw new Error("REQUEST_SERVICE_UNAVAILABLE");
+  sharedForMySons ||= await window.ForMySonsShared.createForMySons();
+  return sharedForMySons;
+}
+
+function clearWankoHistoryObjectUrls() {
+  for (const url of wankoHistoryObjectUrls) URL.revokeObjectURL(url);
+  wankoHistoryObjectUrls = [];
+}
+
+function requestStatusText(record) {
+  if (!record?.artworkBlob) return "この端末に画像なし";
+  if (record.syncState === "auth-required") return "認証待ち";
+  if (record.syncState === "conflict") return "競合";
+  if (record.syncState === "error") return "送信失敗";
+  if (record.status === "completed") return "実装済み";
+  if (record.syncState === "synced" || record.status === "synced") return "送信済み";
+  return "端末に保存済み";
+}
+
+function formatRequestDate(value) {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "";
+  return new Intl.DateTimeFormat("ja-JP", { month: "numeric", day: "numeric", hour: "2-digit", minute: "2-digit" }).format(date);
+}
+
+async function renderWankoHistory() {
+  clearWankoHistoryObjectUrls();
+  wankoHistoryList.replaceChildren();
+  wankoHistoryStatus.textContent = "読み込み中…";
+
+  try {
+    const shared = await getSharedForMySons();
+    const records = await shared.characterRequests.listAll();
+    if (!records.length) {
+      const empty = document.createElement("p");
+      empty.className = "wanko-history-empty";
+      empty.textContent = "この端末から送ったわんこはまだないよ。";
+      wankoHistoryList.appendChild(empty);
+      wankoHistoryStatus.textContent = "";
+      return;
+    }
+
+    for (const record of records) {
+      const row = document.createElement("article");
+      row.className = "wanko-history-item";
+
+      const thumb = document.createElement("div");
+      thumb.className = "wanko-history-thumb";
+      if (record.artworkBlob instanceof Blob) {
+        const url = URL.createObjectURL(record.artworkBlob);
+        wankoHistoryObjectUrls.push(url);
+        const image = document.createElement("img");
+        image.src = url;
+        image.alt = "";
+        thumb.appendChild(image);
+      } else {
+        thumb.textContent = "🐾";
+      }
+
+      const body = document.createElement("div");
+      body.className = "wanko-history-body";
+      const name = document.createElement("strong");
+      name.textContent = record.name || "なまえなし";
+      const meta = document.createElement("span");
+      meta.textContent = `${record.faction === "enemy" ? "敵" : "味方"} ・ ${formatRequestDate(record.createdAt)}`;
+      const state = document.createElement("span");
+      state.className = "wanko-history-state";
+      state.textContent = requestStatusText(record);
+      body.append(name, meta, state);
+
+      const resendButton = document.createElement("button");
+      resendButton.type = "button";
+      resendButton.className = "wanko-resend-button";
+      resendButton.textContent = "🔄 もう一度送る";
+      resendButton.disabled = !record.artworkBlob;
+      resendButton.addEventListener("click", async () => {
+        if (requestResendInFlight) return;
+        requestResendInFlight = record.requestId;
+        resendButton.disabled = true;
+        wankoHistoryStatus.textContent = `${record.name} を送りなおしてるよ…`;
+        try {
+          const result = await shared.characterRequests.resend(record.requestId);
+          if (result.syncState === "synced") {
+            showToast("もう一度送りました");
+            wankoHistoryStatus.textContent = `${record.name} をもう一度送りました`;
+          } else if (result.syncState === "auth-required") {
+            wankoHistoryStatus.textContent = "認証が必要です";
+          } else if (result.syncState === "conflict") {
+            wankoHistoryStatus.textContent = "競合しています";
+          } else {
+            wankoHistoryStatus.textContent = "端末に保存しました。通信できたら再送します";
+          }
+          await renderWankoHistory();
+        } catch (error) {
+          console.warn("Character request resend failed", error?.code || error?.message || "unknown");
+          wankoHistoryStatus.textContent = error?.message === "Character request artwork is missing"
+            ? "この端末に元の画像が残っていません"
+            : "もう一度送れませんでした";
+        } finally {
+          requestResendInFlight = null;
+          resendButton.disabled = !record.artworkBlob;
+        }
+      });
+
+      row.append(thumb, body, resendButton);
+      wankoHistoryList.appendChild(row);
+    }
+
+    wankoHistoryStatus.textContent = "";
+  } catch (error) {
+    console.warn("Character request history failed", error?.message || "unknown");
+    wankoHistoryStatus.textContent = "送ったわんこを読み込めませんでした";
+  }
+}
+
+async function openWankoHistory() {
+  wankoHistoryModal.classList.add("is-open");
+  wankoHistoryModal.setAttribute("aria-hidden", "false");
+  document.body.classList.add("modal-open");
+  await renderWankoHistory();
+}
+
+function closeWankoHistory() {
+  wankoHistoryModal.classList.remove("is-open");
+  wankoHistoryModal.setAttribute("aria-hidden", "true");
+  clearWankoHistoryObjectUrls();
+  wankoHistoryList.replaceChildren();
+  wankoHistoryStatus.textContent = "";
+  if (!wankoModal.classList.contains("is-open") && !cropModal.classList.contains("is-open")) {
+    document.body.classList.remove("modal-open");
   }
 }
 
@@ -747,6 +888,9 @@ clearButton.addEventListener("click", clearCanvas);
 puzzleSaveButton.addEventListener("click", saveForPuzzle);
 phoneSaveButton.addEventListener("click", saveToPhone);
 wankoSaveButton.addEventListener("click", openWankoModal);
+wankoHistoryOpenButton.addEventListener("click", openWankoHistory);
+wankoHistoryCloseButton.addEventListener("click", closeWankoHistory);
+wankoHistoryModal.addEventListener("click", (event) => { if (event.target === wankoHistoryModal) closeWankoHistory(); });
 wankoCloseButton.addEventListener("click", closeWankoModal);
 wankoConfirmButton.addEventListener("click", confirmWankoRegistration);
 wankoLibraryOpenButton.addEventListener("click", () => { window.location.href = "../wanko-library/"; });
@@ -845,7 +989,7 @@ async function retryPendingCharacterRequests() {
   if (!window.ForMySonsShared?.createForMySons) return;
   try {
     if (!sharedForMySons) sharedForMySons = await window.ForMySonsShared.createForMySons();
-    await sharedForMySons.characterRequests.syncPending();
+    await shared.characterRequests.syncPending();
   } catch (error) {
     console.warn("Character request retry deferred", error?.message || "offline");
   }
