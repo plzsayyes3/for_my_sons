@@ -1,4 +1,4 @@
-const CACHE_NAME = 'for-my-sons-v78';
+const CACHE_NAME = 'for-my-sons-v79';
 const SHELL = [
   './',
   './index.html',
@@ -11,10 +11,10 @@ const SHELL = [
   './shared/parent-lock.js?v=3',
   './shared/save-store.js?v=2',
   './shared/github-sync.js?v=9',
-  './shared/character-requests.js?v=2',
+  './shared/character-requests.js?v=3',
   './shared/parent-requests.js?v=3',
   './shared/parent-request-view.js?v=3',
-  './shared/for-my-sons.js?v=11',
+  './shared/for-my-sons.js?v=12',
   './shared/settings-view.js?v=6',
   './shared/for-my-sons.css?v=3',
   './kids-3d-playgrand/?v=5',
@@ -74,10 +74,10 @@ const SHELL = [
   './shared/wanko-mini-multiplication.js?v=1',
   './shared/wanko-library-view.js?v=4',
   './shared/wanko-registration-request.js?v=1',
-  './paint/?v=7',
+  './paint/?v=8',
   './paint/index.html',
-  './paint/styles.css?v=5',
-  './paint/app.js?v=7',
+  './paint/styles.css?v=6',
+  './paint/app.js?v=8',
   './assets/for-my-sons-icon.svg',
   './assets/kids-3d.svg',
   './assets/minecraft-english.svg',
