@@ -12,7 +12,7 @@ test('service worker precaches character request assets under a new cache versio
   assert.match(source, /\.\/shared\/for-my-sons-db\.js\?v=2/);
   assert.match(source, /\.\/wanko-gacha\/\?v=6/);
   assert.doesNotThrow(() => new vm.Script(source));
-  assert.doesNotMatch(source, /\\\\n/);
+  assert.doesNotMatch(source, /\\n/);
 });
 
 test('Paint loads shared request dependencies before its app script', () => {
