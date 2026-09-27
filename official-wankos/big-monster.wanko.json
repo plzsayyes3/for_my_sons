@@ -1,0 +1,20 @@
+{
+  "format": "for-my-sons-wanko",
+  "version": 2,
+  "id": "big-monster",
+  "name": "ビックな怪物",
+  "faction": "ally",
+  "createdAt": "2026-09-26T12:26:52.220Z",
+  "placeholder": "👹",
+  "renderScale": 2,
+  "sourceRequestId": "request-a383d733-3f9e-4cbd-838b-f4132353e2c6",
+  "artworkStatus": "missing-source",
+  "stats": {
+    "cost": 420,
+    "hp": 760,
+    "damage": 120,
+    "speed": 18,
+    "range": 55,
+    "cooldown": 1.38
+  }
+}
