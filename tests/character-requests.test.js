@@ -87,6 +87,31 @@ test('does not replace an existing local request when the same request ID is ret
   assert.equal((await service.listPending()).length, 1);
 });
 
+test('lists all local character requests newest first including already synced requests', async () => {
+  const db = createMemoryDatabase();
+  await db.put('characterRequests', {
+    requestId: 'request-old',
+    name: 'まえのわんこ',
+    faction: 'ally',
+    createdAt: '2026-09-20T00:00:00.000Z',
+    status: 'synced',
+    syncState: 'synced',
+    artworkBlob: new Uint8Array([1])
+  }, 'request-old');
+  await db.put('characterRequests', {
+    requestId: 'request-new',
+    name: 'あとのわんこ',
+    faction: 'enemy',
+    createdAt: '2026-09-21T00:00:00.000Z',
+    status: 'completed',
+    syncState: 'synced',
+    artworkBlob: new Uint8Array([2])
+  }, 'request-new');
+
+  const service = createCharacterRequestService({ db });
+  assert.deepEqual((await service.listAll()).map(record => record.requestId), ['request-new', 'request-old']);
+});
+
 test('keeps a locally saved request and exposes authentication as a retry state', async () => {
   const db = createMemoryDatabase();
   const service = createCharacterRequestService({

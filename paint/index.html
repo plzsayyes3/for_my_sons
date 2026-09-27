@@ -8,7 +8,7 @@
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
   <title>ペイント</title>
-  <link rel="stylesheet" href="./styles.css?v=5">
+  <link rel="stylesheet" href="./styles.css?v=6">
 </head>
 <body>
   <div class="app-shell">
@@ -18,7 +18,7 @@
         <p class="eyebrow">FOR MY SONS</p>
         <h1>ペイント</h1>
       </div>
-      <span class="topbar-spacer" aria-hidden="true"></span>
+      <button class="icon-button history-button" id="wanko-history-open" type="button" aria-label="送ったわんこ">↻</button>
     </header>
 
     <main>
@@ -141,18 +141,33 @@
     </section>
   </div>
 
+  <div class="modal" id="wanko-history-modal" aria-hidden="true">
+    <section class="modal-card wanko-history-card" role="dialog" aria-modal="true" aria-labelledby="wanko-history-title">
+      <div class="modal-head">
+        <div>
+          <p class="modal-kicker">WANKO REQUESTS</p>
+          <h2 id="wanko-history-title">送ったわんこ</h2>
+        </div>
+        <button class="modal-close" id="wanko-history-close" type="button" aria-label="とじる">✕</button>
+      </div>
+      <p class="wanko-history-help">このiPadに絵が残っていれば、同じ依頼をもう一度送れるよ。</p>
+      <div class="wanko-history-list" id="wanko-history-list"></div>
+      <p class="wanko-history-status" id="wanko-history-status" role="status" aria-live="polite"></p>
+    </section>
+  </div>
+
   <div class="toast" id="toast" role="status" aria-live="polite"></div>
   <script src="../shared/wanko-cloud-config.js"></script>
   <script src="../shared/wanko-cloud.js"></script>
   <script src="../shared/wanko-library-store.js?v=1"></script>
   <script src="../shared/wanko-library.js"></script>
   <script src="../shared/for-my-sons-db.js?v=2"></script>
-  <script src="../shared/character-requests.js?v=2"></script>
+  <script src="../shared/character-requests.js?v=3"></script>
   <script src="../shared/profile-manager.js?v=1"></script>
   <script src="../shared/parent-lock.js?v=1"></script>
   <script src="../shared/save-store.js?v=1"></script>
   <script src="../shared/github-sync.js?v=4"></script>
-  <script src="../shared/for-my-sons.js?v=3"></script>
-  <script src="./app.js?v=7" defer></script>
+  <script src="../shared/for-my-sons.js?v=12"></script>
+  <script src="./app.js?v=8" defer></script>
 </body>
 </html>

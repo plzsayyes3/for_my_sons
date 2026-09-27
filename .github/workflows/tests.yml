@@ -18,6 +18,10 @@ jobs:
           node --test
           tests/save-store.test.js
           tests/github-sync.test.js
+          tests/character-requests.test.js
+          tests/character-requests-sync.test.js
+          tests/paint-character-request.test.js
+          tests/for-my-sons-facade.test.js
           tests/wanko-game-data.test.js
           tests/wanko-game-progress.test.js
           tests/wanko-profile-sync.test.js
