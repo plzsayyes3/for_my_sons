@@ -34,8 +34,8 @@ test('owned cards combine official and unlocked game cards without deletion', ()
 test('ally cards distinguish placeholder art and unlock milestone characters from clears', () => {
   const progress = { discoveredElementIds: [], clearedStageIds: [] };
   const cards = view.buildAllyCards(game.characters, progress);
-  assert.equal(cards.length, 12);
-  assert.equal(cards.some(card => card.id === 'W13'), false);
+  assert.equal(cards.length, 16);
+  assert.equal(cards.some(card => card.id === 'W17'), false);
   assert.equal(cards.find(card => card.id === 'W01').characterStatus, 'placeholder');
   assert.equal(cards.find(card => card.id === 'W01').unlocked, true);
   assert.equal(cards.find(card => card.id === 'W03').unlocked, false);
@@ -55,10 +55,10 @@ test('gacha ownership unlocks a game ally before its stage milestone', () => {
 test('ally cards never expose reserved slots even when legacy progress mentions them', () => {
   const cards = view.buildAllyCards(game.characters, {
     clearedStageIds: ['S010'],
-    discoveredCharacterIds: ['W13', 'W32']
+    discoveredCharacterIds: ['W17', 'W32']
   });
   assert.deepEqual(cards.map(card => card.id), game.getSelectableAllyIds());
-  assert.equal(cards.some(card => card.id >= 'W13'), false);
+  assert.equal(cards.some(card => card.id >= 'W17'), false);
 });
 
 test('enemy cards hide unrevealed identity and show discovered E and B slots', () => {

@@ -91,7 +91,18 @@
     W12: ally('W12','ハンマー','attacker','🔨',{cost:180,hp:140,damage:30,speed:46,range:44,cooldown:.72},'S090','hammer',{
       artwork:'../assets/official-wankos/hammer.png?v=1',renderScale:2
     }),
-    W13: reservedAlly('W13'), W14: reservedAlly('W14'), W15: reservedAlly('W15'), W16: reservedAlly('W16'),
+    W13: ally('W13','強裏長足','fast','🦵',{cost:240,hp:130,damage:44,speed:92,range:46,cooldown:.55},'S040','nagaashi',{
+      renderScale:2
+    }),
+    W14: ally('W14','ビックな怪物','heavy','👹',{cost:420,hp:760,damage:120,speed:18,range:55,cooldown:1.38},'S055','big-monster',{
+      renderScale:2
+    }),
+    W15: ally('W15','ドリ車','attacker','🚗',{cost:300,hp:230,damage:88,speed:52,range:60,cooldown:.82},'S070','dorisha',{
+      artwork:'../assets/official-wankos/dorisha.png?v=1',renderScale:2
+    }),
+    W16: ally('W16','エビフライフラ','balanced','🍤',{cost:260,hp:210,damage:58,speed:40,range:72,cooldown:.9},'S085','ebifurai-fura',{
+      artwork:'../assets/official-wankos/ebifurai-fura.png?v=1',renderScale:2
+    }),
     W17: reservedAlly('W17'), W18: reservedAlly('W18'), W19: reservedAlly('W19'), W20: reservedAlly('W20'),
     W21: reservedAlly('W21'), W22: reservedAlly('W22'), W23: reservedAlly('W23'), W24: reservedAlly('W24'),
     W25: reservedAlly('W25'), W26: reservedAlly('W26'), W27: reservedAlly('W27'), W28: reservedAlly('W28'),
@@ -183,7 +194,7 @@
     if (new Set(elements.map(element => element.atomicNumber)).size !== 118) errors.push('duplicate atomic number');
     if (new Set(elements.map(element => element.symbol)).size !== 118) errors.push('duplicate element symbol');
     if (Object.keys(characters).length !== 52) errors.push('expected 52 character slots');
-    if (Object.values(characters).filter(character => character.reserved).length !== 20) errors.push('expected 20 reserved ally slots');
+    if (Object.values(characters).filter(character => character.reserved).length !== 16) errors.push('expected 16 reserved ally slots');
     for (const character of Object.values(characters)) {
       if (character.reserved && (character.faction !== 'ally' || character.stats !== null)) errors.push(`${character.id}: invalid reserved ally`);
       if (!character.reserved && (!character.stats || character.stats.hp <= 0)) errors.push(`${character.id}: missing stats`);

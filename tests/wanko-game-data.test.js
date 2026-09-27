@@ -44,9 +44,9 @@ test('orders the familiar elements first, remaining elements by atomic number, a
   assert.equal(ordered.at(-1).id, 'S118');
 });
 
-test('defines W01-W12 as usable allies and W13-W32 as hidden reservation slots', () => {
-  assert.deepEqual(game.getSelectableAllyIds(), Array.from({ length: 12 }, (_, i) => `W${String(i + 1).padStart(2, '0')}`));
-  assert.deepEqual(game.getReservedAllyIds(), Array.from({ length: 20 }, (_, i) => `W${String(i + 13).padStart(2, '0')}`));
+test('defines W01-W16 as usable allies and W17-W32 as hidden reservation slots', () => {
+  assert.deepEqual(game.getSelectableAllyIds(), Array.from({ length: 16 }, (_, i) => `W${String(i + 1).padStart(2, '0')}`));
+  assert.deepEqual(game.getReservedAllyIds(), Array.from({ length: 16 }, (_, i) => `W${String(i + 17).padStart(2, '0')}`));
 });
 
 test('defines exactly 52 characters with correct factions and official ally artwork', () => {
@@ -65,7 +65,7 @@ test('defines exactly 52 characters with correct factions and official ally artw
     assert.ok(character.stats.hp > 0);
     assert.ok(character.stats.damage > 0);
     assert.ok(character.placeholder);
-    if (['W09','W10','W11','W12'].includes(id)) assert.match(character.artwork, /assets\/official-wankos\//);
+    if (['W09','W10','W11','W12','W15','W16'].includes(id)) assert.match(character.artwork, /assets\/official-wankos\//);
     else assert.equal(character.artwork, null);
   }
   assert.equal(game.getCharacter('W01').legacyWankoId, 'futsuu-no-wanko');
@@ -75,10 +75,18 @@ test('defines exactly 52 characters with correct factions and official ally artw
   assert.equal(game.getCharacter('W10').legacyWankoId, 'nen-o-kometa-snake');
   assert.equal(game.getCharacter('W11').legacyWankoId, 'bakuhatsu-dama');
   assert.equal(game.getCharacter('W12').legacyWankoId, 'hammer');
+  assert.equal(game.getCharacter('W13').legacyWankoId, 'nagaashi');
+  assert.equal(game.getCharacter('W14').legacyWankoId, 'big-monster');
+  assert.equal(game.getCharacter('W15').legacyWankoId, 'dorisha');
+  assert.equal(game.getCharacter('W16').legacyWankoId, 'ebifurai-fura');
   assert.equal(game.getCharacter('W09').unlockAfterStage, 'S015');
   assert.equal(game.getCharacter('W10').unlockAfterStage, 'S030');
   assert.equal(game.getCharacter('W11').unlockAfterStage, 'S060');
   assert.equal(game.getCharacter('W12').unlockAfterStage, 'S090');
+  assert.equal(game.getCharacter('W13').unlockAfterStage, 'S040');
+  assert.equal(game.getCharacter('W14').unlockAfterStage, 'S055');
+  assert.equal(game.getCharacter('W15').unlockAfterStage, 'S070');
+  assert.equal(game.getCharacter('W16').unlockAfterStage, 'S085');
   assert.deepEqual(game.getCharacter('W11').behavior, {
     selfDestruct: true,
     splashRadius: 72,

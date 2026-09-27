@@ -1,0 +1,20 @@
+{
+  "format": "for-my-sons-wanko",
+  "version": 2,
+  "id": "dorisha",
+  "name": "ドリ車",
+  "faction": "ally",
+  "createdAt": "2026-09-27T00:15:56.150Z",
+  "imagePath": "../assets/official-wankos/dorisha.png?v=1",
+  "placeholder": "🚗",
+  "renderScale": 2,
+  "sourceRequestId": "request-abc86e50-e809-4c60-abbd-9a8ebe152dfb",
+  "stats": {
+    "cost": 300,
+    "hp": 230,
+    "damage": 88,
+    "speed": 52,
+    "range": 60,
+    "cooldown": 0.82
+  }
+}
