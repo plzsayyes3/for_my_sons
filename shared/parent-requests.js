@@ -235,9 +235,20 @@
       return send(requestId);
     }
 
-    async function listUnsent() {
+    async function listUnsent(options = {}) {
+      const appId = options.appId ? safeSegment(options.appId, 'appId') : null;
+      let profileId = options.profileId ? safeSegment(options.profileId, 'profileId') : null;
+      if (!profileId && options.currentProfileOnly === true) {
+        const profile = await profileManager.current();
+        profileId = safeSegment(profile?.id, 'profileId');
+      }
       return (await db.list('parentRequests'))
-        .filter(record => record?.status === 'pending' && record?.syncState !== 'synced')
+        .filter(record =>
+          record?.status === 'pending' &&
+          record?.syncState !== 'synced' &&
+          (!appId || record?.appId === appId) &&
+          (!profileId || record?.profileId === profileId)
+        )
         .map(record => ({ ...record }));
     }
 
