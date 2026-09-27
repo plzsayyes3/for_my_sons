@@ -10,6 +10,8 @@
   const MAX_MESSAGE_LENGTH = 2000;
   const MAX_REPLY_LENGTH = 2000;
   const MAX_GAME_NAME_LENGTH = 80;
+  const MAX_IMAGE_BYTES = 5 * 1024 * 1024;
+  const IMAGE_TYPES = new Set(['image/webp', 'image/jpeg', 'image/png']);
 
   function safeSegment(value, name) {
     const text = String(value || '');
@@ -41,6 +43,43 @@
     if (!gameName) throw new TypeError('Game name is required');
     if (gameName.length > MAX_GAME_NAME_LENGTH) throw new TypeError('Game name is too long');
     return gameName;
+  }
+
+  function imageSize(value) {
+    if (!value) return 0;
+    if (Number.isFinite(Number(value.size))) return Number(value.size);
+    if (Number.isFinite(Number(value.byteLength))) return Number(value.byteLength);
+    return 0;
+  }
+
+  function normalizeImage(value, contentType) {
+    if (!value) return null;
+    const type = String(contentType || value.type || '').toLowerCase();
+    if (!IMAGE_TYPES.has(type)) throw new TypeError('Unsupported image type');
+    const size = imageSize(value);
+    if (!size || size > MAX_IMAGE_BYTES) throw new TypeError('Image is too large');
+    return { value, contentType: type, size };
+  }
+
+  function imageExtension(contentType) {
+    if (contentType === 'image/webp') return 'webp';
+    if (contentType === 'image/jpeg') return 'jpg';
+    if (contentType === 'image/png') return 'png';
+    throw new TypeError('Unsupported image type');
+  }
+
+  function requestImagePath(requestId, contentType) {
+    const id = assertRequestId(requestId);
+    return `requests/pending/assets/${id}/image.${imageExtension(contentType)}`;
+  }
+
+  function normalizeImagePath(value, requestId) {
+    const path = String(value || '').trim();
+    if (!path) return null;
+    const id = assertRequestId(requestId);
+    const expectedPrefix = `requests/pending/assets/${id}/image.`;
+    if (!path.startsWith(expectedPrefix) || !/[.](webp|jpg|png)$/i.test(path)) throw new TypeError('Invalid image path');
+    return path;
   }
 
   function normalizeCreatedAt(value) {
@@ -82,8 +121,9 @@
   }
 
   function requestPayload(record) {
-    return {
-      id: assertRequestId(record?.id),
+    const id = assertRequestId(record?.id);
+    const payload = {
+      id,
       profileId: safeSegment(record?.profileId, 'profileId'),
       appId: safeSegment(record?.appId, 'appId'),
       gameName: normalizeGameName(record?.gameName),
@@ -92,6 +132,9 @@
       createdAt: normalizeCreatedAt(record?.createdAt),
       status: 'pending'
     };
+    const image = normalizeImagePath(record?.image || record?.imagePath, id);
+    if (image) payload.image = image;
+    return payload;
   }
 
   function decodeRemoteJson(content) {
@@ -149,13 +192,14 @@
       return db.get('parentRequests', assertRequestId(requestId));
     }
 
-    async function create({ requestId = createRequestId(), appId, gameName, type, message } = {}) {
+    async function create({ requestId = createRequestId(), appId, gameName, type, message, image = null, imageContentType = '' } = {}) {
       const id = assertRequestId(requestId);
       const existing = await get(id);
       if (existing) return { ...existing };
 
       const profile = await profileManager.current();
       const createdAt = now();
+      const preparedImage = normalizeImage(image, imageContentType);
       const record = {
         id,
         profileId: safeSegment(profile?.id, 'profileId'),
@@ -168,6 +212,10 @@
         syncState: 'pending',
         lastError: null,
         remotePath: null,
+        imagePath: preparedImage ? requestImagePath(id, preparedImage.contentType) : null,
+        imageBlob: preparedImage?.value || null,
+        imageContentType: preparedImage?.contentType || null,
+        imageSize: preparedImage?.size || 0,
         updatedAt: createdAt
       };
       record.remotePath = requestPath(record);
@@ -210,6 +258,23 @@
 
       const payload = requestPayload(record);
       const path = record.remotePath || requestPath(record);
+
+      if (record.imagePath && record.imageBlob) {
+        const imageRemote = await sync.readPath(record.imagePath);
+        if (!imageRemote.exists) {
+          const imageResult = sync.writePathKnown
+            ? await sync.writePathKnown(record.imagePath, record.imageBlob, {
+                expectAbsent: true,
+                message: `Add image for ${record.appId} request from ${record.profileId}`
+              })
+            : await sync.writePath(record.imagePath, record.imageBlob, {
+                sha: '__absent__',
+                message: `Add image for ${record.appId} request from ${record.profileId}`
+              });
+          if (imageResult?.status !== 'created' && imageResult?.status !== 'synced') throw errorFromResult(imageResult);
+        }
+      }
+
       const remote = await sync.readPath(path);
 
       if (remote.exists) {
@@ -401,8 +466,10 @@
     SUPPORTED_STATUSES,
     MAX_MESSAGE_LENGTH,
     MAX_REPLY_LENGTH,
+    MAX_IMAGE_BYTES,
     createRequestId,
     requestPath,
+    requestImagePath,
     requestPayload,
     createParentRequestService
   };
