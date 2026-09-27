@@ -1,14 +1,18 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
+const vm = require('node:vm');
 
 test('service worker precaches character request assets under a new cache version', () => {
   const source = fs.readFileSync('service-worker.js', 'utf8');
-  assert.match(source, /for-my-sons-v72/);
+  assert.match(source, /for-my-sons-v74/);
   assert.match(source, /\.\/shared\/character-requests\.js\?v=2/);
   assert.match(source, /\.\/shared\/wanko-library-store\.js\?v=1/);
   assert.match(source, /\.\/shared\/wanko-registration-request\.js\?v=1/);
   assert.match(source, /\.\/shared\/for-my-sons-db\.js\?v=2/);
+  assert.match(source, /\.\/wanko-gacha\/\?v=6/);
+  assert.doesNotThrow(() => new vm.Script(source));
+  assert.doesNotMatch(source, /\\\\n/);
 });
 
 test('Paint loads shared request dependencies before its app script', () => {
