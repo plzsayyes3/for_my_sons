@@ -187,6 +187,30 @@ test('duplicate draws add stars and refund ten points', async () => {
   assert.deepEqual(await store.getWallet(), { points: 20, tickets: 0 });
 });
 
+
+test('adding deck fields preserves wallet and existing gacha ownership', async () => {
+  const store = createProgressStore(memoryStorage({
+    selectedStageId: 'S001',
+    ownedWankoIds: ['drawing-1'],
+    economy: {
+      pointEarned: { 'device-a': 40 },
+      pointSpent: { 'device-a': 20 },
+      ticketEarned: { 'device-a': 1 },
+      ticketSpent: {}
+    }
+  }), game);
+
+  let state = await store.getState();
+  assert.deepEqual(state.deckSlots, []);
+  assert.equal(state.deckUpdatedAt, 0);
+  assert.deepEqual(await store.getWallet(), { points: 20, tickets: 1 });
+
+  state = await store.setDeckSlots(['game:W01', 'custom:drawing-1']);
+  assert.deepEqual(state.deckSlots, ['game:W01', 'custom:drawing-1']);
+  assert.deepEqual(state.ownedWankoIds, ['drawing-1']);
+  assert.deepEqual(await store.getWallet(), { points: 20, tickets: 1 });
+});
+
 test('duplicate draw counters merge per device without losing stars', () => {
   const merged = mergeStates(
     {
