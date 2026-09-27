@@ -27,6 +27,11 @@ main{width:min(100%,700px);margin:auto;padding:2px 14px calc(env(safe-area-inset
 .action{display:grid;grid-template-columns:58px 1fr auto;align-items:center;gap:12px;border:3px solid var(--line);border-radius:22px;padding:13px 14px;text-decoration:none;box-shadow:0 5px 0 var(--line);background:#fff;min-height:90px}
 .action:active{transform:translateY(3px);box-shadow:0 2px 0 var(--line)}
 .action.start{background:var(--gold)}
+.playModes{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:16px}
+.playMode{border:3px solid var(--line);border-radius:20px;background:#fff;padding:13px 10px;box-shadow:0 5px 0 var(--line);font-weight:1000;text-align:center;cursor:pointer}
+.playMode:active{transform:translateY(3px);box-shadow:0 2px 0 var(--line)}
+.playMode .modeIcon{display:block;font-size:32px;line-height:1.15}.playMode .modeName{display:block;margin-top:5px;font-size:16px}.playMode .modeDesc{display:block;margin-top:3px;font-size:10px;color:#756a5e}
+.playMode.landscape{background:#dff1f7}.playMode.portrait{background:#fff0c7}
 .action.gacha{background:#fff7dd}
 .action.mini{background:#eaf4da}
 .action .icon{font-size:40px;text-align:center}.action .name{font-size:20px;font-weight:1000}.action .desc{font-size:11px;font-weight:800;color:#6e645a;margin-top:3px}.arrow{font-size:25px;font-weight:1000}
@@ -56,8 +61,13 @@ main{width:min(100%,700px);margin:auto;padding:2px 14px calc(env(safe-area-inset
     <button class="profileButton" id="profileButton" type="button">プロフィール</button>
   </section>
 
+  <section class="playModes" aria-label="あそびかた">
+    <button class="playMode landscape" type="button" data-play-mode="landscape"><span class="modeIcon">▰</span><span class="modeName">横で遊ぶ</span><span class="modeDesc">よこ画面でバトル</span></button>
+    <button class="playMode portrait" type="button" data-play-mode="portrait"><span class="modeIcon">▯</span><span class="modeName">縦で遊ぶ</span><span class="modeDesc">たて画面でバトル</span></button>
+  </section>
+
   <section class="actions">
-    <a class="action start" href="../wanko-war/?v=22">
+    <a class="action start" id="gameStart" href="../wanko-war/?v=23&mode=auto">
       <div class="icon">⚔️</div>
       <div><div class="name">ゲームスタート</div><div class="desc" id="stageText">元素ステージへ</div></div>
       <div class="arrow">›</div>
@@ -100,6 +110,22 @@ main{width:min(100%,700px);margin:auto;padding:2px 14px calc(env(safe-area-inset
   const stageEl=document.getElementById('stageText');
   const button=document.getElementById('profileButton');
   const host=document.getElementById('settingsHost');
+  const startLink=document.getElementById('gameStart');
+  const playButtons=[...document.querySelectorAll('[data-play-mode]')];
+  const openBattle=async(mode)=>{
+    try{
+      if(screen.orientation?.lock){
+        if(document.fullscreenElement==null&&document.documentElement.requestFullscreen)await document.documentElement.requestFullscreen().catch(()=>{});
+        await screen.orientation.lock(mode==='landscape'?'landscape':'portrait').catch(()=>{});
+      }
+    }catch(error){console.info('orientation lock unavailable',error)}
+    location.href='../wanko-war/?v=23&mode='+mode;
+  };
+  playButtons.forEach(button=>button.addEventListener('click',()=>openBattle(button.dataset.playMode)));
+  startLink.addEventListener('click',event=>{
+    const mode=matchMedia('(orientation: landscape)').matches?'landscape':'portrait';
+    event.preventDefault();openBattle(mode);
+  });
   try{
     if(!window.ForMySonsShared?.createForMySons)throw new Error('shared api unavailable');
     const api=await window.ForMySonsShared.createForMySons();
