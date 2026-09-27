@@ -143,6 +143,12 @@
       return db.get('characterRequests', requestId);
     }
 
+    async function listAll() {
+      return (await db.list('characterRequests'))
+        .filter(record => record?.requestId)
+        .sort((left, right) => String(right.createdAt || '').localeCompare(String(left.createdAt || '')));
+    }
+
     async function listPending() {
       return (await db.list('characterRequests')).filter(record =>
         record?.status === 'pending' && ['pending', 'error', 'auth-required'].includes(record?.syncState)
@@ -268,7 +274,7 @@
       return { ...next };
     }
 
-    return { create, get, listPending, prepareArtwork, syncPending, resend, markCompleted };
+    return { create, get, listAll, listPending, prepareArtwork, syncPending, resend, markCompleted };
   }
 
   return {
