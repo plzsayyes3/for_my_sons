@@ -7,6 +7,13 @@
     "description": "かたちをつくって、くっつけて、3Dにしよう"
   },
   {
+    "id": "sky-dash",
+    "name": "Sky Dash",
+    "url": "./sky-dash-sample/?v=3",
+    "icon": "./assets/sky-dash.svg?v=1",
+    "description": "空の道を走って、左右とジャンプでどんどん加速"
+  },
+  {
     "id": "minecraft-english",
     "name": "Minecraft English",
     "url": "https://plzsayyes3.github.io/English-for-Minecraft/",
