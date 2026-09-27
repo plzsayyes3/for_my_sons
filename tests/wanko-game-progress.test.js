@@ -163,6 +163,16 @@ test('awards points and exchanges them for gacha tickets', async () => {
   await assert.rejects(store.spendGachaTicket('device-a'), /no gacha ticket/i);
 });
 
+test('spends ten gacha tickets atomically for a 10-pull', async () => {
+  const store = createProgressStore(memoryStorage(), game);
+  await store.awardPoints(200, 'device-a');
+  for (let i = 0; i < 10; i += 1) await store.exchangePointsForTicket(20, 'device-a');
+  assert.deepEqual(await store.getWallet(), { points: 0, tickets: 10 });
+  await store.spendGachaTickets(10, 'device-a');
+  assert.deepEqual(await store.getWallet(), { points: 0, tickets: 0 });
+  await assert.rejects(store.spendGachaTickets(10, 'device-a'), /not enough gacha tickets/i);
+});
+
 test('merges economy counters by device without losing concurrent gains', () => {
   const merged = mergeStates(
     { economy: { pointEarned: { 'device-a': 5 }, pointSpent: {}, ticketEarned: {}, ticketSpent: {} } },
