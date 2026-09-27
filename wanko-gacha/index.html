@@ -23,7 +23,7 @@ main{width:min(100%,720px);margin:auto;padding:14px 12px calc(env(safe-area-inse
 .machineBody{position:relative;width:128px;height:124px;border:3px solid var(--line);border-radius:42px 42px 22px 22px;background:#fff9ee;box-shadow:inset 0 -20px rgba(241,201,77,.3),0 5px 0 rgba(52,47,41,.2);display:grid;place-items:center;z-index:2}
 .window{width:78px;height:65px;border:3px solid var(--line);border-radius:50%;background:radial-gradient(circle at 38% 30%,#fff,#e9f6f8 66%,#c0dde5);display:grid;place-items:center;font-size:35px;font-weight:1000;box-shadow:inset 0 0 0 7px rgba(255,255,255,.65)}
 .tapPad{position:absolute;right:-31px;bottom:4px;width:64px;height:64px;border:3px solid var(--line);border-radius:50%;background:radial-gradient(circle at 42% 34%,#fff3a8 0 17%,#f2c94c 18% 70%,#dba62e 71%);box-shadow:0 4px 0 rgba(52,47,41,.28);touch-action:manipulation;cursor:pointer;z-index:5;display:grid;place-items:center;font-size:11px;font-weight:1000;letter-spacing:.04em;transition:transform .08s,filter .15s,box-shadow .15s}.tapPad:active{transform:scale(.88)}.machine.charging .chargeHalo{opacity:.92;filter:drop-shadow(0 0 16px rgba(255,213,72,.72))}.machine.charging .machineBody{animation:chargePulse .55s ease-in-out infinite alternate}.machine.charging .window{box-shadow:inset 0 0 0 7px rgba(255,255,255,.7),0 0 24px rgba(255,220,75,.55)}.machine.charging .tapPad{filter:brightness(1.1);box-shadow:0 0 0 6px rgba(255,232,117,.38),0 4px 0 rgba(52,47,41,.28);animation:tapInvite .42s ease-in-out infinite alternate}.machine.drawing .machineBody{animation:shake .09s linear infinite}.machine.drawing .window{animation:flash .16s ease-in-out infinite alternate}.chargeStatus{min-height:18px;margin:1px 0 8px;text-align:center;font-size:12px;font-weight:1000;color:#5f554a;letter-spacing:.03em}
-.actions{display:grid;gap:9px;position:relative;z-index:3}.drawButton,.medalButton{width:100%;border:2.5px solid var(--line);border-radius:15px;padding:12px 14px;font-weight:1000;box-shadow:0 4px 0 var(--line)}.drawButton{background:var(--gold2);font-size:17px}.medalButton{background:#fffdf8;font-size:14px}.drawButton:active,.medalButton:active{transform:translateY(3px);box-shadow:0 1px 0 var(--line)}.drawButton:disabled,.medalButton:disabled{opacity:.45;filter:grayscale(.4)}
+.actions{display:grid;gap:9px;position:relative;z-index:3}.drawButton,.tenDrawButton,.medalButton{width:100%;border:2.5px solid var(--line);border-radius:15px;padding:12px 14px;font-weight:1000;box-shadow:0 4px 0 var(--line)}.drawButton{background:var(--gold2);font-size:17px}.tenDrawButton{background:linear-gradient(135deg,#ffd95b,#ffb95b);font-size:17px}.medalButton{background:#fffdf8;font-size:14px}.drawButton:active,.tenDrawButton:active,.medalButton:active{transform:translateY(3px);box-shadow:0 1px 0 var(--line)}.drawButton:disabled,.tenDrawButton:disabled,.medalButton:disabled{opacity:.45;filter:grayscale(.4)}
 .rule{margin:14px 0 0;padding:12px 13px;border:2px solid var(--line);border-radius:17px;background:#fffaf2;display:grid;grid-template-columns:auto 1fr;gap:10px;align-items:center}.ruleIcon{width:42px;height:42px;display:grid;place-items:center;border-radius:13px;background:#efe6d9;font-size:22px}.rule b{display:block;font-size:13px;margin-bottom:2px}.rule span{display:block;font-size:11px;line-height:1.45;color:#665d54;font-weight:700}
 .sectionHead{display:flex;align-items:end;justify-content:space-between;margin:20px 3px 10px}.sectionHead h3{margin:0;font-size:17px}.sectionHead span{font-size:11px;font-weight:800;color:var(--muted)}
 .collection{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}.character{position:relative;overflow:hidden;border:2px solid var(--line);border-radius:19px;background:var(--card);box-shadow:0 4px 0 var(--line)}.character .art{aspect-ratio:1.2;display:grid;place-items:center;padding:13px;background:linear-gradient(#cce9ef 0 68%,#cadb95 68%)}.character img{width:100%;height:100%;object-fit:contain;filter:drop-shadow(0 4px 1px rgba(0,0,0,.16))}.character .info{padding:9px 10px 11px}.character .name{font-size:13px;font-weight:1000;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.tag{display:inline-flex;margin-top:6px;padding:4px 7px;border-radius:999px;font-size:9px;font-weight:1000}.tag.owned{background:#f4cd58}.tag.trial{background:#e6dfd4;color:#6d6256}.character.isOwned{outline:3px solid rgba(241,201,77,.7);outline-offset:-3px}
@@ -40,7 +40,7 @@ main{width:min(100%,720px);margin:auto;padding:14px 12px calc(env(safe-area-inse
 .fxParticle{position:absolute;width:28px;height:28px;left:50%;top:48%;opacity:0;will-change:transform,opacity;filter:drop-shadow(0 2px 2px rgba(52,47,41,.18))}
 .fxParticle.star{width:34px;height:34px}.fxParticle.confetti{width:17px;height:26px}
 .fxParticle.play{animation:particleFly var(--dur,.92s) cubic-bezier(.17,.67,.3,1) var(--delay,0s) forwards}
-.resultLayer.newDraw .resultCard{animation:resultNew .55s cubic-bezier(.17,.95,.3,1.22)}
+.multiResultLayer{position:fixed;inset:0;z-index:65;display:none;place-items:center;padding:14px;background:rgba(38,32,26,.5);backdrop-filter:blur(8px)}.multiResultLayer.show{display:grid}.multiResultCard{width:min(94vw,680px);max-height:88svh;overflow:auto;border:3px solid var(--line);border-radius:26px;background:#fffaf2;box-shadow:0 9px 0 var(--line);padding:16px}.multiResultHead{text-align:center;margin-bottom:12px}.multiResultHead h2{margin:0;font-size:25px}.multiResultHead p{margin:4px 0 0;color:#6b6055;font-size:12px;font-weight:850}.multiResultGrid{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:8px}.multiResultItem{position:relative;min-width:0;border:2px solid var(--line);border-radius:15px;background:#fff;overflow:hidden;box-shadow:0 3px 0 rgba(52,47,41,.3)}.multiResultItem.new{outline:3px solid rgba(241,201,77,.85);outline-offset:-3px}.multiResultItem .multiArt{aspect-ratio:1;display:grid;place-items:center;padding:5px;background:linear-gradient(#cce9ef 0 68%,#cadb95 68%);font-size:31px}.multiResultItem img{width:100%;height:100%;object-fit:contain}.multiResultItem .multiName{padding:6px 5px 2px;font-size:9px;font-weight:1000;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.multiResultItem .multiTag{padding:0 5px 7px;font-size:8px;font-weight:1000;color:#6b6055}.multiResultClose{width:100%;margin-top:13px;border:2.5px solid var(--line);border-radius:14px;background:#ffe88a;padding:11px;font-weight:1000;box-shadow:0 4px 0 var(--line)}@media(max-width:520px){.multiResultGrid{grid-template-columns:repeat(2,minmax(0,1fr))}.multiResultItem .multiName{font-size:10px}}.resultLayer.newDraw .resultCard{animation:resultNew .55s cubic-bezier(.17,.95,.3,1.22)}
 .resultLayer.newDraw .resultCard:after{content:"";position:absolute;inset:-9px;border-radius:34px;border:4px solid rgba(255,214,72,.9);box-shadow:0 0 28px 10px rgba(255,222,88,.5);animation:halo 1s ease-out forwards;pointer-events:none}
 .resultLayer.newDraw .resultBadge{animation:newBadge .55s .12s cubic-bezier(.17,.95,.3,1.4) both}
 .resultLayer.duplicateDraw .resultCard{animation:resultDuplicate .42s ease-out}
@@ -71,6 +71,7 @@ main{width:min(100%,720px);margin:auto;padding:14px 12px calc(env(safe-area-inse
   <div class="chargeStatus" id="chargeStatus">押すと4秒後に排出。連打すると早くなる！</div>
   <div class="actions">
     <button class="drawButton" id="ticketDraw">🎫 ガチャ券で 1回ひく</button>
+    <button class="tenDrawButton" id="tenDraw">🎫 10枚で 10連ひく</button>
     <button class="medalButton" id="exchangeButton">🐾 20ポイント → 🎫 1枚</button>
   </div>
 </section>
@@ -80,6 +81,13 @@ main{width:min(100%,720px);margin:auto;padding:14px 12px calc(env(safe-area-inse
 
 </main>
 <div class="fxLayer" id="fxLayer" aria-hidden="true"></div>
+<div class="multiResultLayer" id="multiResultLayer" role="dialog" aria-modal="true" aria-labelledby="multiResultTitle">
+  <div class="multiResultCard">
+    <div class="multiResultHead"><h2 id="multiResultTitle">10連結果</h2><p id="multiResultSummary">10体の結果</p></div>
+    <div class="multiResultGrid" id="multiResultGrid"></div>
+    <button class="multiResultClose" id="multiResultClose" type="button">まとめて確認！</button>
+  </div>
+</div>
 <div class="resultLayer" id="resultLayer" role="dialog" aria-modal="true" aria-labelledby="resultName">
   <div class="resultCard" id="resultCard"><div class="burst"></div><div class="resultBadge" id="resultBadge">NEW!</div><div class="resultArt"><img id="resultImage" alt=""></div><h2 id="resultName">わんこ</h2><p id="resultText">なかまになった！</p><button class="closeResult" id="closeResult">やった！</button></div>
 </div>
@@ -95,15 +103,15 @@ main{width:min(100%,720px);margin:auto;padding:14px 12px calc(env(safe-area-inse
 <script src="../shared/wanko-library-store.js?v=1"></script>
 <script src="../shared/wanko-library.js"></script>
 <script src="../shared/wanko-game-data.js?v=4"></script>
-<script src="../shared/wanko-game-progress.js?v=8"></script>
+<script src="../shared/wanko-game-progress.js?v=9"></script>
 <script src="../shared/wanko-profile-sync.js?v=1"></script>
 <script>
 (() => {
   let characters=[],drawing=false;
   let Progress=window.WankoGameProgress,progressSync=null,progressState=null,sharedApi=null,sessionProfile=null;
   const objectUrls=[];
-  const machine=document.getElementById('machine'),ticketEl=document.getElementById('tickets'),pointsEl=document.getElementById('points'),ticketDraw=document.getElementById('ticketDraw'),exchangeButton=document.getElementById('exchangeButton'),collection=document.getElementById('collection'),ownedCount=document.getElementById('ownedCount'),layer=document.getElementById('resultLayer'),resultBadge=document.getElementById('resultBadge'),resultImage=document.getElementById('resultImage'),resultName=document.getElementById('resultName'),resultText=document.getElementById('resultText');
-  const fxLayer=document.getElementById('fxLayer'),chargeHalo=document.getElementById('chargeHalo'),chargeStatus=document.getElementById('chargeStatus'),tapPad=document.getElementById('tapPad'),playerBadge=document.getElementById('playerBadge');
+  const machine=document.getElementById('machine'),ticketEl=document.getElementById('tickets'),pointsEl=document.getElementById('points'),ticketDraw=document.getElementById('ticketDraw'),tenDraw=document.getElementById('tenDraw'),exchangeButton=document.getElementById('exchangeButton'),collection=document.getElementById('collection'),ownedCount=document.getElementById('ownedCount'),layer=document.getElementById('resultLayer'),resultBadge=document.getElementById('resultBadge'),resultImage=document.getElementById('resultImage'),resultName=document.getElementById('resultName'),resultText=document.getElementById('resultText');
+  const fxLayer=document.getElementById('fxLayer'),chargeHalo=document.getElementById('chargeHalo'),chargeStatus=document.getElementById('chargeStatus'),tapPad=document.getElementById('tapPad'),playerBadge=document.getElementById('playerBadge'),multiResultLayer=document.getElementById('multiResultLayer'),multiResultGrid=document.getElementById('multiResultGrid'),multiResultSummary=document.getElementById('multiResultSummary'),multiResultClose=document.getElementById('multiResultClose');
 
   function getEconomyDeviceId(){
     const key='wankoEconomyDeviceId';
@@ -118,6 +126,36 @@ main{width:min(100%,720px);margin:auto;padding:14px 12px calc(env(safe-area-inse
   }
   const economyDeviceId=getEconomyDeviceId();
   const TICKET_COST=20;
+  let audioContext=null;
+
+  function getAudioContext(){
+    const AudioCtx=window.AudioContext||window.webkitAudioContext;
+    if(!AudioCtx)return null;
+    audioContext ||= new AudioCtx();
+    if(audioContext.state==='suspended')void audioContext.resume();
+    return audioContext;
+  }
+
+  function beep(freq,duration=0.08,{type='sine',gain=0.05,delay=0}={}){
+    const ctx=getAudioContext();if(!ctx)return;
+    const start=ctx.currentTime+delay;
+    const oscillator=ctx.createOscillator(),volume=ctx.createGain();
+    oscillator.type=type;oscillator.frequency.setValueAtTime(freq,start);
+    volume.gain.setValueAtTime(0.0001,start);
+    volume.gain.exponentialRampToValueAtTime(gain,start+0.008);
+    volume.gain.exponentialRampToValueAtTime(0.0001,start+duration);
+    oscillator.connect(volume);volume.connect(ctx.destination);
+    oscillator.start(start);oscillator.stop(start+duration+0.02);
+  }
+
+  function playSound(name){
+    if(name==='tap'){beep(560,.045,{type:'square',gain:.025});return}
+    if(name==='start'){beep(330,.08,{gain:.04});beep(495,.1,{gain:.04,delay:.07});return}
+    if(name==='exchange'){beep(660,.07,{gain:.04});beep(880,.12,{gain:.045,delay:.06});return}
+    if(name==='duplicate'){beep(330,.08,{type:'triangle',gain:.035});beep(392,.1,{type:'triangle',gain:.03,delay:.07});return}
+    if(name==='new'){beep(660,.08,{gain:.05});beep(880,.1,{gain:.05,delay:.07});beep(1100,.16,{gain:.045,delay:.15});return}
+    if(name==='ten'){beep(523,.08,{gain:.045});beep(659,.08,{gain:.045,delay:.07});beep(784,.09,{gain:.05,delay:.14});beep(1047,.2,{gain:.05,delay:.22})}
+  }
 
   function queueProgressSync(){
     if(progressSync&&progressState)progressSync.schedule(progressState);
@@ -225,6 +263,7 @@ main{width:min(100%,720px);margin:auto;padding:14px 12px calc(env(safe-area-inse
     pointsEl.textContent=wallet.points;
     const canDraw=characters.length>0;
     ticketDraw.disabled=drawing||wallet.tickets<1||!canDraw;
+    tenDraw.disabled=drawing||wallet.tickets<10||!canDraw;
     exchangeButton.disabled=drawing||wallet.points<TICKET_COST;
     const owned=characters.filter(x=>x.owned).length;
     ownedCount.textContent=owned+' / '+characters.length+' ガチャ獲得';
@@ -313,7 +352,7 @@ main{width:min(100%,720px);margin:auto;padding:14px 12px calc(env(safe-area-inse
     const tenths=Math.ceil(Math.max(0,remainingMs)/100);
     if(tenths!==lastShownTenth){
       lastShownTenth=tenths;
-      chargeStatus.textContent=(remainingMs/1000).toFixed(1)+'秒　タップで -0.2秒';
+      chargeStatus.textContent=(armedDraw?.mode==='ten'?'10連チャージ ':'')+(remainingMs/1000).toFixed(1)+'秒　タップで -0.2秒';
       document.getElementById('windowMark').textContent=p<.35?'·':p<.7?'✦':'★';
     }
   }
@@ -335,26 +374,68 @@ main{width:min(100%,720px);margin:auto;padding:14px 12px calc(env(safe-area-inse
     }
   }
 
+  function resetMachine(){
+    machine.classList.remove('drawing');
+    chargeHalo.style.setProperty('--charge','0deg');
+    tapPad.textContent='タップ!';tapPad.disabled=false;
+    document.getElementById('windowMark').textContent='?';
+    chargeStatus.textContent='押すと4秒後に排出。連打すると早くなる！';
+    drawing=false;lastShownTenth=-1;render();
+  }
+
+  function renderTenResults(results){
+    multiResultGrid.replaceChildren();
+    let newCount=0,duplicateCount=0;
+    for(const result of results){
+      const item=document.createElement('article');
+      item.className='multiResultItem'+(result.wasOwned?'':' new');
+      const art=document.createElement('div');art.className='multiArt';
+      if(result.character.image){const img=document.createElement('img');img.src=result.character.image;img.alt='';art.appendChild(img)}
+      else art.textContent=result.character.emoji||'🐾';
+      const name=document.createElement('div');name.className='multiName';name.textContent=result.character.name;
+      const tag=document.createElement('div');tag.className='multiTag';
+      if(result.wasOwned){duplicateCount++;tag.textContent='★'+result.character.stars+' / 🐾+10'}
+      else{newCount++;tag.textContent='NEW! ★1'}
+      item.append(art,name,tag);multiResultGrid.appendChild(item);
+    }
+    multiResultSummary.textContent='NEW '+newCount+'体 / ★UP '+duplicateCount+'体'+(duplicateCount?' / 🐾+'+(duplicateCount*10):'');
+    multiResultLayer.classList.add('show');
+  }
+
+  async function resolveTenDraw(){
+    const results=[];
+    for(let i=0;i<10;i++){
+      const character=chooseCharacter(),wasOwned=character.owned;
+      const saved=await commitResult(character,wasOwned);
+      results.push({character,wasOwned,saved});
+    }
+    return results;
+  }
+
   function finishCharge(){
     if(!armedDraw)return;
     cancelAnimationFrame(countdownRaf);
-    const {character,wasOwned}=armedDraw;
+    const drawState=armedDraw;
     armedDraw=null;
     remainingMs=0;
     machine.classList.remove('charging');machine.classList.add('drawing');
     tapPad.disabled=true;
     chargeHalo.style.setProperty('--charge','360deg');
-    chargeStatus.textContent='でてくる！';
+    chargeStatus.textContent=drawState.mode==='ten'?'10体でてくる！':'でてくる！';
     document.getElementById('windowMark').textContent='★';
     playIntroFx();
     try{navigator.vibrate?.([30,30,70])}catch{}
     setTimeout(async()=>{
+      if(drawState.mode==='ten'){
+        const results=await resolveTenDraw();
+        playSound('ten');
+        renderTenResults(results);
+        celebrate(results.some(result=>!result.wasOwned&&result.saved));
+        resetMachine();
+        return;
+      }
+      const {character,wasOwned}=drawState;
       const saved=await commitResult(character,wasOwned);
-      machine.classList.remove('drawing');
-      chargeHalo.style.setProperty('--charge','0deg');
-      tapPad.textContent='タップ!';tapPad.disabled=false;
-      document.getElementById('windowMark').textContent='?';
-      chargeStatus.textContent='押すと4秒後に排出。連打すると早くなる！';
       resultBadge.textContent=wasOwned?'★ UP!':'NEW!';
       resultBadge.style.background=wasOwned?'#e9e1d6':'#f7d45c';
       resultImage.src=character.image||'../assets/wanko-war.svg?v=1';
@@ -363,10 +444,9 @@ main{width:min(100%,720px);margin:auto;padding:14px 12px calc(env(safe-area-inse
       layer.classList.remove('newDraw','duplicateDraw');
       layer.classList.add(wasOwned?'duplicateDraw':'newDraw');
       layer.classList.add('show');
+      playSound(wasOwned?'duplicate':'new');
       celebrate(!wasOwned&&saved);
-      drawing=false;
-      lastShownTenth=-1;
-      render();
+      resetMachine();
     },620);
   }
 
@@ -397,7 +477,7 @@ main{width:min(100%,720px);margin:auto;padding:14px 12px calc(env(safe-area-inse
     }
     render();
     const character=chooseCharacter(),wasOwned=character.owned;
-    armedDraw={character,wasOwned};
+    armedDraw={mode:'single',character,wasOwned};
     remainingMs=BASE_WAIT_MS;
     lastShownTenth=-1;
     machine.classList.add('charging');machine.classList.remove('drawing');
@@ -405,7 +485,34 @@ main{width:min(100%,720px);margin:auto;padding:14px 12px calc(env(safe-area-inse
     document.getElementById('windowMark').textContent='·';
     tapPad.textContent='連打!';
     chargeStatus.textContent='4.0秒　タップで -0.2秒';
+    playSound('start');
     try{navigator.vibrate?.(18)}catch{}
+    startCountdown();
+  }
+
+  async function drawTen(){
+    if(drawing||!characters.length)return;
+    drawing=true;render();
+    try{
+      progressState=await Progress.spendGachaTickets(10,economyDeviceId);
+      queueProgressSync();
+    }catch(error){
+      drawing=false;
+      chargeStatus.textContent='10連にはガチャ券が10枚必要です。';
+      render();
+      return;
+    }
+    render();
+    armedDraw={mode:'ten'};
+    remainingMs=BASE_WAIT_MS;
+    lastShownTenth=-1;
+    machine.classList.add('charging');machine.classList.remove('drawing');
+    chargeHalo.style.setProperty('--charge','0deg');
+    document.getElementById('windowMark').textContent='10';
+    tapPad.textContent='連打!';
+    chargeStatus.textContent='10連チャージ 4.0秒　タップで -0.2秒';
+    playSound('start');
+    try{navigator.vibrate?.([18,25,18])}catch{}
     startCountdown();
   }
 
@@ -413,23 +520,28 @@ main{width:min(100%,720px);margin:auto;padding:14px 12px calc(env(safe-area-inse
     if(!armedDraw||remainingMs<=0)return;
     remainingMs=Math.max(0,remainingMs-TAP_REDUCTION_MS);
     burstTapFx();
+    playSound('tap');
     try{navigator.vibrate?.(10)}catch{}
     renderCountdown();
     if(remainingMs<=0)finishCharge();
   });
   ticketDraw.addEventListener('click',()=>void draw());
+  tenDraw.addEventListener('click',()=>void drawTen());
   exchangeButton.addEventListener('click',async()=>{
     if(drawing)return;
     try{
       progressState=await Progress.exchangePointsForTicket(TICKET_COST,economyDeviceId);
       queueProgressSync();
       chargeStatus.textContent='🎫 ガチャ券を1枚交換した！';
+      playSound('exchange');
       try{navigator.vibrate?.([20,30,40])}catch{}
     }catch(error){
       chargeStatus.textContent='ポイントが足りません。敵を倒してためよう！';
     }
     render();
   });
+  multiResultClose.addEventListener('click',()=>multiResultLayer.classList.remove('show'));
+  multiResultLayer.addEventListener('click',event=>{if(event.target===multiResultLayer)multiResultLayer.classList.remove('show')});
   document.getElementById('closeResult').addEventListener('click',()=>layer.classList.remove('show','newDraw','duplicateDraw'));
   layer.addEventListener('click',event=>{if(event.target===layer)layer.classList.remove('show','newDraw','duplicateDraw')});
   window.addEventListener('pagehide',()=>{if(progressSync)void progressSync.flush();objectUrls.splice(0).forEach(url=>{try{URL.revokeObjectURL(url)}catch{}})});

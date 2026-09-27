@@ -362,21 +362,27 @@
       });
     }
 
-    async function spendGachaTicket(deviceId) {
+    async function spendGachaTickets(count, deviceId) {
+      const tickets = Math.floor(Number(count));
       const device = safeDeviceId(deviceId);
+      if (!Number.isFinite(tickets) || tickets <= 0) throw new TypeError('count must be positive');
       return writeState(current => {
-        if (walletFromState(current).tickets < 1) throw new Error('No gacha ticket');
+        if (walletFromState(current).tickets < tickets) throw new Error(tickets === 1 ? 'No gacha ticket' : 'Not enough gacha tickets');
         return {
           ...current,
           economy: {
             ...current.economy,
             ticketSpent: {
               ...current.economy.ticketSpent,
-              [device]: (current.economy.ticketSpent[device] || 0) + 1
+              [device]: (current.economy.ticketSpent[device] || 0) + tickets
             }
           }
         };
       });
+    }
+
+    async function spendGachaTicket(deviceId) {
+      return spendGachaTickets(1, deviceId);
     }
 
     async function getWallet() {
@@ -413,6 +419,7 @@
       awardPoints,
       exchangePointsForTicket,
       spendGachaTicket,
+      spendGachaTickets,
       getWallet,
       importState,
       isStageUnlocked,

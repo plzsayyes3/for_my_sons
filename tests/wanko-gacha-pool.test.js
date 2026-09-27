@@ -26,3 +26,30 @@ test('duplicate game ally draws reuse the existing star and refund path', () => 
   assert.match(source, /recordDuplicateWankoDraw\(character\.id,economyDeviceId,10\)/);
   assert.match(source, /starsFromState\(progressState,id\)/);
 });
+
+
+test('gacha supports a ten-pull with one atomic ten-ticket spend', () => {
+  const source = fs.readFileSync(path.join(root, 'wanko-gacha', 'index.html'), 'utf8');
+  assert.match(source, /id="tenDraw"/);
+  assert.match(source, /10枚で 10連ひく/);
+  assert.match(source, /Progress\.spendGachaTickets\(10,economyDeviceId\)/);
+  assert.match(source, /for\(let i=0;i<10;i\+\+\)/);
+  assert.match(source, /multiResultGrid/);
+});
+
+test('gacha uses Web Audio feedback for taps, reveals, exchange, and ten-pull fanfare', () => {
+  const source = fs.readFileSync(path.join(root, 'wanko-gacha', 'index.html'), 'utf8');
+  assert.match(source, /window\.AudioContext\|\|window\.webkitAudioContext/);
+  assert.match(source, /playSound\('tap'\)/);
+  assert.match(source, /playSound\(wasOwned\?'duplicate':'new'\)/);
+  assert.match(source, /playSound\('exchange'\)/);
+  assert.match(source, /playSound\('ten'\)/);
+});
+
+
+test('gacha inline script remains valid JavaScript', () => {
+  const source = fs.readFileSync(path.join(root, 'wanko-gacha', 'index.html'), 'utf8');
+  const match = source.match(/<script>\s*([\s\S]*?)<\/script>/);
+  assert.ok(match);
+  assert.doesNotThrow(() => new Function(match[1]));
+});
