@@ -35,6 +35,7 @@
 
   function buildAllyCards(characters, progress) {
     const cleared = new Set(progress?.clearedStageIds || []);
+    const gachaOwned = new Set(progress?.ownedWankoIds || []);
     return Object.values(characters)
       .filter(character => character.faction === 'ally' && !character.reserved && character.stats)
       .sort((a, b) => a.id.localeCompare(b.id))
@@ -46,7 +47,7 @@
         placeholder: character.artwork ? null : character.placeholder,
         artwork: character.artwork,
         characterStatus: character.artwork ? 'official' : 'placeholder',
-        unlocked: !character.unlockAfterStage || cleared.has(character.unlockAfterStage),
+        unlocked: !character.unlockAfterStage || cleared.has(character.unlockAfterStage) || gachaOwned.has('game:' + character.id),
         unlockAfterStage: character.unlockAfterStage,
         stats: { ...character.stats },
         legacyWankoId: character.legacyWankoId
