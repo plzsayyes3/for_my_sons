@@ -176,12 +176,16 @@ body.boosting .panel{box-shadow:0 0 0 2px rgba(102,242,255,.36),0 0 18px rgba(83
     <p>空の道を走って、どんどん加速。<br>左右とジャンプだけで遊べます。</p>
     <button id="run">▶ RUN!</button>
     <div id="status">前進は自動です。</div>
+    <div id="papaRequestMount"></div>
   </div>
 </div>
 <div id="error"></div>
-<script src="../shared/for-my-sons-db.js?v=2"></script>
+<script src="../shared/for-my-sons-db.js?v=3"></script>
 <script src="../shared/profile-manager.js?v=2"></script>
 <script src="../shared/save-store.js?v=2"></script>
+<script src="../shared/github-sync.js?v=9"></script>
+<script src="../shared/parent-requests.js?v=1"></script>
+<script src="../shared/parent-request-view.js?v=1"></script>
 <script src="./star-wallet.js?v=1"></script>
 <script type="module">
 const runButton=document.getElementById('run');
@@ -192,17 +196,52 @@ const {BASE_CLEAR_REWARD,getClearBonusMultiplier,getClearReward,createStarWallet
 let started=false;
 let starWallet=null;
 let walletPromise=null;
+let sharedContextPromise=null;
 
 function showWalletError(err){
   errorBox.style.display='block';
   errorBox.textContent='星データの保存エラー: '+String(err);
 }
 
+function ensureSharedContext(){
+  if(sharedContextPromise)return sharedContextPromise;
+  sharedContextPromise=(async()=>{
+    const db=await globalThis.ForMySonsDB.openDatabase();
+    const profileManager=globalThis.ForMySonsProfile.createProfileManager(db);
+    const profile=await profileManager.current();
+    const saveStore=globalThis.ForMySonsSaveStore.createSaveStore(db,profileManager);
+    const sync=globalThis.ForMySonsGithubSync.createGithubSync({
+      fetch:globalThis.fetch,
+      tokenProvider:async()=>(await db.get('settings','githubToken'))?.value||'',
+      saveStore,
+      profileManager
+    });
+    const parentRequests=globalThis.ForMySonsParentRequests.createParentRequestService({
+      db,
+      profileManager,
+      sync
+    });
+    return {db,profileManager,profile,saveStore,sync,parentRequests};
+  })().catch(err=>{sharedContextPromise=null;throw err});
+  return sharedContextPromise;
+}
+
+async function setupParentRequest(){
+  try{
+    const {parentRequests}=await ensureSharedContext();
+    globalThis.ForMySonsParentRequestView.mount({
+      container:document.getElementById('papaRequestMount'),
+      service:parentRequests,
+      appId:'sky-dash',
+      gameName:'Sky Dash'
+    });
+  }catch(err){
+    console.warn('Papa request form unavailable.',err);
+  }
+}
+
 async function loadStarWallet(){
-  const db=await globalThis.ForMySonsDB.openDatabase();
-  const profileManager=globalThis.ForMySonsProfile.createProfileManager(db);
-  const profile=await profileManager.current();
-  const saveStore=globalThis.ForMySonsSaveStore.createSaveStore(db,profileManager);
+  const {profile,saveStore}=await ensureSharedContext();
   starWallet=createStarWallet(saveStore,{
     profileId:profile.id,
     onChange:stars=>{document.getElementById('starCount').textContent=stars},
@@ -219,6 +258,8 @@ function ensureStarWallet(){
   }
   return walletPromise;
 }
+
+setupParentRequest();
 
 runButton.addEventListener('click',async()=>{
   if(started)return;
