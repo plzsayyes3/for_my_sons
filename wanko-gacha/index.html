@@ -59,7 +59,7 @@ main{width:min(100%,720px);margin:auto;padding:14px 12px calc(env(safe-area-inse
 </style>
 </head>
 <body>
-<header><a class="back" href="../wanko/?v=10" aria-label="わんこトップへ">‹</a><h1>わんこガチャ</h1><span class="playerBadge" id="playerBadge">読み込み中</span></header>
+<header><a class="back" href="../wanko/?v=12" aria-label="わんこトップへ">‹</a><h1>わんこガチャ</h1><span class="playerBadge" id="playerBadge">読み込み中</span></header>
 <main>
 <section class="wallet" aria-label="もちもの">
   <div class="walletCard"><span>🎫 ガチャ券</span><b id="tickets">0</b></div>
@@ -92,6 +92,7 @@ main{width:min(100%,720px);margin:auto;padding:14px 12px calc(env(safe-area-inse
 <script src="../shared/for-my-sons.js?v=7"></script>
 <script src="../shared/wanko-cloud-config.js"></script>
 <script src="../shared/wanko-cloud.js"></script>
+<script src="../shared/wanko-library-store.js?v=1"></script>
 <script src="../shared/wanko-library.js"></script>
 <script src="../shared/wanko-game-data.js?v=3"></script>
 <script src="../shared/wanko-game-progress.js?v=8"></script>
@@ -426,7 +427,7 @@ main{width:min(100%,720px);margin:auto;padding:14px 12px calc(env(safe-area-inse
       await setupProfileProgress();
       progressState=progressState||await Progress.getState();
       await loadCharacters();
-      void WankoLibrary?.syncNow?.().then(result=>{if(result?.pulled) return loadCharacters()}).catch(()=>{});
+      void window.WankoLibrary?.syncNow?.().then(result=>{if(result?.pulled) return loadCharacters()}).catch(()=>{});
     }catch(error){
       console.error('Gacha initialization failed',error);
       chargeStatus.textContent='ガチャを読みこめませんでした';
