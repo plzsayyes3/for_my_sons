@@ -11,7 +11,7 @@
     style.id = STYLE_ID;
     style.textContent = `
       .fms-request-launch{margin-top:12px;border:0;border-radius:999px;padding:11px 18px;background:#eef6ff;color:#225b96;font:900 15px/1.2 ui-rounded,"SF Pro Rounded","Hiragino Maru Gothic ProN",system-ui,sans-serif;box-shadow:0 4px 0 #c6d8ea;cursor:pointer}
-      .fms-request-overlay[hidden],.fms-request-toast[hidden]{display:none!important}
+      .fms-request-overlay[hidden],.fms-request-toast[hidden],.fms-reply-overlay[hidden]{display:none!important}
       .fms-request-overlay{position:fixed;inset:0;z-index:120;display:flex;align-items:center;justify-content:center;padding:max(18px,env(safe-area-inset-top)) max(18px,env(safe-area-inset-right)) max(18px,env(safe-area-inset-bottom)) max(18px,env(safe-area-inset-left));background:rgba(21,49,83,.46);backdrop-filter:blur(6px)}
       .fms-request-card{width:min(520px,100%);max-height:min(720px,calc(100dvh - 36px));overflow:auto;border:4px solid #fff;border-radius:28px;padding:22px;background:linear-gradient(180deg,#fffef7,#f5fbff);box-shadow:0 20px 60px rgba(19,55,93,.28);color:#244d79;text-align:left;font-family:ui-rounded,"SF Pro Rounded","Hiragino Maru Gothic ProN",system-ui,sans-serif}
       .fms-request-head{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:16px}
@@ -31,6 +31,15 @@
       .fms-request-status{min-height:24px;margin:11px 2px 0;color:#6a7f93;font-size:14px;font-weight:900;text-align:center}
       .fms-request-status.is-error{color:#b64256}
       .fms-request-toast{position:fixed;z-index:130;left:50%;top:50%;transform:translate(-50%,-50%);width:min(360px,calc(100vw - 36px));padding:22px 24px;border:4px solid #fff;border-radius:26px;background:#fffdf0;box-shadow:0 18px 50px rgba(20,54,88,.28);color:#215b96;text-align:center;font:1000 20px/1.5 ui-rounded,"SF Pro Rounded","Hiragino Maru Gothic ProN",system-ui,sans-serif;white-space:pre-line}
+      .fms-reply-overlay{position:fixed;inset:0;z-index:140;display:flex;align-items:center;justify-content:center;padding:max(18px,env(safe-area-inset-top)) max(18px,env(safe-area-inset-right)) max(18px,env(safe-area-inset-bottom)) max(18px,env(safe-area-inset-left));background:rgba(20,49,82,.52);backdrop-filter:blur(7px)}
+      .fms-reply-card{width:min(460px,100%);border:4px solid #fff;border-radius:28px;padding:22px;background:linear-gradient(180deg,#fffdf0,#f2fbff);box-shadow:0 20px 60px rgba(18,52,88,.3);color:#244d79;text-align:center;font-family:ui-rounded,"SF Pro Rounded","Hiragino Maru Gothic ProN",system-ui,sans-serif}
+      .fms-reply-card h2{margin:0 0 14px;font-size:25px;color:#215b96}
+      .fms-reply-original{margin:8px 0 14px;padding:11px 13px;border-radius:16px;background:#eef6ff;color:#5c7691;font-size:14px;font-weight:900;text-align:left;line-height:1.45}
+      .fms-reply-message{margin:8px 0 16px;padding:16px;border-radius:18px;background:#fff6c9;color:#244f78;font-size:19px;font-weight:1000;text-align:left;line-height:1.55;white-space:pre-wrap}
+      .fms-reply-read{width:100%;border:0;border-radius:999px;padding:15px 18px;background:linear-gradient(#8ff0b0,#49c77a);color:#174d34;font-size:19px;font-weight:1000;box-shadow:0 6px 0 #2d9b58;cursor:pointer}
+      .fms-reply-read:disabled{opacity:.6;box-shadow:0 3px 0 #7ba98b}
+      .fms-reply-later{margin-top:12px;border:0;background:transparent;color:#72869a;font-size:13px;font-weight:900;text-decoration:underline;cursor:pointer}
+      .fms-reply-status{min-height:22px;margin-top:10px;color:#b64256;font-size:13px;font-weight:900}
       @media(max-width:520px){.fms-request-types{grid-template-columns:1fr}.fms-request-card{padding:18px}.fms-request-head h2{font-size:23px}}
     `;
     documentRef.head.appendChild(style);
@@ -101,8 +110,26 @@
     toast.hidden = true;
     toast.setAttribute('role', 'status');
 
+    const replyOverlay = make(documentRef, 'div', 'fms-reply-overlay');
+    replyOverlay.hidden = true;
+    replyOverlay.setAttribute('role', 'dialog');
+    replyOverlay.setAttribute('aria-modal', 'true');
+    replyOverlay.setAttribute('aria-label', 'パパからのへんじ');
+    const replyCard = make(documentRef, 'section', 'fms-reply-card');
+    const replyTitle = make(documentRef, 'h2', '', '📩 パパからへんじがきたよ！');
+    const replyOriginal = make(documentRef, 'div', 'fms-reply-original', '');
+    const replyMessage = make(documentRef, 'div', 'fms-reply-message', '');
+    const replyRead = make(documentRef, 'button', 'fms-reply-read', '読んだよ');
+    replyRead.type = 'button';
+    const replyLater = make(documentRef, 'button', 'fms-reply-later', 'あとで見る');
+    replyLater.type = 'button';
+    const replyStatus = make(documentRef, 'div', 'fms-reply-status', '');
+    replyStatus.setAttribute('aria-live', 'polite');
+    replyCard.append(replyTitle, replyOriginal, replyMessage, replyRead, replyLater, replyStatus);
+    replyOverlay.append(replyCard);
+
     container.replaceChildren(launch);
-    documentRef.body.append(overlay, toast);
+    documentRef.body.append(overlay, toast, replyOverlay);
 
     let selectedType = '';
     let currentRequestId = null;
@@ -110,6 +137,9 @@
     let retryMode = false;
     let previousFocus = null;
     let toastTimer = null;
+    let replyQueue = [];
+    let currentReply = null;
+    let markingRead = false;
 
     function updateSendState() {
       send.disabled = sending || (!retryMode && (!selectedType || !textarea.value.trim()));
@@ -197,6 +227,50 @@
       } catch {}
     }
 
+    function showNextReply() {
+      if (currentReply || !replyQueue.length) return;
+      currentReply = replyQueue.shift();
+      replyOriginal.textContent = 'あなたのおねがい：' + (currentReply.message || '');
+      replyMessage.textContent = currentReply.reply?.message || '';
+      replyStatus.textContent = '';
+      replyRead.disabled = false;
+      replyRead.textContent = '読んだよ';
+      replyOverlay.hidden = false;
+      requestAnimationFrame(() => replyRead.focus());
+    }
+
+    async function checkReplies() {
+      if (typeof service.refreshReplies !== 'function') return;
+      try {
+        const replies = await service.refreshReplies({ appId, currentProfileOnly: true });
+        replyQueue = replies
+          .filter(record => record?.reply?.message && !record?.reply?.readAt)
+          .sort((a, b) => Date.parse(a.reply?.repliedAt || 0) - Date.parse(b.reply?.repliedAt || 0));
+        showNextReply();
+      } catch {}
+    }
+
+    async function markCurrentReplyRead() {
+      if (markingRead || !currentReply || typeof service.markReplyRead !== 'function') return;
+      markingRead = true;
+      replyRead.disabled = true;
+      replyRead.textContent = 'つたえてるよ…';
+      replyStatus.textContent = '';
+      try {
+        const result = await service.markReplyRead(currentReply.id);
+        if (!result?.ok) throw new Error('read receipt failed');
+        replyOverlay.hidden = true;
+        currentReply = null;
+        markingRead = false;
+        showNextReply();
+      } catch {
+        markingRead = false;
+        replyRead.disabled = false;
+        replyRead.textContent = '読んだよ';
+        replyStatus.textContent = 'まだ「読んだよ」を送れていないよ。もういちど押してね';
+      }
+    }
+
     problem.addEventListener('click', () => setType('problem'));
     feature.addEventListener('click', () => setType('feature'));
     textarea.addEventListener('input', updateSendState);
@@ -204,6 +278,10 @@
     close.addEventListener('click', closeDialog);
     overlay.addEventListener('click', event => {
       if (event.target === overlay) closeDialog();
+    });
+    replyRead.addEventListener('click', markCurrentReplyRead);
+    replyLater.addEventListener('click', () => {
+      replyOverlay.hidden = true;
     });
 
     send.addEventListener('click', async () => {
@@ -253,15 +331,18 @@
     });
 
     void restorePending();
+    void checkReplies();
 
     return {
       open,
       close: closeDialog,
       reset: resetDraft,
+      checkReplies,
       destroy() {
         if (toastTimer) clearTimeout(toastTimer);
         overlay.remove();
         toast.remove();
+        replyOverlay.remove();
         container.replaceChildren();
       }
     };
