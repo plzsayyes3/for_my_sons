@@ -173,7 +173,7 @@
       return { ...record };
     }
 
-    async function syncOne(record, { forceArtwork = false } = {}) {
+    async function syncOne(record, { forceArtwork = false, persistLocal = true } = {}) {
       if (!sync?.readPath || !sync?.writePath) throw new Error('Character request sync is not configured');
       const paths = requestPaths(record.requestId);
       const artworkRemote = await sync.readPath(paths.pendingArtwork);
@@ -201,7 +201,7 @@
         lastError: null,
         updatedAt: new Date(clock()).toISOString()
       };
-      await db.put('characterRequests', next, record.requestId);
+      if (persistLocal) await db.put('characterRequests', next, record.requestId);
       return { ...next };
     }
 
@@ -215,8 +215,12 @@
         lastError: conflict ? 'conflict' : authRequired ? 'auth-required' : 'remote-unavailable',
         updatedAt: new Date(clock()).toISOString()
       };
-      await db.put('characterRequests', next, record.requestId);
-      return { ...next };
+      try {
+        await db.put('characterRequests', next, record.requestId);
+        return { ...next, localPersisted: true };
+      } catch (localError) {
+        return { ...next, localPersisted: false };
+      }
     }
 
     async function resend(requestId) {
@@ -230,9 +234,14 @@
         lastError: null,
         updatedAt: new Date(clock()).toISOString()
       };
-      await db.put('characterRequests', pending, requestId);
       try {
-        return await syncOne(pending, { forceArtwork: true });
+        const synced = await syncOne(pending, { forceArtwork: true, persistLocal: false });
+        try {
+          await db.put('characterRequests', synced, requestId);
+          return { ...synced, localPersisted: true };
+        } catch (localError) {
+          return { ...synced, localPersisted: false };
+        }
       } catch (error) {
         return persistSyncFailure(pending, error);
       }
