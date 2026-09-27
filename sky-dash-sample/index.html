@@ -27,6 +27,11 @@ canvas{display:block;width:100%;height:100%}
 .clearCard .pref{font-size:20px;font-weight:950}
 .clearCard strong{display:block;font-size:44px;line-height:1;color:#ffac22;margin:8px 0}
 .clearCard p{margin:0;font-size:16px;font-weight:900;color:#54709c}
+.clearActions{display:grid;grid-template-columns:1fr;gap:10px;margin-top:18px}
+.clearAction{pointer-events:auto;border:0;border-radius:999px;padding:14px 18px;font-size:18px;font-weight:1000}
+#continueBtn{background:linear-gradient(#ffe66a,#ffb52d);color:#174c85;box-shadow:0 5px 0 #c88400}
+#quitBtn{background:#e9eef6;color:#53657f;box-shadow:0 5px 0 #c5cedc}
+#countdown{min-height:22px;margin-top:12px;font-size:17px;font-weight:1000;color:#1556aa}
 #boost{position:absolute;top:23%;left:50%;transform:translate(-50%,-50%) scale(.75);font-size:38px;color:#fff35c;opacity:0;transition:.12s}
 #boost.show{opacity:1;transform:translate(-50%,-50%) scale(1)}
 .controls{position:fixed;inset:0;z-index:10;pointer-events:none}
@@ -84,6 +89,11 @@ canvas{display:block;width:100%;height:100%}
     <div class="pref" id="clearPref">東京都</div>
     <strong>CLEAR!</strong>
     <p id="nextPref">つぎは 神奈川県</p>
+    <div class="clearActions">
+      <button class="clearAction" id="continueBtn" type="button">すすむ（3秒後スタート）</button>
+      <button class="clearAction" id="quitBtn" type="button">やめる</button>
+    </div>
+    <div id="countdown"></div>
   </div>
 </div>
 <div id="startLayer">
@@ -278,6 +288,8 @@ function initGame(THREE){
  const press={left:false,right:false};
  const levelEl=document.getElementById('level'),meters=document.getElementById('meters'),starCount=document.getElementById('starCount'),progress=document.getElementById('progress'),boost=document.getElementById('boost');
  const prefectureEl=document.getElementById('prefecture'),stageNoEl=document.getElementById('stageNo'),clearLayer=document.getElementById('clearLayer'),clearPref=document.getElementById('clearPref'),nextPref=document.getElementById('nextPref');
+ const continueBtn=document.getElementById('continueBtn'),quitBtn=document.getElementById('quitBtn'),countdownEl=document.getElementById('countdown');
+ let pendingNextIndex=null,countdownTimer=null;
 
  const stageDecor=new THREE.Group();scene.add(stageDecor);
  const stageMovers=[];
@@ -343,22 +355,49 @@ function initGame(THREE){
  const flagR=flagL.clone();flagR.position.x=3.1;finishGate.add(flagR);
  finishGate.visible=false;scene.add(finishGate);
 
+ function startNextStageAfterCountdown(){
+   if(pendingNextIndex===null)return;
+   continueBtn.disabled=true;quitBtn.disabled=true;
+   let count=3;
+   countdownEl.textContent=count+"";
+   countdownTimer=setInterval(()=>{
+     count-=1;
+     if(count>0){
+       countdownEl.textContent=count+"";
+       return;
+     }
+     clearInterval(countdownTimer);countdownTimer=null;
+     countdownEl.textContent="GO!";
+     setTimeout(()=>{
+       state.stageIndex=pendingNextIndex;state.stageDistance=0;state.targetX=0;player.position.x=0;finishGate.visible=false;
+       applyStageTheme(state.stageIndex);
+       clearLayer.classList.remove('show');
+       countdownEl.textContent="";
+       continueBtn.disabled=false;quitBtn.disabled=false;
+       pendingNextIndex=null;state.transition=false;state.last=performance.now();
+     },350);
+   },1000);
+ }
+ continueBtn.addEventListener('click',startNextStageAfterCountdown);
+ quitBtn.addEventListener('click',()=>{
+   if(countdownTimer){clearInterval(countdownTimer);countdownTimer=null}
+   location.href="../";
+ });
+
  function triggerClear(){
    if(state.transition)return;
    state.transition=true;press.left=false;press.right=false;
    clearPref.textContent=PREFECTURES[state.stageIndex];
    const nextIndex=state.stageIndex+1;
-   nextPref.textContent=nextIndex<PREFECTURES.length?"つぎは "+PREFECTURES[nextIndex]:"日本一周 COMPLETE!";
+   pendingNextIndex=nextIndex<PREFECTURES.length?nextIndex:null;
+   continueBtn.hidden=pendingNextIndex===null;
+   quitBtn.disabled=false;continueBtn.disabled=false;countdownEl.textContent="";
+   if(pendingNextIndex!==null){
+     nextPref.textContent="つぎは "+PREFECTURES[nextIndex];
+   }else{
+     nextPref.textContent="東京から北海道まで 47都道府県クリア！";
+   }
    clearLayer.classList.add('show');
-   setTimeout(()=>{
-     if(nextIndex<PREFECTURES.length){
-       state.stageIndex=nextIndex;state.stageDistance=0;state.targetX=0;player.position.x=0;finishGate.visible=false;
-       applyStageTheme(state.stageIndex);
-       clearLayer.classList.remove('show');state.transition=false;state.last=performance.now();
-     }else{
-       nextPref.textContent="東京から北海道まで 47都道府県クリア！";
-     }
-   },1700);
  }
  applyStageTheme(0);
 
