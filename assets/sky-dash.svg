@@ -1,0 +1,69 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" role="img" aria-label="Sky Dash">
+  <defs>
+    <linearGradient id="bg" x1="122" y1="94" x2="894" y2="930" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#7EE8FF"/>
+      <stop offset=".5" stop-color="#37A8F5"/>
+      <stop offset="1" stop-color="#3866E7"/>
+    </linearGradient>
+    <linearGradient id="road" x1="512" y1="378" x2="512" y2="942" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFF0B2"/>
+      <stop offset="1" stop-color="#F0B64B"/>
+    </linearGradient>
+    <linearGradient id="hoodie" x1="420" y1="500" x2="610" y2="745" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FF665B"/>
+      <stop offset="1" stop-color="#D9363D"/>
+    </linearGradient>
+    <filter id="shadow" x="-30%" y="-30%" width="160%" height="170%">
+      <feDropShadow dx="0" dy="18" stdDeviation="22" flood-color="#124F9B" flood-opacity=".26"/>
+    </filter>
+  </defs>
+  <rect width="1024" height="1024" rx="210" fill="url(#bg)"/>
+  <circle cx="818" cy="176" r="108" fill="#FFF" opacity=".15"/>
+  <circle cx="190" cy="808" r="148" fill="#FFF" opacity=".12"/>
+
+  <g opacity=".98">
+    <ellipse cx="178" cy="322" rx="130" ry="72" fill="#FFF"/>
+    <ellipse cx="268" cy="314" rx="104" ry="84" fill="#FFF"/>
+    <ellipse cx="844" cy="334" rx="122" ry="68" fill="#FFF"/>
+    <ellipse cx="760" cy="332" rx="96" ry="78" fill="#FFF"/>
+  </g>
+
+  <path d="M426 360 598 360 792 948 232 948Z" fill="url(#road)" stroke="#FFF" stroke-width="26" stroke-linejoin="round" filter="url(#shadow)"/>
+  <path d="M496 426 528 426 566 948 458 948Z" fill="#FFF8D8" opacity=".42"/>
+  <g fill="#36A9F5" stroke="#FFF" stroke-width="16">
+    <path d="M420 575h184l-92 90z"/>
+    <path d="M384 744h256l-128 112z"/>
+  </g>
+
+  <g transform="translate(0 28)" filter="url(#shadow)">
+    <circle cx="506" cy="438" r="78" fill="#FFC39D"/>
+    <path d="M430 416q18-88 96-86 70 0 96 70-28-24-59-12-35 14-65-2-30-16-68 30Z" fill="#4A2A1D"/>
+    <path d="M438 421q13-56 54-74l17 42 26-54 25 51 34-30 18 53q-31-13-65-7-49 9-89 19Z" fill="#5A3221"/>
+    <path d="M426 510q80-52 160 0l-10 168H437Z" fill="url(#hoodie)"/>
+    <path d="M462 522q42 28 88 0" fill="none" stroke="#B92B34" stroke-width="18" stroke-linecap="round"/>
+    <rect x="447" y="626" width="118" height="88" rx="28" fill="#2878CE"/>
+    <path d="M506 642 520 671 553 675 529 698 535 730 506 714 477 730 483 698 459 675 492 671Z" fill="#FFD83D"/>
+
+    <g stroke-linecap="round">
+      <path d="M443 558 370 650" stroke="#F24A45" stroke-width="38"/>
+      <path d="M574 558 651 632" stroke="#F24A45" stroke-width="38"/>
+      <circle cx="360" cy="664" r="21" fill="#FFC39D"/>
+      <circle cx="662" cy="644" r="21" fill="#FFC39D"/>
+      <path d="M474 691 420 820" stroke="#FFC39D" stroke-width="40"/>
+      <path d="M544 691 610 810" stroke="#FFC39D" stroke-width="40"/>
+      <path d="M414 816 366 886" stroke="#EF493F" stroke-width="48"/>
+      <path d="M614 806 684 864" stroke="#EF493F" stroke-width="48"/>
+      <path d="M392 848 350 905" stroke="#FFF" stroke-width="18"/>
+      <path d="M640 829 696 878" stroke="#FFF" stroke-width="18"/>
+    </g>
+  </g>
+
+  <g fill="none" stroke-linecap="round">
+    <path d="M190 632h124" stroke="#FFF" stroke-width="28" opacity=".95"/>
+    <path d="M146 690h136" stroke="#8EF4FF" stroke-width="20" opacity=".95"/>
+    <path d="M716 604h122" stroke="#FFF" stroke-width="28" opacity=".95"/>
+    <path d="M748 660h130" stroke="#8EF4FF" stroke-width="20" opacity=".95"/>
+  </g>
+
+  <path d="M512 122 536 171 590 179 551 217 560 271 512 245 464 271 473 217 434 179 488 171Z" fill="#FFE04E" stroke="#FFF" stroke-width="16"/>
+</svg>
