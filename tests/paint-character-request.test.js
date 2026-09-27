@@ -37,4 +37,5 @@ test('Paint exposes sent Wanko history and can force-resend local artwork', () =
   assert.match(source, /characterRequests\.resend\(record\.requestId\)/);
   assert.match(source, /もう一度送る/);
   assert.match(source, /この端末に元の画像が残っていません/);
+  assert.doesNotThrow(() => new Function(source));
 });
