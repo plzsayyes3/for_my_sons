@@ -13,7 +13,7 @@
   <title>For My Sons</title>
   <link rel="manifest" href="./manifest.webmanifest">
   <link rel="icon" href="./assets/for-my-sons-icon.svg" type="image/svg+xml">
-  <link rel="stylesheet" href="./styles.css?v=3">
+  <link rel="stylesheet" href="./styles.css?v=4">
 </head>
 <body>
   <main class="home-screen" aria-labelledby="home-title">
@@ -44,6 +44,8 @@
       <div id="app-grid" class="app-grid" aria-live="polite"></div>
     </section>
 
+    <section id="new-game-request" class="new-game-request" aria-label="新しいゲームを作ってほしい"></section>
+
     <div class="page-indicator" aria-hidden="true">
       <span class="page-dot is-active"></span>
     </div>
@@ -61,19 +63,21 @@
   </template>
 
   <link rel="stylesheet" href="./shared/for-my-sons.css?v=3">
-  <script src="./shared/for-my-sons-db.js?v=2"></script>
+  <script src="./shared/for-my-sons-db.js?v=4"></script>
   <script src="./shared/profile-manager.js?v=2"></script>
   <script src="./shared/parent-lock.js?v=3"></script>
   <script src="./shared/save-store.js?v=2"></script>
-  <script src="./shared/github-sync.js?v=8"></script>
-  <script src="./shared/character-requests.js?v=1"></script>
-  <script src="./shared/for-my-sons.js?v=9"></script>
+  <script src="./shared/github-sync.js?v=9"></script>
+  <script src="./shared/character-requests.js?v=3"></script>
+  <script src="./shared/parent-requests.js?v=4"></script>
+  <script src="./shared/parent-request-view.js?v=4"></script>
+  <script src="./shared/for-my-sons.js?v=13"></script>
   <script src="./shared/settings-view.js?v=6"></script>
   <script src="./shared/wanko-cloud-config.js"></script>
   <script src="./shared/wanko-cloud.js"></script>
   <script src="./shared/wanko-library-store.js?v=1"></script>
   <script src="./shared/wanko-library.js"></script>
-  <script src="./shared/parent-history-view.js?v=2"></script>
-  <script src="./app.js?v=4" defer></script>
+  <script src="./shared/parent-history-view.js?v=3"></script>
+  <script src="./app.js?v=5" defer></script>
 </body>
 </html>
