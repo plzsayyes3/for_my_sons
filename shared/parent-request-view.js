@@ -133,6 +133,7 @@
       selectedType = '';
       currentRequestId = null;
       retryMode = false;
+      launch.textContent = '💬 パパにお願い';
       problem.setAttribute('aria-pressed', 'false');
       feature.setAttribute('aria-pressed', 'false');
       textarea.value = '';
@@ -164,11 +165,36 @@
 
     function showFailure() {
       retryMode = true;
+      launch.textContent = '💬 まだ送れていないお願い';
       lockDraft(true);
       status.textContent = 'まだ送れていないよ';
       status.classList.add('is-error');
       send.textContent = 'もういちど送る';
       updateSendState();
+    }
+
+    async function restorePending() {
+      if (typeof service.listUnsent !== 'function') return;
+      try {
+        const unsent = await service.listUnsent({ appId, currentProfileOnly: true });
+        const pending = unsent
+          .filter(record => record?.appId === appId)
+          .sort((a, b) => Date.parse(a?.createdAt || 0) - Date.parse(b?.createdAt || 0))[0];
+        if (!pending) return;
+
+        selectedType = pending.type === 'problem' || pending.type === 'feature' ? pending.type : '';
+        currentRequestId = pending.id;
+        retryMode = true;
+        problem.setAttribute('aria-pressed', selectedType === 'problem' ? 'true' : 'false');
+        feature.setAttribute('aria-pressed', selectedType === 'feature' ? 'true' : 'false');
+        textarea.value = pending.message || '';
+        launch.textContent = '💬 まだ送れていないお願い';
+        lockDraft(true);
+        status.textContent = 'まだ送れていないお願いがあるよ';
+        status.classList.add('is-error');
+        send.textContent = 'もういちど送る';
+        updateSendState();
+      } catch {}
     }
 
     problem.addEventListener('click', () => setType('problem'));
@@ -210,6 +236,7 @@
 
         if (result?.syncState === 'synced') {
           showSuccess();
+          void restorePending();
           return;
         }
         showFailure();
@@ -224,6 +251,8 @@
     documentRef.addEventListener('keydown', event => {
       if (event.key === 'Escape' && !overlay.hidden) closeDialog();
     });
+
+    void restorePending();
 
     return {
       open,
