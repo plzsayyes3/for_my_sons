@@ -185,3 +185,65 @@ test('uses WebP when available and PNG when the browser encoder cannot produce W
   const png = await prepareArtwork(source, { encode: (_source, type) => type === 'image/png' ? pngBlob : null });
   assert.equal(png.type, 'image/png');
 });
+
+
+test('resend stays locally queued when authentication fails', async () => {
+  const db = createMemoryDatabase();
+  const seed = createCharacterRequestService({ db });
+  const request = await seed.create({
+    requestId: 'request-resend-auth',
+    name: 'さいそうしん',
+    faction: 'ally',
+    artwork: new Uint8Array([9, 8, 7])
+  });
+  await db.put('characterRequests', {
+    ...request,
+    status: 'synced',
+    syncState: 'synced'
+  }, request.requestId);
+
+  const service = createCharacterRequestService({
+    db,
+    sync: {
+      async readPath() {
+        const error = new Error('authentication required');
+        error.code = 'AUTH_REQUIRED';
+        throw error;
+      },
+      async writePath() { return { status: 'created' }; }
+    }
+  });
+
+  const result = await service.resend(request.requestId);
+  assert.equal(result.status, 'pending');
+  assert.equal(result.syncState, 'auth-required');
+  assert.equal(result.lastError, 'auth-required');
+  const saved = await service.get(request.requestId);
+  assert.equal(saved.syncState, 'auth-required');
+  assert.deepEqual([...saved.artworkBlob], [9, 8, 7]);
+});
+
+test('resend stays locally queued when the remote is unavailable', async () => {
+  const db = createMemoryDatabase();
+  const seed = createCharacterRequestService({ db });
+  const request = await seed.create({
+    requestId: 'request-resend-offline',
+    name: 'あとでおくる',
+    faction: 'enemy',
+    artwork: new Uint8Array([6, 5, 4])
+  });
+
+  const service = createCharacterRequestService({
+    db,
+    sync: {
+      async readPath() { throw new Error('offline'); },
+      async writePath() { return { status: 'created' }; }
+    }
+  });
+
+  const result = await service.resend(request.requestId);
+  assert.equal(result.status, 'pending');
+  assert.equal(result.syncState, 'error');
+  assert.equal(result.lastError, 'remote-unavailable');
+  assert.equal((await service.get(request.requestId)).syncState, 'error');
+});
