@@ -66,7 +66,7 @@ main{width:min(100%,720px);margin:auto;padding:14px 12px calc(env(safe-area-inse
   <div class="walletCard"><span>🐾 わんこポイント</span><b id="points">0</b></div>
 </section>
 <section class="machine" id="machine">
-  <div class="machineTitle"><div class="small">MY WANKO GACHA</div><h2>じぶんのわんこガチャ</h2><p>つくったわんこが、なかまになる！</p></div>
+  <div class="machineTitle"><div class="small">MY WANKO GACHA</div><h2>わんこガチャ</h2><p>ゲームのわんこも、つくったわんこも、なかまになる！</p></div>
   <div class="gachaStage"><div class="chargeHalo" id="chargeHalo"></div><div class="ring"></div><div class="machineBody"><div class="window" id="windowMark">?</div><button class="tapPad" id="tapPad" type="button" aria-label="排出を早める">タップ!</button></div></div>
   <div class="chargeStatus" id="chargeStatus">押すと4秒後に排出。連打すると早くなる！</div>
   <div class="actions">
@@ -75,7 +75,7 @@ main{width:min(100%,720px);margin:auto;padding:14px 12px calc(env(safe-area-inse
   </div>
 </section>
 <section class="rule"><div class="ruleIcon">🐾</div><div><b>まだ引いていないわんこも、1体だけお試しできる</b><span>ガチャで正式に仲間にすると、複数の自作わんこをデッキに入れられる想定です。</span></div></section>
-<div class="sectionHead"><h3>つくったわんこ</h3><span id="ownedCount">1 / 4 なかま</span></div>
+<div class="sectionHead"><h3>ガチャのなかま候補</h3><span id="ownedCount">0 / 0 ガチャ獲得</span></div>
 <section class="collection" id="collection"></section>
 
 </main>
@@ -192,13 +192,30 @@ main{width:min(100%,720px);margin:auto;padding:14px 12px calc(env(safe-area-inse
     objectUrls.splice(0).forEach(url=>{try{URL.revokeObjectURL(url)}catch{}});
     const list=window.WankoLibrary?await WankoLibrary.listWankos():[];
     const owned=new Set(progressState?.ownedWankoIds||[]);
-    characters=list.map(wanko=>{
+    const gameCharacters=(window.WankoGameData?.getSelectableAllyIds?.()||[]).map(gameId=>{
+      const wanko=window.WankoGameData.getCharacter(gameId);
+      const id='game:'+gameId;
+      const isOwned=owned.has(id);
+      const stars=isOwned?window.WankoGameProgress.starsFromState(progressState,id):0;
+      return {
+        id,
+        gameId,
+        source:'game',
+        name:wanko?.name||gameId,
+        image:wanko?.artwork||'',
+        emoji:wanko?.placeholder||'🐾',
+        owned:isOwned,
+        stars
+      };
+    });
+    const customCharacters=list.map(wanko=>{
       const image=WankoLibrary.blobUrl(wanko);
       if(image)objectUrls.push(image);
       const isOwned=owned.has(wanko.id);
       const stars=isOwned?window.WankoGameProgress.starsFromState(progressState,wanko.id):0;
-      return {id:wanko.id,name:wanko.name||'うちのわんこ',image,owned:isOwned,stars};
+      return {id:wanko.id,source:'custom',name:wanko.name||'うちのわんこ',image,emoji:'🎨',owned:isOwned,stars};
     });
+    characters=[...gameCharacters,...customCharacters];
     render();
   }
 
@@ -210,12 +227,12 @@ main{width:min(100%,720px);margin:auto;padding:14px 12px calc(env(safe-area-inse
     ticketDraw.disabled=drawing||wallet.tickets<1||!canDraw;
     exchangeButton.disabled=drawing||wallet.points<TICKET_COST;
     const owned=characters.filter(x=>x.owned).length;
-    ownedCount.textContent=owned+' / '+characters.length+' なかま';
+    ownedCount.textContent=owned+' / '+characters.length+' ガチャ獲得';
     collection.replaceChildren();
     if(!characters.length){
       const empty=document.createElement('div');
       empty.className='emptyState';
-      empty.innerHTML='まだガチャに入る自作わんこがいません。<br><a href="../paint/?wanko=1">わんこをつくる</a>';
+      empty.innerHTML='ガチャ候補を読み込めませんでした。<br><a href="../wanko/?v=12">わんこトップへ戻る</a>';
       collection.appendChild(empty);
       return;
     }
@@ -223,10 +240,10 @@ main{width:min(100%,720px);margin:auto;padding:14px 12px calc(env(safe-area-inse
       const card=document.createElement('article');card.className='character'+(character.owned?' isOwned':'');
       const art=document.createElement('div');art.className='art';
       if(character.image){const img=document.createElement('img');img.src=character.image;img.alt='';art.appendChild(img);}
-      else art.textContent='🐾';
+      else art.textContent=character.emoji||'🐾';
       const info=document.createElement('div');info.className='info';
       const name=document.createElement('div');name.className='name';name.textContent=character.name;
-      const tag=document.createElement('span');tag.className='tag '+(character.owned?'owned':'trial');tag.textContent=character.owned?'なかま ★'+Math.max(1,character.stars||1):'お試し候補';
+      const tag=document.createElement('span');tag.className='tag '+(character.owned?'owned':'trial');tag.textContent=character.owned?'ガチャ獲得 ★'+Math.max(1,character.stars||1):(character.source==='game'?'ゲームわんこ':'自作わんこ');
       info.append(name,tag);card.append(art,info);collection.appendChild(card);
     }
   }
@@ -342,7 +359,7 @@ main{width:min(100%,720px);margin:auto;padding:14px 12px calc(env(safe-area-inse
       resultBadge.style.background=wasOwned?'#e9e1d6':'#f7d45c';
       resultImage.src=character.image||'../assets/wanko-war.svg?v=1';
       resultName.textContent=character.name;
-      resultText.textContent=!saved?'端末への保存に失敗しました。もう一度ためしてください。':wasOwned?'★'+character.stars+'になった！ 🐾10ポイントもどってきた！':'なかまになった！ ★1からスタート。バトルで使えるようになった。';
+      resultText.textContent=!saved?'端末への保存に失敗しました。もう一度ためしてください。':wasOwned?'★'+character.stars+'になった！ 🐾10ポイントもどってきた！':'ガチャでなかまになった！ ★1からスタート。デッキに入れられるようになった。';
       layer.classList.remove('newDraw','duplicateDraw');
       layer.classList.add(wasOwned?'duplicateDraw':'newDraw');
       layer.classList.add('show');
