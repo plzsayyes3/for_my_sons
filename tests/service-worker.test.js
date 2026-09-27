@@ -5,10 +5,13 @@ const vm = require('node:vm');
 
 test('service worker precaches request assets under a new cache version', () => {
   const source = fs.readFileSync('service-worker.js', 'utf8');
-  assert.match(source, /for-my-sons-v79/);
+  assert.match(source, /for-my-sons-v80/);
   assert.match(source, /\.\/shared\/character-requests\.js\?v=3/);
   assert.match(source, /\.\/shared\/parent-requests\.js\?v=3/);
   assert.match(source, /\.\/shared\/parent-request-view\.js\?v=3/);
+  assert.match(source, /\.\/shared\/parent-history-view\.js\?v=1/);
+  assert.match(source, /\.\/app\.js\?v=4/);
+  assert.match(source, /\.\/styles\.css\?v=2/);
   assert.match(source, /\.\/shared\/for-my-sons\.js\?v=12/);
   assert.match(source, /\.\/shared\/wanko-library-store\.js\?v=1/);
   assert.match(source, /\.\/shared\/wanko-registration-request\.js\?v=1/);

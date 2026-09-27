@@ -13,7 +13,7 @@
   <title>For My Sons</title>
   <link rel="manifest" href="./manifest.webmanifest">
   <link rel="icon" href="./assets/for-my-sons-icon.svg" type="image/svg+xml">
-  <link rel="stylesheet" href="./styles.css">
+  <link rel="stylesheet" href="./styles.css?v=2">
 </head>
 <body>
   <main class="home-screen" aria-labelledby="home-title">
@@ -26,6 +26,8 @@
         <button id="parent-settings-button" type="button">⚙️ おうちの人設定</button>
       </div>
     </section>
+
+    <section id="parent-request-history" class="papa-history" hidden aria-label="おねがい履歴"></section>
 
     <section class="recent-wanko" id="recent-wanko" hidden aria-label="さいきんのわんこ">
       <div class="recent-wanko-copy">
@@ -71,6 +73,7 @@
   <script src="./shared/wanko-cloud.js"></script>
   <script src="./shared/wanko-library-store.js?v=1"></script>
   <script src="./shared/wanko-library.js"></script>
-  <script src="./app.js?v=3" defer></script>
+  <script src="./shared/parent-history-view.js?v=1"></script>
+  <script src="./app.js?v=4" defer></script>
 </body>
 </html>

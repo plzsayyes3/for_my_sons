@@ -57,19 +57,24 @@ async function setupSharedProfile() {
   const indicator = document.querySelector('#current-profile-indicator');
   const settingsButton = document.querySelector('#parent-settings-button');
   const settingsPanel = document.querySelector('#parent-settings-panel');
+  const historyContainer = document.querySelector('#parent-request-history');
   if (!window.ForMySonsShared || !window.ForMySonsSettingsView || !indicator || !settingsButton || !settingsPanel) return;
   try {
     const api = await window.ForMySonsShared.createForMySons();
     window.ForMySons = api;
-    const updateIndicator = async () => {
+    const historyView = window.ForMySonsParentHistoryView && historyContainer
+      ? window.ForMySonsParentHistoryView.mount({ container: historyContainer, api })
+      : null;
+    const refreshProfileUi = async () => {
       const profile = await api.profile.current();
       const unset = profile.id === 'profile-1' && profile.label === 'profile-1';
       indicator.textContent = `プレイヤー: ${unset ? '未設定' : profile.label}`;
+      if (historyView) await historyView.refresh();
     };
-    await updateIndicator();
+    await refreshProfileUi();
     window.ForMySonsSettings = window.ForMySonsSettingsView.renderSettings(settingsPanel, api);
     settingsButton.addEventListener('click', () => window.ForMySonsSettings.open());
-    window.addEventListener('for-my-sons-profile-changed', updateIndicator);
+    window.addEventListener('for-my-sons-profile-changed', refreshProfileUi);
   } catch (error) {
     console.warn('Shared profile foundation unavailable.', error);
   }
