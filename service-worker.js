@@ -2,7 +2,7 @@ const CACHE_NAME = 'for-my-sons-v80';
 const SHELL = [
   './',
   './index.html',
-  './styles.css?v=2',
+  './styles.css?v=3',
   './app.js?v=4',
   './apps.json',
   './manifest.webmanifest',
@@ -14,7 +14,7 @@ const SHELL = [
   './shared/character-requests.js?v=3',
   './shared/parent-requests.js?v=3',
   './shared/parent-request-view.js?v=3',
-  './shared/parent-history-view.js?v=1',
+  './shared/parent-history-view.js?v=2',
   './shared/for-my-sons.js?v=12',
   './shared/settings-view.js?v=6',
   './shared/for-my-sons.css?v=3',
