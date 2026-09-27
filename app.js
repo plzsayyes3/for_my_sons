@@ -88,8 +88,9 @@ async function setupSharedProfile() {
       const profile = await api.profile.current();
       const unset = profile.id === 'profile-1' && profile.label === 'profile-1';
       indicator.textContent = `プレイヤー: ${unset ? '未設定' : profile.label}`;
+      if (newGameContainer) newGameContainer.hidden = profile.id === 'papa';
       if (historyView) await historyView.refresh();
-      if (newGameView) await newGameView.refresh();
+      if (newGameView && profile.id !== 'papa') await newGameView.refresh();
     };
     await refreshProfileUi();
     window.ForMySonsSettings = window.ForMySonsSettingsView.renderSettings(settingsPanel, api);
