@@ -792,9 +792,13 @@ async function renderWankoHistory() {
           await renderWankoHistory();
         } catch (error) {
           console.warn("Character request resend failed", error?.code || error?.message || "unknown");
-          wankoHistoryStatus.textContent = error?.message === "Character request artwork is missing"
-            ? "この端末に元の画像が残っていません"
-            : "もう一度送れませんでした";
+          if (error?.message === "Character request artwork is missing") {
+            wankoHistoryStatus.textContent = "この端末に元の画像が残っていません";
+          } else if (error?.code === "DB_BLOCKED") {
+            wankoHistoryStatus.textContent = "保存データを開けませんでした。アプリを開き直してね";
+          } else {
+            wankoHistoryStatus.textContent = "端末への保存に失敗しました";
+          }
         } finally {
           requestResendInFlight = null;
           resendButton.disabled = !record.artworkBlob;
