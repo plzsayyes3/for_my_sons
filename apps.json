@@ -86,7 +86,7 @@
   {
     "id": "wanko",
     "name": "わんこ",
-    "url": "./wanko/?v=10",
+    "url": "./wanko/?v=11",
     "icon": "./assets/wanko-war.svg?v=1",
     "description": "プロフィール・ゲーム・ガチャ・図鑑をまとめたわんこのトップ"
   },
@@ -97,4 +97,4 @@
     "icon": "./assets/paint.svg",
     "description": "キャンバスのかたちをえらんで、ゆびでおえかきしよう"
   }
-]
+]\n
