@@ -1,4 +1,4 @@
-const CACHE_NAME = 'for-my-sons-v73';
+const CACHE_NAME = 'for-my-sons-v74';
 const SHELL = [
   './',
   './index.html',
@@ -31,8 +31,10 @@ const SHELL = [
   './wanko/?v=12',
   './wanko/index.html',
   './wanko-war/?v=23',
-  './wanko-war/index.html',\n  './wanko-deck/?v=1',\n  './wanko-deck/index.html',
-  './wanko-gacha/?v=5',
+  './wanko-war/index.html',
+  './wanko-deck/?v=1',
+  './wanko-deck/index.html',
+  './wanko-gacha/?v=6',
   './wanko-gacha/index.html',
   './wanko-mini/?v=4',
   './wanko-mini/index.html',
