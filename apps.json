@@ -93,7 +93,7 @@
   {
     "id": "paint",
     "name": "ペイント",
-    "url": "./paint/?v=8",
+    "url": "./paint/?v=9",
     "icon": "./assets/paint.svg",
     "description": "キャンバスのかたちをえらんで、ゆびでおえかきしよう"
   }
