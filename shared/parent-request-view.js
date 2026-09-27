@@ -26,6 +26,14 @@
       .fms-request-message{width:100%;min-height:132px;resize:vertical;border:3px solid #d8e5f0;border-radius:18px;padding:13px 14px;background:#fff;color:#25445f;font:800 17px/1.55 ui-rounded,"SF Pro Rounded","Hiragino Maru Gothic ProN",system-ui,sans-serif;outline:none}
       .fms-request-message:focus{border-color:#62b9ff;box-shadow:0 0 0 4px rgba(98,185,255,.16)}
       .fms-request-message:disabled{opacity:.78}
+      .fms-request-photo{margin-top:14px;padding:12px;border:3px dashed #d8e5f0;border-radius:18px;background:#fff}
+      .fms-request-photo-label{display:block;font-size:14px;font-weight:950;color:#58728d}
+      .fms-request-photo-input{display:block;width:100%;margin-top:8px;font-size:16px;color:#46627e}
+      .fms-request-photo-preview[hidden]{display:none!important}
+      .fms-request-photo-preview{display:grid;grid-template-columns:88px 1fr;gap:12px;align-items:center;margin-top:12px}
+      .fms-request-photo-preview img{width:88px;height:88px;object-fit:cover;border-radius:14px;border:2px solid #d8e5f0}
+      .fms-request-photo-remove{border:0;border-radius:999px;padding:10px 12px;background:#eef2f5;color:#536b81;font-weight:900;cursor:pointer}
+      .fms-request-photo-note{display:block;margin-top:7px;font-size:12px;font-weight:800;color:#73879a}
       .fms-request-send{width:100%;margin-top:14px;border:0;border-radius:999px;padding:15px 18px;background:linear-gradient(#ffe979,#ffbd3b);color:#244f78;font-size:18px;font-weight:1000;box-shadow:0 6px 0 #d18c16;cursor:pointer}
       .fms-request-send:disabled{opacity:.55;box-shadow:0 3px 0 #c8b77f;cursor:default}
       .fms-request-status{min-height:24px;margin:11px 2px 0;color:#6a7f93;font-size:14px;font-weight:900;text-align:center}
@@ -52,12 +60,67 @@
     return node;
   }
 
-  function mount({ container, service, appId, gameName, documentRef = globalThis.document } = {}) {
+  async function canvasBlob(canvas, type, quality) {
+    if (typeof canvas?.toBlob !== 'function') return null;
+    return new Promise(resolve => canvas.toBlob(resolve, type, quality));
+  }
+
+  async function prepareImage(file, documentRef) {
+    if (!file || !String(file.type || '').startsWith('image/')) throw new TypeError('画像ファイルを選んでね');
+    if (Number(file.size || 0) > 25 * 1024 * 1024) throw new TypeError('写真が大きすぎるよ');
+
+    const url = URL.createObjectURL(file);
+    try {
+      const image = documentRef.createElement('img');
+      image.decoding = 'async';
+      await new Promise((resolve, reject) => {
+        image.onload = resolve;
+        image.onerror = reject;
+        image.src = url;
+      });
+      const maxDimension = 1600;
+      const naturalWidth = Math.max(1, Number(image.naturalWidth || image.width || 1));
+      const naturalHeight = Math.max(1, Number(image.naturalHeight || image.height || 1));
+      const scale = Math.min(1, maxDimension / Math.max(naturalWidth, naturalHeight));
+      const canvas = documentRef.createElement('canvas');
+      canvas.width = Math.max(1, Math.round(naturalWidth * scale));
+      canvas.height = Math.max(1, Math.round(naturalHeight * scale));
+      const context = canvas.getContext('2d');
+      if (!context) throw new Error('画像を準備できませんでした');
+      context.drawImage(image, 0, 0, canvas.width, canvas.height);
+
+      let blob = await canvasBlob(canvas, 'image/webp', 0.82);
+      if (!blob || blob.size > 5 * 1024 * 1024) blob = await canvasBlob(canvas, 'image/jpeg', 0.78);
+      if (!blob || blob.size > 5 * 1024 * 1024) throw new TypeError('写真が大きすぎるよ');
+      return blob;
+    } finally {
+      URL.revokeObjectURL(url);
+    }
+  }
+
+  function mount({
+    container,
+    service,
+    appId,
+    gameName,
+    documentRef = globalThis.document,
+    launchLabel = '💬 パパにお願い',
+    pendingLaunchLabel = '💬 まだ送れていないお願い',
+    titleText = '💬 パパにお願い',
+    fixedType = '',
+    hideGame = false,
+    messageLabelText = 'パパにいうこと',
+    placeholder = 'じぶんのことばで書いてね',
+    sendLabel = 'パパにおくる',
+    successText = 'おくったよ！\\nパパがあとでみるね 👋',
+    allowImage = false
+  } = {}) {
     if (!container || !service || !documentRef) throw new TypeError('container, service and document are required');
     if (!appId || !gameName) throw new TypeError('appId and gameName are required');
+    if (fixedType && !['problem', 'feature'].includes(fixedType)) throw new TypeError('fixedType is invalid');
     ensureStyles(documentRef);
 
-    const launch = make(documentRef, 'button', 'fms-request-launch', '💬 パパにお願い');
+    const launch = make(documentRef, 'button', 'fms-request-launch', launchLabel);
     launch.type = 'button';
 
     const overlay = make(documentRef, 'div', 'fms-request-overlay');
@@ -68,7 +131,7 @@
 
     const card = make(documentRef, 'section', 'fms-request-card');
     const head = make(documentRef, 'div', 'fms-request-head');
-    const title = make(documentRef, 'h2', '', '💬 パパにお願い');
+    const title = make(documentRef, 'h2', '', titleText);
     const close = make(documentRef, 'button', 'fms-request-close', '×');
     close.type = 'button';
     close.setAttribute('aria-label', '閉じる');
@@ -88,25 +151,44 @@
     feature.setAttribute('aria-pressed', 'false');
     types.append(problem, feature);
 
-    const messageLabel = make(documentRef, 'label', 'fms-request-label', 'パパにいうこと');
+    const messageLabel = make(documentRef, 'label', 'fms-request-label', messageLabelText);
     const textarea = make(documentRef, 'textarea', 'fms-request-message');
     textarea.rows = 5;
     textarea.maxLength = 2000;
-    textarea.placeholder = 'じぶんのことばで書いてね';
+    textarea.placeholder = placeholder;
     messageLabel.htmlFor = 'fms-parent-request-message-' + Math.random().toString(36).slice(2, 9);
     textarea.id = messageLabel.htmlFor;
 
-    const send = make(documentRef, 'button', 'fms-request-send', 'パパにおくる');
+    const photo = make(documentRef, 'div', 'fms-request-photo');
+    photo.hidden = !allowImage;
+    const photoLabel = make(documentRef, 'label', 'fms-request-photo-label', '📷 写真や絵（なくてもOK）');
+    const photoInput = make(documentRef, 'input', 'fms-request-photo-input');
+    photoInput.type = 'file';
+    photoInput.accept = 'image/*';
+    photoLabel.append(photoInput);
+    const photoNote = make(documentRef, 'span', 'fms-request-photo-note', '写真・スクショ・描いた絵を1枚つけられるよ');
+    const photoPreview = make(documentRef, 'div', 'fms-request-photo-preview');
+    photoPreview.hidden = true;
+    const photoImage = make(documentRef, 'img', '');
+    photoImage.alt = '送る画像のプレビュー';
+    const photoRemove = make(documentRef, 'button', 'fms-request-photo-remove', '写真をはずす');
+    photoRemove.type = 'button';
+    photoPreview.append(photoImage, photoRemove);
+    photo.append(photoLabel, photoNote, photoPreview);
+
+    const send = make(documentRef, 'button', 'fms-request-send', sendLabel);
     send.type = 'button';
     send.disabled = true;
 
     const status = make(documentRef, 'div', 'fms-request-status', '');
     status.setAttribute('aria-live', 'polite');
 
-    card.append(head, gameLabel, gameValue, typeLabel, types, messageLabel, textarea, send, status);
+    gameLabel.hidden = gameValue.hidden = hideGame;
+    typeLabel.hidden = types.hidden = Boolean(fixedType);
+    card.append(head, gameLabel, gameValue, typeLabel, types, messageLabel, textarea, photo, send, status);
     overlay.append(card);
 
-    const toast = make(documentRef, 'div', 'fms-request-toast', 'おくったよ！\nパパがあとでみるね 👋');
+    const toast = make(documentRef, 'div', 'fms-request-toast', successText);
     toast.hidden = true;
     toast.setAttribute('role', 'status');
 
@@ -131,8 +213,10 @@
     container.replaceChildren(launch);
     documentRef.body.append(overlay, toast, replyOverlay);
 
-    let selectedType = '';
+    let selectedType = fixedType || '';
     let currentRequestId = null;
+    let selectedImageBlob = null;
+    let selectedImageUrl = null;
     let sending = false;
     let retryMode = false;
     let previousFocus = null;
@@ -157,19 +241,40 @@
       problem.disabled = locked;
       feature.disabled = locked;
       textarea.disabled = locked;
+      photoInput.disabled = locked;
+      photoRemove.disabled = locked;
+    }
+
+    function clearImage() {
+      selectedImageBlob = null;
+      photoInput.value = '';
+      if (selectedImageUrl) URL.revokeObjectURL(selectedImageUrl);
+      selectedImageUrl = null;
+      photoImage.removeAttribute('src');
+      photoPreview.hidden = true;
+    }
+
+    function showImage(blob) {
+      clearImage();
+      if (!blob) return;
+      selectedImageBlob = blob;
+      selectedImageUrl = URL.createObjectURL(blob);
+      photoImage.src = selectedImageUrl;
+      photoPreview.hidden = false;
     }
 
     function resetDraft() {
-      selectedType = '';
+      selectedType = fixedType || '';
       currentRequestId = null;
       retryMode = false;
-      launch.textContent = '💬 パパにお願い';
-      problem.setAttribute('aria-pressed', 'false');
-      feature.setAttribute('aria-pressed', 'false');
+      launch.textContent = launchLabel;
+      problem.setAttribute('aria-pressed', selectedType === 'problem' ? 'true' : 'false');
+      feature.setAttribute('aria-pressed', selectedType === 'feature' ? 'true' : 'false');
       textarea.value = '';
+      clearImage();
       status.textContent = '';
       status.classList.remove('is-error');
-      send.textContent = 'パパにおくる';
+      send.textContent = sendLabel;
       lockDraft(false);
       updateSendState();
     }
@@ -177,7 +282,7 @@
     function open() {
       previousFocus = documentRef.activeElement;
       overlay.hidden = false;
-      requestAnimationFrame(() => retryMode ? send.focus() : problem.focus());
+      requestAnimationFrame(() => retryMode ? send.focus() : (fixedType ? textarea.focus() : problem.focus()));
     }
 
     function closeDialog() {
@@ -195,7 +300,7 @@
 
     function showFailure() {
       retryMode = true;
-      launch.textContent = '💬 まだ送れていないお願い';
+      launch.textContent = pendingLaunchLabel;
       lockDraft(true);
       status.textContent = 'まだ送れていないよ';
       status.classList.add('is-error');
@@ -218,7 +323,8 @@
         problem.setAttribute('aria-pressed', selectedType === 'problem' ? 'true' : 'false');
         feature.setAttribute('aria-pressed', selectedType === 'feature' ? 'true' : 'false');
         textarea.value = pending.message || '';
-        launch.textContent = '💬 まだ送れていないお願い';
+        if (pending.imageBlob) showImage(pending.imageBlob);
+        launch.textContent = pendingLaunchLabel;
         lockDraft(true);
         status.textContent = 'まだ送れていないお願いがあるよ';
         status.classList.add('is-error');
@@ -271,6 +377,26 @@
       }
     }
 
+    photoInput.addEventListener('change', async () => {
+      const file = photoInput.files?.[0] || null;
+      if (!file) return clearImage();
+      status.classList.remove('is-error');
+      status.textContent = '写真を準備してるよ…';
+      try {
+        const blob = await prepareImage(file, documentRef);
+        showImage(blob);
+        status.textContent = '';
+      } catch (error) {
+        clearImage();
+        status.textContent = error?.message || '写真を準備できなかったよ';
+        status.classList.add('is-error');
+      }
+    });
+    photoRemove.addEventListener('click', () => {
+      if (sending || retryMode) return;
+      clearImage();
+    });
+
     problem.addEventListener('click', () => setType('problem'));
     feature.addEventListener('click', () => setType('feature'));
     textarea.addEventListener('input', updateSendState);
@@ -303,7 +429,9 @@
             appId,
             gameName,
             type: selectedType,
-            message: textarea.value
+            message: textarea.value,
+            image: selectedImageBlob,
+            imageContentType: selectedImageBlob?.type || ''
           });
           currentRequestId = record.id;
         }
@@ -330,6 +458,15 @@
       if (event.key === 'Escape' && !overlay.hidden) closeDialog();
     });
 
+    async function refresh() {
+      resetDraft();
+      replyQueue = [];
+      currentReply = null;
+      replyOverlay.hidden = true;
+      await restorePending();
+      await checkReplies();
+    }
+
     void restorePending();
     void checkReplies();
 
@@ -338,8 +475,10 @@
       close: closeDialog,
       reset: resetDraft,
       checkReplies,
+      refresh,
       destroy() {
         if (toastTimer) clearTimeout(toastTimer);
+        if (selectedImageUrl) URL.revokeObjectURL(selectedImageUrl);
         overlay.remove();
         toast.remove();
         replyOverlay.remove();
