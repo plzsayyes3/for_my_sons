@@ -1,0 +1,38 @@
+name: Test
+
+on:
+  pull_request:
+    branches: ["main"]
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+      - name: Run production and Wanko regression tests
+        run: >-
+          node --test
+          tests/save-store.test.js
+          tests/github-sync.test.js
+          tests/wanko-game-data.test.js
+          tests/wanko-game-progress.test.js
+          tests/wanko-profile-sync.test.js
+          tests/wanko-deck.test.js
+          tests/wanko-orientation.test.js
+          tests/official-wankos.test.js
+          tests/wanko-mini-addition.test.js
+          tests/wanko-mini-subtraction.test.js
+          tests/wanko-mini-multiplication.test.js
+          tests/wanko-economy-realtime.test.js
+          tests/service-worker.test.js
+          tests/static-shell.test.js
+          tests/wanko-library-view.test.js
+          tests/wanko-gacha-pool.test.js
+          tests/kids-3d-save-safety.test.js
+          tests/kids-3d-responsive-ui.test.js
+          tests/parent-requests.test.js
+          tests/sky-dash-star-wallet.test.js

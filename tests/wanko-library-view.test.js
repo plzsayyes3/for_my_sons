@@ -45,6 +45,13 @@ test('ally cards distinguish placeholder art and unlock milestone characters fro
   assert.equal(unlocked.find(card => card.id === 'W03').unlocked, true);
 });
 
+test('gacha ownership unlocks a game ally before its stage milestone', () => {
+  const progress = { discoveredElementIds: [], clearedStageIds: [], ownedWankoIds: ['game:W03'] };
+  const cards = view.buildAllyCards(game.characters, progress);
+  assert.equal(cards.find(card => card.id === 'W03').unlocked, true);
+  assert.equal(cards.find(card => card.id === 'W04').unlocked, false);
+});
+
 test('ally cards never expose reserved slots even when legacy progress mentions them', () => {
   const cards = view.buildAllyCards(game.characters, {
     clearedStageIds: ['S010'],

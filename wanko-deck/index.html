@@ -49,8 +49,16 @@ main{width:min(100%,900px);margin:auto;padding:16px 14px calc(env(safe-area-inse
  const customList=window.WankoLibrary?await WankoLibrary.listWankos():[];
  const owned=new Set(state.ownedWankoIds||[]);
  for(const id of GameData.getSelectableAllyIds()){
-  const c=GameData.getCharacter(id),unlocked=!c.unlockAfterStage||state.clearedStageIds.includes(c.unlockAfterStage);
-  if(unlocked)items.push({key:'game:'+id,name:c.name,image:c.artwork||'',emoji:c.placeholder||'🐾',meta:c.unlockAfterStage?'ステージ解放':'最初から'});
+  const c=GameData.getCharacter(id);
+  const stageUnlocked=!c.unlockAfterStage||state.clearedStageIds.includes(c.unlockAfterStage);
+  const gachaOwned=owned.has('game:'+id);
+  if(stageUnlocked||gachaOwned)items.push({
+   key:'game:'+id,
+   name:c.name,
+   image:c.artwork||'',
+   emoji:c.placeholder||'🐾',
+   meta:gachaOwned?'ガチャで獲得':(c.unlockAfterStage?'ステージ解放':'最初から')
+  });
  }
  for(const w of customList)if(owned.has(w.id))items.push({key:'custom:'+w.id,name:w.name||'うちのわんこ',image:WankoLibrary.blobUrl(w)||'',emoji:'🎨',meta:'ガチャで獲得'});
  const available=new Set(items.map(x=>x.key));
