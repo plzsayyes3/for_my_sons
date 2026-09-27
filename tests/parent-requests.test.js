@@ -106,6 +106,103 @@ test('filters unsent requests to the current profile and app', async () => {
   assert.deepEqual(unsent.map(record => record.id), ['request-soma-sky']);
 });
 
+test('refreshes Papa replies and writes readAt when the child taps read', async () => {
+  const db = createMemoryDatabase();
+  const profiles = createProfileManager(db);
+  await profiles.setCurrent('sora');
+
+  let remote = null;
+  let remoteSha = 'sha-initial';
+  const sync = {
+    async readPath() {
+      return remote
+        ? { exists:true, content:remoteContent(remote), sha:remoteSha }
+        : { exists:false, content:null, sha:null };
+    },
+    async writePathKnown(_path, payload) {
+      remote = JSON.parse(JSON.stringify(payload));
+      remoteSha = 'sha-updated';
+      return { status:'synced', sha:remoteSha };
+    }
+  };
+  const service = createParentRequestService({
+    db,
+    profileManager: profiles,
+    sync,
+    clock: () => Date.parse('2026-09-27T07:30:00.000Z')
+  });
+
+  const created = await service.create({
+    requestId:'request-reply',
+    appId:'sky-dash',
+    gameName:'Sky Dash',
+    type:'feature',
+    message:'スピードが上がる'
+  });
+  remote = {
+    ...requestPayload(created),
+    status:'done',
+    reply:{
+      message:'スピードアップを作ったよ！',
+      repliedAt:'2026-09-27T07:29:00.000Z',
+      readAt:null
+    }
+  };
+
+  const replies = await service.refreshReplies({ appId:'sky-dash', currentProfileOnly:true });
+  assert.equal(replies.length, 1);
+  assert.equal(replies[0].status, 'done');
+  assert.equal(replies[0].reply.message, 'スピードアップを作ったよ！');
+  assert.equal(replies[0].reply.readAt, null);
+
+  const read = await service.markReplyRead(created.id);
+  assert.equal(read.ok, true);
+  assert.equal(read.reason, 'read');
+  assert.equal(remote.reply.message, 'スピードアップを作ったよ！');
+  assert.equal(remote.reply.readAt, '2026-09-27T07:30:00.000Z');
+
+  const after = await service.refreshReplies({ appId:'sky-dash', currentProfileOnly:true });
+  assert.equal(after[0].reply.readAt, '2026-09-27T07:30:00.000Z');
+});
+
+test('remote reply fields do not make a resend look like a conflict', async () => {
+  const db = createMemoryDatabase();
+  const profiles = createProfileManager(db);
+  await profiles.setCurrent('soma');
+  let remote = null;
+  let writes = 0;
+  const sync = {
+    async readPath() {
+      return remote
+        ? { exists:true, content:remoteContent(remote), sha:'sha-reply' }
+        : { exists:false, content:null, sha:null };
+    },
+    async writePathKnown(_path, payload) {
+      writes += 1;
+      remote = payload;
+      return { status:'created', sha:'sha-created' };
+    }
+  };
+  const service = createParentRequestService({ db, profileManager:profiles, sync });
+  const created = await service.create({
+    requestId:'request-reply-idempotent',
+    appId:'sky-dash',
+    gameName:'Sky Dash',
+    type:'feature',
+    message:'はやくしたい'
+  });
+  await service.send(created.id);
+  remote = {
+    ...remote,
+    status:'done',
+    reply:{ message:'できたよ', repliedAt:'2026-09-27T07:29:00.000Z', readAt:null }
+  };
+  await db.put('parentRequests', { ...created, syncState:'pending' }, created.id);
+  const resent = await service.resend(created.id);
+  assert.equal(resent.syncState, 'synced');
+  assert.equal(writes, 1);
+});
+
 test('retries the same local request id without creating a duplicate', async () => {
   const db = createMemoryDatabase();
   const profiles = createProfileManager(db);
@@ -233,4 +330,11 @@ test('parent request view restores an unsent draft for retry after reload', () =
   assert.match(parentRequestView, /listUnsent\(\{ appId, currentProfileOnly: true \}\)/);
   assert.match(parentRequestView, /まだ送れていないお願いがあるよ/);
   assert.match(parentRequestView, /もういちど送る/);
+});
+
+test('parent request view shows Papa replies and a child-facing read button', () => {
+  assert.match(parentRequestView, /パパからへんじがきたよ！/);
+  assert.match(parentRequestView, /読んだよ/);
+  assert.match(parentRequestView, /refreshReplies\(\{ appId, currentProfileOnly: true \}\)/);
+  assert.match(parentRequestView, /markReplyRead\(currentReply\.id\)/);
 });

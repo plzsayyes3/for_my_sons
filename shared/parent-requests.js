@@ -8,6 +8,7 @@
   const ID_PATTERN = /^request-[a-z0-9-]+$/;
   const SEGMENT_PATTERN = /^[A-Za-z0-9][A-Za-z0-9_-]{0,99}$/;
   const MAX_MESSAGE_LENGTH = 2000;
+  const MAX_REPLY_LENGTH = 2000;
   const MAX_GAME_NAME_LENGTH = 80;
 
   function safeSegment(value, name) {
@@ -46,6 +47,21 @@
     const createdAt = String(value || '');
     if (!createdAt || Number.isNaN(Date.parse(createdAt))) throw new TypeError('Invalid createdAt');
     return createdAt;
+  }
+
+  function normalizeReply(value) {
+    if (!value || typeof value !== 'object' || Array.isArray(value)) return null;
+    const message = String(value.message || '').trim();
+    if (!message) return null;
+    if (message.length > MAX_REPLY_LENGTH) throw new TypeError('Reply is too long');
+    const repliedAt = normalizeCreatedAt(value.repliedAt);
+    const readAt = value.readAt ? normalizeCreatedAt(value.readAt) : null;
+    return { message, repliedAt, readAt };
+  }
+
+  function normalizeStatus(value, fallback = 'pending') {
+    const status = String(value || '');
+    return SUPPORTED_STATUSES.includes(status) ? status : fallback;
   }
 
   function createRequestId() {
@@ -95,7 +111,9 @@
 
   function samePayload(left, right) {
     try {
-      return JSON.stringify(canonical(decodeRemoteJson(left))) === JSON.stringify(canonical(right));
+      const remoteBase = requestPayload(decodeRemoteJson(left));
+      const localBase = requestPayload(right);
+      return JSON.stringify(canonical(remoteBase)) === JSON.stringify(canonical(localBase));
     } catch {
       return false;
     }
@@ -252,6 +270,119 @@
         .map(record => ({ ...record }));
     }
 
+    async function refreshReplies(options = {}) {
+      if (!sync?.readPath) return [];
+      const appId = options.appId ? safeSegment(options.appId, 'appId') : null;
+      let profileId = options.profileId ? safeSegment(options.profileId, 'profileId') : null;
+      if (!profileId && options.currentProfileOnly === true) {
+        const profile = await profileManager.current();
+        profileId = safeSegment(profile?.id, 'profileId');
+      }
+
+      const records = (await db.list('parentRequests'))
+        .filter(record =>
+          (!appId || record?.appId === appId) &&
+          (!profileId || record?.profileId === profileId)
+        );
+      const replies = [];
+
+      for (const record of records) {
+        const path = record.remotePath || requestPath(record);
+        try {
+          const remote = await sync.readPath(path);
+          if (!remote?.exists) continue;
+          const payload = decodeRemoteJson(remote.content);
+          if (!samePayload(payload, requestPayload(record))) continue;
+          const reply = normalizeReply(payload?.reply);
+          const next = {
+            ...record,
+            status: normalizeStatus(payload?.status, record.status || 'pending'),
+            syncState: 'synced',
+            lastError: null,
+            remotePath: path,
+            remoteSha: remote.sha || record.remoteSha || null,
+            reply,
+            updatedAt: now()
+          };
+          await db.put('parentRequests', next, next.id);
+          if (reply) replies.push({ ...next });
+        } catch {
+          continue;
+        }
+      }
+
+      replies.sort((a, b) => Date.parse(a.reply?.repliedAt || 0) - Date.parse(b.reply?.repliedAt || 0));
+      return replies;
+    }
+
+    async function markReplyRead(requestId) {
+      if (!sync?.readPath || (!sync?.writePathKnown && !sync?.writePath)) {
+        const error = new Error('Parent request sync is not configured');
+        error.code = 'REMOTE_UNAVAILABLE';
+        throw error;
+      }
+      const record = await get(requestId);
+      if (!record) throw new Error('Parent request not found');
+      const profile = await profileManager.current();
+      if (profile?.id !== record.profileId) throw new Error('Profile must match the request');
+
+      const path = record.remotePath || requestPath(record);
+      const remote = await sync.readPath(path);
+      if (!remote?.exists) return { ok:false, reason:'missing', record:{ ...record } };
+      const payload = decodeRemoteJson(remote.content);
+      if (!samePayload(payload, requestPayload(record))) return { ok:false, reason:'mismatch', record:{ ...record } };
+      const reply = normalizeReply(payload?.reply);
+      if (!reply) return { ok:false, reason:'no-reply', record:{ ...record } };
+
+      if (reply.readAt) {
+        const next = {
+          ...record,
+          status: normalizeStatus(payload?.status, record.status || 'pending'),
+          syncState: 'synced',
+          remotePath: path,
+          remoteSha: remote.sha || record.remoteSha || null,
+          reply,
+          updatedAt: now()
+        };
+        await db.put('parentRequests', next, next.id);
+        return { ok:true, reason:'already-read', record:{ ...next } };
+      }
+
+      const readAt = now();
+      const nextPayload = {
+        ...payload,
+        reply: {
+          ...payload.reply,
+          message: reply.message,
+          repliedAt: reply.repliedAt,
+          readAt
+        }
+      };
+      const result = sync.writePathKnown
+        ? await sync.writePathKnown(path, nextPayload, {
+            sha: remote.sha,
+            message: `Mark ${record.appId} reply read by ${record.profileId}`
+          })
+        : await sync.writePath(path, nextPayload, {
+            sha: remote.sha,
+            message: `Mark ${record.appId} reply read by ${record.profileId}`
+          });
+      if (result?.status !== 'synced' && result?.status !== 'created') throw errorFromResult(result);
+
+      const next = {
+        ...record,
+        status: normalizeStatus(payload?.status, record.status || 'pending'),
+        syncState: 'synced',
+        lastError: null,
+        remotePath: path,
+        remoteSha: result.sha || remote.sha || record.remoteSha || null,
+        reply: { ...reply, readAt },
+        updatedAt: readAt
+      };
+      await db.put('parentRequests', next, next.id);
+      return { ok:true, reason:'read', record:{ ...next } };
+    }
+
     return {
       create,
       createAndSend,
@@ -259,6 +390,8 @@
       resend,
       get,
       listUnsent,
+      refreshReplies,
+      markReplyRead,
       syncOne
     };
   }
@@ -267,6 +400,7 @@
     SUPPORTED_TYPES,
     SUPPORTED_STATUSES,
     MAX_MESSAGE_LENGTH,
+    MAX_REPLY_LENGTH,
     createRequestId,
     requestPath,
     requestPayload,
