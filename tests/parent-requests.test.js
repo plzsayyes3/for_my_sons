@@ -13,6 +13,7 @@ const {
 
 const skyDashIndex = fs.readFileSync(path.join(__dirname, '..', 'sky-dash-sample', 'index.html'), 'utf8');
 const wankoWarIndex = fs.readFileSync(path.join(__dirname, '..', 'wanko-war', 'index.html'), 'utf8');
+const parentRequestView = fs.readFileSync(path.join(__dirname, '..', 'shared', 'parent-request-view.js'), 'utf8');
 
 function remoteContent(value) {
   return new TextEncoder().encode(JSON.stringify(value));
@@ -68,6 +69,41 @@ test('uses the selected profile automatically and rejects an empty message', asy
   assert.equal(request.profileId, 'sora');
   assert.equal(request.status, 'pending');
   assert.equal(request.syncState, 'pending');
+});
+
+test('filters unsent requests to the current profile and app', async () => {
+  const db = createMemoryDatabase();
+  const profiles = createProfileManager(db);
+  const service = createParentRequestService({ db, profileManager: profiles });
+
+  await profiles.setCurrent('soma');
+  await service.create({
+    requestId: 'request-soma-sky',
+    appId: 'sky-dash',
+    gameName: 'Sky Dash',
+    type: 'feature',
+    message: 'そらをとびたい'
+  });
+  await service.create({
+    requestId: 'request-soma-wanko',
+    appId: 'wanko-war',
+    gameName: 'わんこ大戦争',
+    type: 'problem',
+    message: 'ボタンがおせない'
+  });
+
+  await profiles.setCurrent('sora');
+  await service.create({
+    requestId: 'request-sora-sky',
+    appId: 'sky-dash',
+    gameName: 'Sky Dash',
+    type: 'feature',
+    message: 'ジャンプをふやしたい'
+  });
+
+  await profiles.setCurrent('soma');
+  const unsent = await service.listUnsent({ appId: 'sky-dash', currentProfileOnly: true });
+  assert.deepEqual(unsent.map(record => record.id), ['request-soma-sky']);
 });
 
 test('retries the same local request id without creating a duplicate', async () => {
@@ -191,4 +227,10 @@ test('shared For My Sons API exposes parent requests when the module is availabl
   });
   assert.equal(record.profileId, 'papa');
   assert.equal(record.appId, 'wanko-war');
+});
+
+test('parent request view restores an unsent draft for retry after reload', () => {
+  assert.match(parentRequestView, /listUnsent\(\{ appId, currentProfileOnly: true \}\)/);
+  assert.match(parentRequestView, /まだ送れていないお願いがあるよ/);
+  assert.match(parentRequestView, /もういちど送る/);
 });
