@@ -1,5 +1,9 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
+const fs = require('node:fs');
+const path = require('node:path');
+
+const skyDashIndex = fs.readFileSync(path.join(__dirname, '..', 'sky-dash-sample', 'index.html'), 'utf8');
 
 const dbModule = require('../shared/for-my-sons-db.js');
 const profileModule = require('../shared/profile-manager.js');
@@ -89,4 +93,24 @@ test('wallet persists and stays separated by profile', async () => {
   const rikuReloaded = walletModule.createStarWallet(save, { profileId: 'riku' });
   await rikuReloaded.loadStarWallet();
   assert.equal(rikuReloaded.getStars(), 7);
+});
+
+test('existing Sky Dash score, progression and countdown rules remain intact', () => {
+  assert.match(skyDashIndex, /const PASS_SCORE=70;/);
+  assert.match(skyDashIndex, /Math\.max\(0,Math\.min\(100,state\.score\+delta\)\)/);
+  assert.match(skyDashIndex, /if\(state\.stageDistance>=STAGE_LENGTH\)triggerClear\(\)/);
+  assert.match(skyDashIndex, /pendingNextIndex=state\.stageIndex;/);
+  assert.match(skyDashIndex, /state\.score=100;scoreValue\.textContent="100"/);
+  assert.match(skyDashIndex, /let count=3;/);
+  assert.match(skyDashIndex, /continueBtn\.textContent="もういちど（3秒後スタート）"/);
+  assert.match(skyDashIndex, /continueBtn\.textContent="すすむ（3秒後スタート）"/);
+});
+
+test('Sky Dash star wallet uses shared storage instead of a new localStorage key', () => {
+  assert.match(skyDashIndex, /\.\.\/shared\/for-my-sons-db\.js/);
+  assert.match(skyDashIndex, /\.\.\/shared\/profile-manager\.js/);
+  assert.match(skyDashIndex, /\.\.\/shared\/save-store\.js/);
+  assert.doesNotMatch(skyDashIndex, /localStorage/);
+  assert.match(skyDashIndex, /starWallet\.addStars\(1\)/);
+  assert.match(skyDashIndex, /createClearRewardGuard/);
 });
