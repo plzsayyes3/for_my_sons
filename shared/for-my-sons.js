@@ -146,7 +146,9 @@
         send: parentRequests.send,
         resend: parentRequests.resend,
         get: parentRequests.get,
-        listUnsent: parentRequests.listUnsent
+        listUnsent: parentRequests.listUnsent,
+        refreshReplies: parentRequests.refreshReplies,
+        markReplyRead: parentRequests.markReplyRead
       } : null,
       characterRequests: {
         create: characterRequests.create,
