@@ -559,10 +559,6 @@ function initGame(THREE){
    g.position.z=z;scene.add(g);pads.push(g);
  });
 
- const ringMat=new THREE.MeshStandardMaterial({color:0xffc528,emissive:0x7a4300,emissiveIntensity:.35,metalness:.35});
- const rings=[];
- for(let i=0;i<7;i++){const r=new THREE.Mesh(new THREE.TorusGeometry(2.1,.24,12,26),ringMat);r.position.set(i%2?8:-8,4,-28-i*40);r.rotation.y=Math.PI/2;scene.add(r);rings.push(r)}
-
 
  const obstacleMat=new THREE.MeshStandardMaterial({color:0xf36b4e,roughness:.62});
  const obstacleStripe=new THREE.MeshStandardMaterial({color:0xffe45b,roughness:.55});
@@ -943,7 +939,6 @@ function initGame(THREE){
    const remaining=Math.max(0,STAGE_LENGTH-state.stageDistance);
    finishGate.visible=remaining<=120&&!state.transition;
    if(finishGate.visible)finishGate.position.set(0,.35,player.position.z-(remaining/.9));
-   rings.forEach(r=>{r.position.z+=dz;if(r.position.z>20)r.position.z-=300});
    obstacles.forEach((o,i)=>{
      o.position.z+=dz;
      if(o.position.z>12){o.position.z-=430;o.position.x=laneXs[(i+state.stageIndex+Math.floor(state.stageDistance/120))%3];o.userData.hit=false;o.visible=true}
