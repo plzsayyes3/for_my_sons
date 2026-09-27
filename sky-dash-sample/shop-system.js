@@ -16,6 +16,7 @@
     { id:'drink-heal', type:'upgrade', icon:'🥤', name:'げんきアップ', description:'げんきドリンクの回復量が増える', effect:'drinkHeal', maxLevel:5, prices:[20,40,70,110,160] },
     { id:'jump-shoes', type:'upgrade', icon:'👟', name:'ジャンプシューズ', description:'ジャンプが少し高くなる', effect:'jumpShoes', maxLevel:5, prices:[20,40,70,110,160] },
     { id:'safety', type:'upgrade', icon:'🪖', name:'セーフティ', description:'障害物の減点を少し軽くする', effect:'safety', maxLevel:5, prices:[20,40,70,110,160] },
+    { id:'speed-up', type:'upgrade', icon:'💨', name:'スピードアップ', description:'いつもの走る速さが少し上がる', effect:'runSpeed', maxLevel:5, prices:[20,40,70,110,160] },
 
     { id:'score-shield', type:'consumable', icon:'🛡️', name:'スコアガード', description:'次のミス1回の減点を0にする', effect:'scoreGuard', price:20, activation:'auto-hit' },
     { id:'start-energy', type:'consumable', icon:'💚', name:'スタートげんき', description:'最初のミス後に5点だけ自動回復', effect:'startEnergy', price:15, activation:'auto-hit' },
@@ -107,6 +108,10 @@
 
   function getObstacleDamage(state) {
     return Math.max(5, 10 - getUpgradeLevel(state, 'safety'));
+  }
+
+  function getRunSpeedMultiplier(state) {
+    return 1 + getUpgradeLevel(state, 'runSpeed') * 0.03;
   }
 
   function getRoadStarAmount(activeStarDouble) {
@@ -276,6 +281,7 @@
     getDrinkHeal,
     getJumpVelocity,
     getObstacleDamage,
+    getRunSpeedMultiplier,
     getRoadStarAmount,
     resolveObstacleImpact,
     createShopStore
