@@ -1,4 +1,4 @@
-const CACHE_NAME = 'for-my-sons-v76';
+const CACHE_NAME = 'for-my-sons-v77';
 const SHELL = [
   './',
   './index.html',
@@ -55,14 +55,18 @@ const SHELL = [
   './official-wankos/nen-o-kometa-snake.wanko.json?v=2',
   './official-wankos/bakuhatsu-dama.wanko.json?v=2',
   './official-wankos/hammer.wanko.json?v=2',
+  './official-wankos/nagaashi.wanko.json?v=1',
+  './official-wankos/big-monster.wanko.json?v=1',
+  './official-wankos/dorisha.wanko.json?v=1',
+  './official-wankos/ebifurai-fura.wanko.json?v=1',
   './wanko-cloud/?v=1',
   './wanko-cloud/index.html',
   './shared/wanko-cloud-config.js',
   './shared/wanko-cloud.js',
-  './shared/official-wankos.js?v=8',
+  './shared/official-wankos.js?v=9',
   './shared/wanko-library-store.js?v=1',
   './shared/wanko-library.js',
-  './shared/wanko-game-data.js?v=3',
+  './shared/wanko-game-data.js?v=4',
   './shared/wanko-game-progress.js?v=8',
   './shared/wanko-profile-sync.js?v=1',
   './shared/wanko-mini-addition.js?v=2',
@@ -100,6 +104,8 @@ const SHELL = [
   './assets/official-wankos/nen-o-kometa-snake.png?v=1',
   './assets/official-wankos/bakuhatsu-dama.png?v=1',
   './assets/official-wankos/hammer.png?v=1',
+  './assets/official-wankos/dorisha.png?v=1',
+  './assets/official-wankos/ebifurai-fura.png?v=1',
   './assets/paint.svg'
 ];
 
