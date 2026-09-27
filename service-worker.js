@@ -1,4 +1,4 @@
-const CACHE_NAME = 'for-my-sons-v77';
+const CACHE_NAME = 'for-my-sons-v78';
 const SHELL = [
   './',
   './index.html',
@@ -30,9 +30,9 @@ const SHELL = [
   './merge-block/index.html',
   './merge-block/styles.css?v=10',
   './merge-block/app.js?v=11',
-  './wanko/?v=12',
+  './wanko/?v=13',
   './wanko/index.html',
-  './wanko-war/?v=25',
+  './wanko-war/?v=26',
   './wanko-war/index.html',
   './wanko-deck/?v=2',
   './wanko-deck/index.html',
