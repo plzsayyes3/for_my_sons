@@ -54,7 +54,8 @@ test('wanko app entries and service-worker shell point to current versioned page
   const shell = await installShell();
   assert.match(launcher.url, /^\.\/wanko\/\?v=\d+$/);
   assert.ok(shell.urls.some(url => /^\.\/wanko-war\/\?v=\d+$/.test(url)));
-  assert.ok(shell.urls.some(url => /^\.\/wanko-library\/\?v=\d+$/.test(url)));\n  assert.ok(shell.urls.includes('./wanko-deck/?v=3'));
+  assert.ok(shell.urls.some(url => /^\.\/wanko-library\/\?v=\d+$/.test(url)));
+  assert.ok(shell.urls.includes('./wanko-deck/?v=3'));
   for (const script of [
     './shared/wanko-game-data.js?v=4',
     './shared/wanko-library-store.js?v=1',
