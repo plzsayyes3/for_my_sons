@@ -205,6 +205,20 @@
       return { ...next };
     }
 
+    async function persistSyncFailure(record, error) {
+      const authRequired = error?.code === 'AUTH_REQUIRED' || error?.code === 'AUTH_FAILED';
+      const conflict = error?.code === 'CONFLICT';
+      const next = {
+        ...record,
+        status: 'pending',
+        syncState: conflict ? 'conflict' : authRequired ? 'auth-required' : 'error',
+        lastError: conflict ? 'conflict' : authRequired ? 'auth-required' : 'remote-unavailable',
+        updatedAt: new Date(clock()).toISOString()
+      };
+      await db.put('characterRequests', next, record.requestId);
+      return { ...next };
+    }
+
     async function resend(requestId) {
       const record = await get(requestId);
       if (!record) throw new Error('Character request not found');
@@ -217,7 +231,11 @@
         updatedAt: new Date(clock()).toISOString()
       };
       await db.put('characterRequests', pending, requestId);
-      return syncOne(pending, { forceArtwork: true });
+      try {
+        return await syncOne(pending, { forceArtwork: true });
+      } catch (error) {
+        return persistSyncFailure(pending, error);
+      }
     }
 
     async function syncPending() {
@@ -227,22 +245,7 @@
         try {
           results.push(await syncOne(record));
         } catch (error) {
-          const next = {
-            ...record,
-            syncState: error?.code === 'CONFLICT'
-              ? 'conflict'
-              : error?.code === 'AUTH_REQUIRED' || error?.code === 'AUTH_FAILED'
-                ? 'auth-required'
-                : 'error',
-            lastError: error?.code === 'CONFLICT'
-              ? 'conflict'
-              : error?.code === 'AUTH_REQUIRED' || error?.code === 'AUTH_FAILED'
-                ? 'auth-required'
-                : 'remote-unavailable',
-            updatedAt: new Date(clock()).toISOString()
-          };
-          await db.put('characterRequests', next, record.requestId);
-          results.push({ ...next });
+          results.push(await persistSyncFailure(record, error));
         }
       }
       return results;
