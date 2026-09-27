@@ -36,6 +36,20 @@ test('Paint exposes sent Wanko history and can force-resend local artwork', () =
   assert.match(source, /characterRequests\.listAll\(\)/);
   assert.match(source, /characterRequests\.resend\(record\.requestId\)/);
   assert.match(source, /もう一度送る/);
-  assert.match(source, /この端末に元の画像が残っていません/);
+  assert.match(source, /この端末に元の画像が残っていません/);\n  assert.match(source, /端末への保存に失敗しました/);
   assert.doesNotThrow(() => new Function(source));
+});
+
+
+test('Paint uses the current shared request stack for resend', () => {
+  const html = read('paint/index.html');
+  assert.match(html, /for-my-sons-db\.js\?v=4/);
+  assert.match(html, /character-requests\.js\?v=4/);
+  assert.match(html, /profile-manager\.js\?v=2/);
+  assert.match(html, /parent-lock\.js\?v=3/);
+  assert.match(html, /save-store\.js\?v=2/);
+  assert.match(html, /github-sync\.js\?v=9/);
+  assert.match(html, /parent-requests\.js\?v=4/);
+  assert.match(html, /for-my-sons\.js\?v=13/);
+  assert.match(html, /app\.js\?v=9/);
 });
