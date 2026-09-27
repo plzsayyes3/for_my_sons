@@ -988,7 +988,7 @@ window.addEventListener("orientationchange", () => window.setTimeout(fitFrame, 1
 async function retryPendingCharacterRequests() {
   if (!window.ForMySonsShared?.createForMySons) return;
   try {
-    if (!sharedForMySons) sharedForMySons = await window.ForMySonsShared.createForMySons();
+    const shared = await getSharedForMySons();
     await shared.characterRequests.syncPending();
   } catch (error) {
     console.warn("Character request retry deferred", error?.message || "offline");
