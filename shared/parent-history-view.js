@@ -80,12 +80,51 @@
         if (!remote?.exists) continue;
         const record = normalizeRecord(decodeJson(remote.content), file.path);
         if (!record || record.profileId === 'papa') continue;
+        record.remoteSha = remote.sha || file.sha || null;
         const previous = byId.get(record.id);
         if (!previous || timestampOf(record) >= timestampOf(previous)) byId.set(record.id, record);
       } catch {}
     }
 
     return [...byId.values()].sort((a, b) => timestampOf(b) - timestampOf(a));
+  }
+
+  async function saveReply(api, record, { message, status } = {}) {
+    if (!api?.sync?.readPath || !api?.sync?.writePathKnown) throw new TypeError('sync write API is required');
+    const profile = await api.profile.current();
+    if (profile?.id !== 'papa') throw new Error('Papa profile is required');
+    if (!record?.path) throw new Error('Request path is missing');
+
+    const replyMessage = String(message || '').trim();
+    if (!replyMessage) throw new TypeError('Reply message is required');
+    if (replyMessage.length > 2000) throw new TypeError('Reply message is too long');
+    const nextStatus = STATUS_LABELS[status] ? status : record.status || 'pending';
+
+    const remote = await api.sync.readPath(record.path);
+    if (!remote?.exists) throw new Error('Request was not found');
+    const latest = normalizeRecord(decodeJson(remote.content), record.path);
+    if (!latest || latest.id !== record.id) throw new Error('Request changed unexpectedly');
+
+    const now = new Date().toISOString();
+    const next = {
+      ...decodeJson(remote.content),
+      status: nextStatus,
+      reply: {
+        message: replyMessage,
+        repliedAt: now,
+        readAt: null
+      }
+    };
+    const result = await api.sync.writePathKnown(record.path, next, {
+      sha: remote.sha,
+      message: `Reply to ${latest.appId} request from ${latest.profileId}`
+    });
+    if (result?.status !== 'synced' && result?.status !== 'created') {
+      const error = new Error('Reply save failed');
+      error.code = result?.status || 'unknown';
+      throw error;
+    }
+    return normalizeRecord(next, record.path);
   }
 
   function make(documentRef, tag, className = '', text = '') {
@@ -180,6 +219,73 @@
           card.append(make(documentRef, 'div', 'papa-history-no-reply', 'まだ返答していません'));
         }
 
+        const replyToggle = make(documentRef, 'button', 'papa-history-reply-toggle', record.reply?.message ? '返答を編集' : '返事を書く');
+        replyToggle.type = 'button';
+        const editor = make(documentRef, 'div', 'papa-history-editor');
+        editor.hidden = true;
+
+        const statusLabel = make(documentRef, 'label', 'papa-history-editor-label', '状態');
+        const statusSelect = make(documentRef, 'select', 'papa-history-status-select');
+        for (const [value, label] of Object.entries(STATUS_LABELS)) {
+          const option = make(documentRef, 'option', '', label);
+          option.value = value;
+          option.selected = value === record.status;
+          statusSelect.append(option);
+        }
+
+        const replyLabel = make(documentRef, 'label', 'papa-history-editor-label', '子どもへの返事');
+        const replyInput = make(documentRef, 'textarea', 'papa-history-reply-input');
+        replyInput.rows = 4;
+        replyInput.maxLength = 2000;
+        replyInput.placeholder = '返事を書く';
+        replyInput.value = record.reply?.message || '';
+
+        const editorActions = make(documentRef, 'div', 'papa-history-editor-actions');
+        const cancel = make(documentRef, 'button', 'papa-history-editor-cancel', 'やめる');
+        cancel.type = 'button';
+        const save = make(documentRef, 'button', 'papa-history-editor-save', '返事を送る');
+        save.type = 'button';
+        const editorStatus = make(documentRef, 'div', 'papa-history-editor-status', '');
+        editorStatus.setAttribute('aria-live', 'polite');
+        editorActions.append(cancel, save);
+        editor.append(statusLabel, statusSelect, replyLabel, replyInput, editorActions, editorStatus);
+        card.append(replyToggle, editor);
+
+        replyToggle.addEventListener('click', () => {
+          editor.hidden = !editor.hidden;
+          if (!editor.hidden) replyInput.focus();
+        });
+        cancel.addEventListener('click', () => {
+          editor.hidden = true;
+          replyInput.value = record.reply?.message || '';
+          statusSelect.value = record.status;
+          editorStatus.textContent = '';
+        });
+        save.addEventListener('click', async () => {
+          if (!replyInput.value.trim()) {
+            editorStatus.textContent = '返事を書いてください。';
+            return;
+          }
+          save.disabled = true;
+          cancel.disabled = true;
+          editorStatus.textContent = '送信中…';
+          try {
+            await saveReply(api, record, {
+              message: replyInput.value,
+              status: statusSelect.value
+            });
+            editorStatus.textContent = '送信しました。';
+            await refresh();
+          } catch (error) {
+            editorStatus.textContent = error?.code === 'conflict'
+              ? 'ほかの更新と重なりました。更新してからもう一度送ってください。'
+              : '送信できませんでした。もう一度試してください。';
+          } finally {
+            save.disabled = false;
+            cancel.disabled = false;
+          }
+        });
+
         list.append(card);
       }
     }
@@ -224,5 +330,5 @@
     return { refresh, loadHistory: () => loadHistory(api) };
   }
 
-  return { STATUS_LABELS, normalizeRecord, loadHistory, mount };
+  return { STATUS_LABELS, normalizeRecord, loadHistory, saveReply, mount };
 });
