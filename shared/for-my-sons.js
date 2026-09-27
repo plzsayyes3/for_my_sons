@@ -151,6 +151,7 @@
       characterRequests: {
         create: characterRequests.create,
         get: characterRequests.get,
+        listAll: characterRequests.listAll,
         listPending: characterRequests.listPending,
         syncPending: characterRequests.syncPending,
         resend: characterRequests.resend,
