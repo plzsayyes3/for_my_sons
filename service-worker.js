@@ -1,9 +1,9 @@
-const CACHE_NAME = 'for-my-sons-v82';
+const CACHE_NAME = 'for-my-sons-v83';
 const SHELL = [
   './',
   './index.html',
-  './styles.css?v=3',
-  './app.js?v=4',
+  './styles.css?v=4',
+  './app.js?v=5',
   './apps.json',
   './manifest.webmanifest',
   './shared/for-my-sons-db.js?v=4',
@@ -12,10 +12,10 @@ const SHELL = [
   './shared/save-store.js?v=2',
   './shared/github-sync.js?v=9',
   './shared/character-requests.js?v=3',
-  './shared/parent-requests.js?v=3',
-  './shared/parent-request-view.js?v=3',
-  './shared/parent-history-view.js?v=2',
-  './shared/for-my-sons.js?v=12',
+  './shared/parent-requests.js?v=4',
+  './shared/parent-request-view.js?v=4',
+  './shared/parent-history-view.js?v=3',
+  './shared/for-my-sons.js?v=13',
   './shared/settings-view.js?v=6',
   './shared/for-my-sons.css?v=3',
   './kids-3d-playgrand/?v=5',
