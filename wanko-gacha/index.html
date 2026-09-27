@@ -352,7 +352,7 @@ main{width:min(100%,720px);margin:auto;padding:14px 12px calc(env(safe-area-inse
     const tenths=Math.ceil(Math.max(0,remainingMs)/100);
     if(tenths!==lastShownTenth){
       lastShownTenth=tenths;
-      chargeStatus.textContent=(remainingMs/1000).toFixed(1)+'秒　タップで -0.2秒';
+      chargeStatus.textContent=(armedDraw?.mode==='ten'?'10連チャージ ':'')+(remainingMs/1000).toFixed(1)+'秒　タップで -0.2秒';
       document.getElementById('windowMark').textContent=p<.35?'·':p<.7?'✦':'★';
     }
   }
