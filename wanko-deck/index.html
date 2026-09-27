@@ -1,0 +1,77 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<title>デッキ編集</title>
+<style>
+*{box-sizing:border-box}body{margin:0;min-height:100svh;font-family:-apple-system,BlinkMacSystemFont,"Hiragino Sans","Yu Gothic",sans-serif;background:#f6efe3;color:#27231f}a{color:inherit;text-decoration:none}
+header{position:sticky;top:0;z-index:4;display:flex;align-items:center;gap:10px;padding:calc(env(safe-area-inset-top) + 10px) 14px 10px;background:rgba(255,250,240,.94);backdrop-filter:blur(16px);border-bottom:1px solid #ddd0bd}.back{width:42px;height:42px;display:grid;place-items:center;border:2px solid #332f29;border-radius:13px;background:white;font-size:26px;font-weight:900}h1{font-size:22px;margin:0}.profile{margin-left:auto;font-size:11px;font-weight:900}
+main{width:min(100%,900px);margin:auto;padding:16px 14px calc(env(safe-area-inset-bottom) + 30px)}.lead{margin:0 0 12px;font-size:13px;color:#6f655c}
+.slots{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:18px}.slot{min-width:0;aspect-ratio:.88;border:2px dashed #9d8e7d;border-radius:15px;background:#fffaf2;padding:6px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px}.slot.filled{border-style:solid;border-color:#332f29;box-shadow:0 3px 0 #332f29}.slot img{width:52px;height:52px;object-fit:contain}.slot .emoji{font-size:38px}.slot .n{font-size:9px;font-weight:900;max-width:100%;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.slot .x{border:0;background:#eee0d1;border-radius:999px;font-size:10px;padding:3px 7px;font-weight:900}
+.bar{display:flex;align-items:center;justify-content:space-between;margin:8px 0}.bar h2{font-size:17px;margin:0}.count{font-size:12px;font-weight:900}.save{width:100%;border:2px solid #332f29;border-radius:14px;background:#f0c63d;padding:13px;font-weight:1000;font-size:16px;box-shadow:0 4px 0 #332f29;margin-bottom:18px}.save:disabled{opacity:.5}.status{text-align:center;min-height:20px;font-size:12px;font-weight:900}
+.grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}@media(min-width:650px){.grid{grid-template-columns:repeat(4,minmax(0,1fr))}}.card{border:2px solid #332f29;border-radius:17px;background:#fffaf2;padding:8px;text-align:left;box-shadow:0 3px 0 #332f29}.card.selected{background:#fff0a8}.card:disabled{opacity:.42}.art{height:90px;display:grid;place-items:center}.art img{width:100%;height:100%;object-fit:contain}.art span{font-size:52px}.name{font-weight:900;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.meta{font-size:10px;color:#75695e;margin-top:3px}
+</style>
+</head>
+<body>
+<header><a class="back" href="../wanko/?v=11">‹</a><h1>デッキ編集</h1><span class="profile" id="profile">端末</span></header>
+<main>
+<p class="lead">バトルにつれていくわんこを8体まで選べます。カードを押した順に並びます。</p>
+<div class="slots" id="slots"></div>
+<button class="save" id="save">このデッキで保存</button><div class="status" id="status"></div>
+<div class="bar"><h2>つかえるわんこ</h2><span class="count" id="count">0 / 8</span></div>
+<div class="grid" id="grid"></div>
+</main>
+<script src="../shared/for-my-sons-db.js?v=2"></script>
+<script src="../shared/profile-manager.js?v=2"></script>
+<script src="../shared/parent-lock.js?v=3"></script>
+<script src="../shared/save-store.js?v=2"></script>
+<script src="../shared/github-sync.js?v=8"></script>
+<script src="../shared/for-my-sons.js?v=9"></script>
+<script src="../shared/wanko-cloud-config.js"></script>
+<script src="../shared/wanko-cloud.js"></script>
+<script src="../shared/wanko-library-store.js?v=1"></script>
+<script src="../shared/wanko-library.js"></script>
+<script src="../shared/wanko-game-data.js?v=3"></script>
+<script src="../shared/wanko-game-progress.js?v=8"></script>
+<script src="../shared/wanko-profile-sync.js?v=1"></script>
+<script>
+(async()=>{
+ const GameData=window.WankoGameData,slotsEl=document.getElementById('slots'),grid=document.getElementById('grid'),count=document.getElementById('count'),status=document.getElementById('status'),save=document.getElementById('save');
+ let Progress=window.WankoGameProgress,sync=null,state=null,items=[],deck=[];
+ try{
+  const api=await ForMySonsShared.createForMySons(),profile=await api.profile.current();
+  document.getElementById('profile').textContent=profile?.label&&profile.label!=='profile-1'?profile.label:'未設定';
+  const scoped=WankoGameProgress.createProfileStore(profile.id,api.save,GameData);
+  sync=WankoProfileSync.createWankoProfileSync({api,profileId:profile.id,definitions:GameData,progressStore:scoped,legacyStorage:window.WankoLibrary,confirmLegacy:async()=>false});
+  const initialized=await sync.initialize();Progress=scoped;state=initialized.state;
+ }catch(error){console.warn(error);state=await Progress.getState();document.getElementById('profile').textContent='端末保存';}
+ const customList=window.WankoLibrary?await WankoLibrary.listWankos():[];
+ const owned=new Set(state.ownedWankoIds||[]);
+ for(const id of GameData.getSelectableAllyIds()){
+  const c=GameData.getCharacter(id),unlocked=!c.unlockAfterStage||state.clearedStageIds.includes(c.unlockAfterStage);
+  if(unlocked)items.push({key:'game:'+id,name:c.name,image:c.artwork||'',emoji:c.placeholder||'🐾',meta:c.unlockAfterStage?'ステージ解放':'最初から'});
+ }
+ for(const w of customList)if(owned.has(w.id))items.push({key:'custom:'+w.id,name:w.name||'うちのわんこ',image:WankoLibrary.blobUrl(w)||'',emoji:'🎨',meta:'ガチャで獲得'});
+ const available=new Set(items.map(x=>x.key));
+ deck=(state.deckSlots||[]).filter(x=>available.has(x)).slice(0,8);
+ if(!deck.length)deck=items.filter(x=>x.key.startsWith('game:')).slice(0,8).map(x=>x.key);
+ function render(){
+  count.textContent=deck.length+' / 8';slotsEl.replaceChildren();grid.replaceChildren();
+  for(let i=0;i<8;i++){const key=deck[i],item=items.find(x=>x.key===key),slot=document.createElement('div');slot.className='slot'+(item?' filled':'');
+   if(item){if(item.image){const img=document.createElement('img');img.src=item.image;img.alt='';slot.appendChild(img)}else{const e=document.createElement('span');e.className='emoji';e.textContent=item.emoji;slot.appendChild(e)}
+    const n=document.createElement('div');n.className='n';n.textContent=item.name;const x=document.createElement('button');x.className='x';x.textContent='はずす';x.onclick=()=>{deck=deck.filter(v=>v!==key);render()};slot.append(n,x);
+   }else slot.textContent=(i+1);
+   slotsEl.appendChild(slot);
+  }
+  for(const item of items){const b=document.createElement('button');b.className='card'+(deck.includes(item.key)?' selected':'');b.disabled=!deck.includes(item.key)&&deck.length>=8;
+   const art=document.createElement('div');art.className='art';if(item.image){const img=document.createElement('img');img.src=item.image;img.alt='';art.appendChild(img)}else{const e=document.createElement('span');e.textContent=item.emoji;art.appendChild(e)}
+   const n=document.createElement('div');n.className='name';n.textContent=item.name;const m=document.createElement('div');m.className='meta';m.textContent=deck.includes(item.key)?'デッキ入り':item.meta;b.append(art,n,m);
+   b.onclick=()=>{if(deck.includes(item.key))deck=deck.filter(v=>v!==item.key);else if(deck.length<8)deck.push(item.key);render()};grid.appendChild(b);
+  }
+ }
+ save.onclick=async()=>{save.disabled=true;status.textContent='保存しています…';try{state=await Progress.setDeckSlots(deck);if(sync){sync.schedule(state);await sync.flush()}status.textContent='デッキを保存しました ✓'}catch(error){console.error(error);status.textContent='保存できませんでした'}finally{save.disabled=false}};
+ render();
+})();
+</script>
+</body></html>
