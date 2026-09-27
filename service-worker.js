@@ -1,4 +1,4 @@
-const CACHE_NAME = 'for-my-sons-v81';
+const CACHE_NAME = 'for-my-sons-v82';
 const SHELL = [
   './',
   './index.html',
@@ -6,7 +6,7 @@ const SHELL = [
   './app.js?v=4',
   './apps.json',
   './manifest.webmanifest',
-  './shared/for-my-sons-db.js?v=3',
+  './shared/for-my-sons-db.js?v=4',
   './shared/profile-manager.js?v=2',
   './shared/parent-lock.js?v=3',
   './shared/save-store.js?v=2',
