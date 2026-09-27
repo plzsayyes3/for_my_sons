@@ -141,7 +141,8 @@
         <div class="startActions">
           <button class="primaryAction" id="startBattle">つづきから</button>
           <a class="startLink" href="../wanko-gacha/?v=4">わんこガチャ</a>
-          <a class="startLink" href="../wanko-library/?v=17">わんこ大図鑑</a>
+          <a class="startLink" href="../wanko-library/?v=19">わんこ大図鑑</a>
+          <a class="startLink" href="../wanko-deck/?v=1">デッキ編集</a>
         </div>
       </div>
     </div>
@@ -162,9 +163,9 @@
   <footer>
     <div class="controls">
       <div class="deck">
-        <button class="card" data-dog="W01"><span class="dog">🐕</span><span><div class="name">しばわん</div><div class="cost">🦴 80</div></span></button>
-        <button class="card" data-dog="W02"><span class="dog">🐶</span><span><div class="name">ダッシュわん</div><div class="cost">🦴 150</div></span></button>
-        <button class="card" data-dog="legacyBig"><span class="dog">🐩</span><span><div class="name">でかわん</div><div class="cost">🦴 280</div></span></button>
+        <button class="card" data-dog="W01" hidden><span class="dog">🐕</span><span><div class="name">しばわん</div><div class="cost">🦴 80</div></span></button>
+        <button class="card" data-dog="W02" hidden><span class="dog">🐶</span><span><div class="name">ダッシュわん</div><div class="cost">🦴 150</div></span></button>
+        <button class="card" data-dog="legacyBig" hidden><span class="dog">🐩</span><span><div class="name">でかわん</div><div class="cost">🦴 280</div></span></button>
         <div id="unlockedCards" style="display:contents"></div>
         <div id="customWankoCards" style="display:contents"></div>
         <button class="card" data-dog="custom" id="customDogCard" hidden><span class="dog" id="customDogThumb">🎨</span><span><div class="name" id="customDogName">うちのわんこ</div><div class="cost" id="customDogCost">🦴 180</div></span></button>
@@ -191,7 +192,7 @@
 <script src="../shared/wanko-library-store.js?v=1"></script>
 <script src="../shared/wanko-library.js"></script>
 <script src="../shared/wanko-game-data.js?v=3"></script>
-<script src="../shared/wanko-game-progress.js?v=7"></script>
+<script src="../shared/wanko-game-progress.js?v=8"></script>
 <script src="../shared/wanko-profile-sync.js?v=1"></script>
 <script>
 (() => {
@@ -268,6 +269,14 @@
 
   function queueProgressSync(){
     if(progressSync&&progressState)progressSync.schedule(progressState);
+  }
+
+  function effectiveDeck(state){
+    const configured=Array.isArray(state?.deckSlots)?state.deckSlots.filter(Boolean).slice(0,8):[];
+    if(configured.length)return configured;
+    return GameData.getSelectableAllyIds()
+      .filter(id=>{const character=GameData.getCharacter(id);return !character.unlockAfterStage||state?.clearedStageIds?.includes(character.unlockAfterStage)})
+      .slice(0,8).map(id=>'game:'+id);
   }
 
   function enemyPointReward(entity){
@@ -549,21 +558,16 @@
       const ownedIds=new Set(state.ownedWankoIds||[]);
       const list=await WankoLibrary.listWankos();
       const byId=new Map(list.map(wanko=>[wanko.id,wanko]));
-      const owned=list.filter(wanko=>ownedIds.has(wanko.id));
-      let trial=null;
-      if(state.selectedWanko?.source==='custom'){
-        const selected=byId.get(state.selectedWanko.id);
-        if(selected&&!ownedIds.has(selected.id))trial=selected;
-      }
-      if(!trial)trial=list.find(wanko=>!ownedIds.has(wanko.id))||null;
+      const deckKeys=new Set(effectiveDeck(state));
+      const owned=list.filter(wanko=>ownedIds.has(wanko.id)&&deckKeys.has('custom:'+wanko.id));
 
-      for(const wanko of [...owned,...(trial?[trial]:[])]){
+      for(const wanko of owned){
         const url=WankoLibrary.blobUrl(wanko);
         if(!url)continue;
         customDogUrls.push(url);
         const key='custom:'+wanko.id;
         DOGS[key]=customDogDefinition(wanko,url);
-        appendCustomCard(wanko,key,ownedIds.has(wanko.id));
+        appendCustomCard(wanko,key,true);
       }
 
       let official=null;
@@ -582,7 +586,7 @@
       if(official){
         customDogUrl=official.image||null;
         DOGS.custom=customDogDefinition(official,customDogUrl);
-        customDogCard.hidden=false;
+        customDogCard.hidden=true;
         customDogName.textContent=official.name||'うちのわんこ';
         customDogCost.textContent='🦴 '+DOGS.custom.cost;
         customDogThumb.replaceChildren();
@@ -597,8 +601,13 @@
 
   function renderAllyCards(state){
     unlockedCards.replaceChildren();
-    const unlockedIds=GameData.getSelectableAllyIds().filter(id=>id!=='W01'&&id!=='W02');
-    for(const id of unlockedIds){
+    const deckKeys=new Set(effectiveDeck(state));
+    for(const id of ['W01','W02']){
+      const fixed=document.querySelector('.card[data-dog="'+id+'"]');
+      if(fixed)fixed.hidden=!deckKeys.has('game:'+id);
+    }
+    for(const id of GameData.getSelectableAllyIds().filter(id=>id!=='W01'&&id!=='W02')){
+      if(!deckKeys.has('game:'+id))continue;
       const character=GameData.getCharacter(id);
       const isUnlocked=!character.unlockAfterStage||state.clearedStageIds.includes(character.unlockAfterStage);
       if(!isUnlocked)continue;
