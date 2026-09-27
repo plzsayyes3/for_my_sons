@@ -306,8 +306,12 @@
   function effectiveDeck(state){
     const configured=Array.isArray(state?.deckSlots)?state.deckSlots.filter(Boolean).slice(0,8):[];
     if(configured.length)return configured;
+    const owned=new Set(state?.ownedWankoIds||[]);
     return GameData.getSelectableAllyIds()
-      .filter(id=>{const character=GameData.getCharacter(id);return !character.unlockAfterStage||state?.clearedStageIds?.includes(character.unlockAfterStage)})
+      .filter(id=>{
+        const character=GameData.getCharacter(id);
+        return !character.unlockAfterStage||state?.clearedStageIds?.includes(character.unlockAfterStage)||owned.has('game:'+id);
+      })
       .slice(0,8).map(id=>'game:'+id);
   }
 
@@ -647,6 +651,7 @@
   function renderAllyCards(state){
     unlockedCards.replaceChildren();
     const deckKeys=new Set(effectiveDeck(state));
+    const owned=new Set(state?.ownedWankoIds||[]);
     for(const id of ['W01','W02']){
       const fixed=document.querySelector('.card[data-dog="'+id+'"]');
       if(fixed)fixed.hidden=!deckKeys.has('game:'+id);
@@ -654,7 +659,7 @@
     for(const id of GameData.getSelectableAllyIds().filter(id=>id!=='W01'&&id!=='W02')){
       if(!deckKeys.has('game:'+id))continue;
       const character=GameData.getCharacter(id);
-      const isUnlocked=!character.unlockAfterStage||state.clearedStageIds.includes(character.unlockAfterStage);
+      const isUnlocked=!character.unlockAfterStage||state.clearedStageIds.includes(character.unlockAfterStage)||owned.has('game:'+id);
       if(!isUnlocked)continue;
       const button=document.createElement('button');button.className='card';button.dataset.dog=id;
       const thumb=document.createElement('span');thumb.className='dog';
