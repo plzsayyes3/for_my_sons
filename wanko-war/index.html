@@ -96,6 +96,8 @@
     .primaryAction,.secondaryAction,.startLink{display:block;width:100%;border:2.5px solid var(--line);border-radius:14px;padding:11px 14px;font-weight:1000;box-shadow:0 4px 0 var(--line);text-decoration:none;color:var(--ink)}
     .primaryAction{background:#ffe58f}.secondaryAction,.startLink{background:#fff}
     .primaryAction:active,.secondaryAction:active,.startLink:active{transform:translateY(3px);box-shadow:0 1px 0 var(--line)}
+    #papaRequestMount .fms-request-launch{width:100%;margin:0;border:2.5px solid var(--line);border-radius:14px;padding:11px 14px;background:#eef6ff;color:var(--ink);box-shadow:0 4px 0 var(--line)}
+    #papaRequestMount .fms-request-launch:active{transform:translateY(3px);box-shadow:0 1px 0 var(--line)}
     .result p{margin:0 0 16px;font-weight:700}
     #orientationHint{position:fixed;inset:0;z-index:120;display:grid;place-items:center;padding:22px;background:rgba(247,240,228,.94);backdrop-filter:blur(10px)}
     #orientationHint[hidden]{display:none}.orientationHintCard{width:min(92vw,340px);border:3px solid var(--line);border-radius:24px;background:#fff9ee;padding:22px;text-align:center;box-shadow:0 7px 0 var(--line)}
@@ -148,6 +150,7 @@
           <a class="startLink" href="../wanko-gacha/?v=5">わんこガチャ</a>
           <a class="startLink" href="../wanko-library/?v=19">わんこ大図鑑</a>
           <a class="startLink" href="../wanko-deck/?v=1">デッキ編集</a>
+          <div id="papaRequestMount"></div>
         </div>
       </div>
     </div>
@@ -184,13 +187,15 @@
   </footer>
 </div>
 
-<script src="../shared/for-my-sons-db.js?v=2"></script>
+<script src="../shared/for-my-sons-db.js?v=3"></script>
 <script src="../shared/profile-manager.js?v=2"></script>
 <script src="../shared/parent-lock.js?v=3"></script>
 <script src="../shared/save-store.js?v=2"></script>
-<script src="../shared/github-sync.js?v=7"></script>
+<script src="../shared/github-sync.js?v=10"></script>
 <script src="../shared/character-requests.js?v=1"></script>
-<script src="../shared/for-my-sons.js?v=7"></script>
+<script src="../shared/parent-requests.js?v=1"></script>
+<script src="../shared/parent-request-view.js?v=1"></script>
+<script src="../shared/for-my-sons.js?v=11"></script>
 <script src="../shared/wanko-cloud-config.js"></script>
 <script src="../shared/wanko-cloud.js"></script>
 <script src="../shared/official-wankos.js?v=8"></script>
@@ -206,6 +211,7 @@
   const orientationHintText=document.getElementById('orientationHintText');
   const orientationHintContinue=document.getElementById('orientationHintContinue');
   let orientationHintDismissed=false;
+  let papaRequestView=null;
   function orientationMatchesMode(){
     if(requestedPlayMode==='landscape')return matchMedia('(orientation: landscape)').matches;
     if(requestedPlayMode==='portrait')return matchMedia('(orientation: portrait)').matches;
@@ -334,10 +340,23 @@
     }).catch(error=>console.warn('Wanko point save failed',error));
   }
 
+  function mountPapaRequest(){
+    if(papaRequestView||!sharedApi?.parentRequests||!window.ForMySonsParentRequestView)return;
+    const mount=document.getElementById('papaRequestMount');
+    if(!mount)return;
+    papaRequestView=window.ForMySonsParentRequestView.mount({
+      container:mount,
+      service:sharedApi.parentRequests,
+      appId:'wanko-war',
+      gameName:'わんこ大戦争'
+    });
+  }
+
   async function setupProfileProgress(){
     if(!window.ForMySonsShared?.createForMySons||!window.WankoProfileSync?.createWankoProfileSync)return;
     try{
       sharedApi=await window.ForMySonsShared.createForMySons();
+      mountPapaRequest();
       sessionProfile=await sharedApi.profile.current();
       const label=sessionProfile?.label&&sessionProfile.label!=='profile-1'?sessionProfile.label:'未設定';
       playerBadge.textContent=label;

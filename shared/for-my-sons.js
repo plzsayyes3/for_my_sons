@@ -16,6 +16,7 @@
     const saveModule = typeof require === 'function' ? require('./save-store.js') : globalThis.ForMySonsSaveStore;
     const githubModule = typeof require === 'function' ? require('./github-sync.js') : globalThis.ForMySonsGithubSync;
     const requestModule = typeof require === 'function' ? require('./character-requests.js') : globalThis.ForMySonsCharacterRequests;
+    const parentRequestModule = typeof require === 'function' ? require('./parent-requests.js') : globalThis.ForMySonsParentRequests;
     const eventTarget = options.eventTarget || (typeof window !== 'undefined' ? window : null);
     const dispatch = (type, detail) => eventTarget?.dispatchEvent?.(eventFor(type, detail));
     const profile = profileModule.createProfileManager(db);
@@ -29,6 +30,9 @@
       config: options.config || {}
     });
     const characterRequests = requestModule.createCharacterRequestService({ db, sync });
+    const parentRequests = parentRequestModule?.createParentRequestService
+      ? parentRequestModule.createParentRequestService({ db, profileManager: profile, sync })
+      : null;
 
     profile.onChange(event => dispatch('for-my-sons-profile-changed', { type: event.type, profileId: event.profile.id }));
 
@@ -136,6 +140,14 @@
           return result;
         }
       },
+      parentRequests: parentRequests ? {
+        create: parentRequests.create,
+        createAndSend: parentRequests.createAndSend,
+        send: parentRequests.send,
+        resend: parentRequests.resend,
+        get: parentRequests.get,
+        listUnsent: parentRequests.listUnsent
+      } : null,
       characterRequests: {
         create: characterRequests.create,
         get: characterRequests.get,

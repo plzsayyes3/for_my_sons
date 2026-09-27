@@ -12,6 +12,7 @@ const {
 } = require('../shared/parent-requests.js');
 
 const skyDashIndex = fs.readFileSync(path.join(__dirname, '..', 'sky-dash-sample', 'index.html'), 'utf8');
+const wankoWarIndex = fs.readFileSync(path.join(__dirname, '..', 'wanko-war', 'index.html'), 'utf8');
 
 function remoteContent(value) {
   return new TextEncoder().encode(JSON.stringify(value));
@@ -156,4 +157,38 @@ test('Sky Dash mounts the reusable papa request form and never embeds a token', 
   assert.match(skyDashIndex, /papaRequestMount/);
   assert.doesNotMatch(skyDashIndex, /github_pat_[A-Za-z0-9_]+/);
   assert.doesNotMatch(skyDashIndex, /ghp_[A-Za-z0-9]+/);
+});
+
+
+test('Wanko War mounts the reusable papa request form through the shared API', () => {
+  assert.match(wankoWarIndex, /parent-requests\.js\?v=1/);
+  assert.match(wankoWarIndex, /parent-request-view\.js\?v=1/);
+  assert.match(wankoWarIndex, /for-my-sons\.js\?v=11/);
+  assert.match(wankoWarIndex, /appId:'wanko-war'/);
+  assert.match(wankoWarIndex, /gameName:'わんこ大戦争'/);
+  assert.match(wankoWarIndex, /sharedApi\.parentRequests/);
+  assert.match(wankoWarIndex, /papaRequestMount/);
+  assert.doesNotMatch(wankoWarIndex, /github_pat_[A-Za-z0-9_]+/);
+  assert.doesNotMatch(wankoWarIndex, /ghp_[A-Za-z0-9]+/);
+});
+
+test('shared For My Sons API exposes parent requests when the module is available', async () => {
+  const { createForMySons } = require('../shared/for-my-sons.js');
+  const db = createMemoryDatabase();
+  const api = await createForMySons({
+    db,
+    fetch: async () => { throw new Error('network should not be needed for local create'); }
+  });
+  await api.profile.setCurrent('papa');
+  assert.equal(typeof api.parentRequests?.create, 'function');
+  assert.equal(typeof api.parentRequests?.resend, 'function');
+  const record = await api.parentRequests.create({
+    requestId: 'request-shared-api',
+    appId: 'wanko-war',
+    gameName: 'わんこ大戦争',
+    type: 'feature',
+    message: '新しいわんこがほしい'
+  });
+  assert.equal(record.profileId, 'papa');
+  assert.equal(record.appId, 'wanko-war');
 });
