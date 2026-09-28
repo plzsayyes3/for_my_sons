@@ -47,7 +47,7 @@ button{font:inherit}.app{width:min(100%,1080px);min-height:100vh;margin:auto;bac
   <div class="startCard">
     <div class="startHero" id="startHero">
       <div class="startCopy">
-        <h1>Company Town</h1>
+        <h1 id="startStoryTitle">『　　　』ストーリー</h1>
         <p>小さな会社から、世界一大きな町へ。</p>
       </div>
     </div>
@@ -95,16 +95,8 @@ button{font:inherit}.app{width:min(100%,1080px);min-height:100vh;margin:auto;bac
     <div class="saveStatus" id="saveStatus">読み込み中…</div>
     <div class="viewport">
       <div class="map" id="map">
-        <button class="lot available c1 r1" data-id="0" type="button"></button>
-        <button class="lot available c2 r1" data-id="1" type="button"></button>
-        <button class="lot available c3 r1" data-id="2" type="button"></button>
-        <button class="lot available c1 r2" data-id="3" type="button"></button>
-        <div class="lot companyLot c2 r2"><div class="company"></div></div>
-        <button class="lot available c3 r2" data-id="4" type="button"></button>
-        <button class="lot available c1 r3" data-id="5" type="button"></button>
-        <button class="lot available c2 r3" data-id="6" type="button"></button>
-        <button class="lot available c3 r3" data-id="7" type="button"></button>
-        <div class="roadV v1"></div><div class="roadV v2"></div><div class="roadH h1"></div><div class="roadH h2"></div>
+        <div id="lotLayer"></div>
+        <div id="roadLayer"></div>
       </div>
     </div>
 
@@ -134,78 +126,321 @@ button{font:inherit}.app{width:min(100%,1080px);min-height:100vh;margin:auto;bac
 <script>
 (async()=>{
 const APP_ID='company-town',SAVE_KEY='progress';
-const CFG={secondsPerDay:30,land:1_000_000,baseIncome:100_000,economicUnit:10_000,buildings:{convenience:{name:'コンビニ',price:1_000_000,rate:.03},supermarket:{name:'スーパー',price:1_500_000,rate:.05},park:{name:'公園',price:500_000,pop:50}}};
-const fresh=()=>({money:10_000_000,population:10,day:1,seconds:0,zoom:.72,companyName:'',presidentName:'',onboardingComplete:false,lots:Array.from({length:8},()=>({owned:false,building:null}))});
-let state=fresh(),api=null,selectedLot=null,selectedBuilding=null;
+const CFG={
+  secondsPerDay:30,
+  land:1_000_000,
+  baseIncome:100_000,
+  economicUnit:10_000,
+  lotSize:250,
+  roadSize:50,
+  mapMargin:25,
+  buildings:{
+    convenience:{name:'コンビニ',price:1_000_000,rate:.03},
+    supermarket:{name:'スーパー',price:1_500_000,rate:.05},
+    park:{name:'公園',price:500_000,pop:50}
+  }
+};
+const key=(x,y)=>x+','+y;
+function initialLots(){
+  const lots={};
+  for(let y=-1;y<=1;y++)for(let x=-1;x<=1;x++){
+    if(x===0&&y===0)continue;
+    lots[key(x,y)]={x,y,status:'available',building:null};
+  }
+  return lots;
+}
+const fresh=()=>({
+  money:10_000_000,
+  population:10,
+  day:1,
+  seconds:0,
+  zoom:.72,
+  companyName:'',
+  presidentName:'',
+  onboardingComplete:false,
+  lots:initialLots()
+});
+let state=fresh(),api=null,selectedLotKey=null,selectedBuilding=null,returningPlayer=false,gameRunning=false;
 const $=id=>document.getElementById(id), yen=n=>'¥'+Math.floor(n).toLocaleString('ja-JP');
-const lotEls=[...document.querySelectorAll('.lot[data-id]')];
 
-function buildingIncome(){return state.lots.reduce((sum,l)=>{const c=l.building&&CFG.buildings[l.building];return sum+(c?.rate?CFG.economicUnit*state.population*c.rate:0)},0)}
+function migrateLots(savedLots){
+  if(savedLots && !Array.isArray(savedLots) && typeof savedLots==='object'){
+    const out={};
+    for(const [k,v] of Object.entries(savedLots)){
+      const [x0,y0]=k.split(',').map(Number);
+      const x=Number.isFinite(Number(v?.x))?Number(v.x):x0;
+      const y=Number.isFinite(Number(v?.y))?Number(v.y):y0;
+      if(!Number.isFinite(x)||!Number.isFinite(y)||(x===0&&y===0))continue;
+      out[key(x,y)]={x,y,status:v?.status==='bought'||v?.owned?'bought':'available',building:v?.building||null};
+    }
+    return Object.keys(out).length?out:initialLots();
+  }
+  if(Array.isArray(savedLots)){
+    const coords=[[-1,-1],[0,-1],[1,-1],[-1,0],[1,0],[-1,1],[0,1],[1,1]];
+    const out=initialLots();
+    savedLots.forEach((v,i)=>{
+      const c=coords[i]; if(!c||!v)return;
+      out[key(c[0],c[1])]={x:c[0],y:c[1],status:v.owned?'bought':'available',building:v.building||null};
+    });
+    return out;
+  }
+  return initialLots();
+}
+function lotValues(){return Object.values(state.lots)}
+function buildingIncome(){
+  return lotValues().reduce((sum,l)=>{
+    const c=l.building&&CFG.buildings[l.building];
+    return sum+(c?.rate?CFG.economicUnit*state.population*c.rate:0);
+  },0);
+}
 function dailyIncome(){return CFG.baseIncome+Math.floor(buildingIncome())}
-function gameClock(){const mins=(state.seconds*48)%1440,h=Math.floor(mins/60),m=mins%60;return String(h).padStart(2,'0')+':'+String(m).padStart(2,'0')}
-function renderLot(el,l){
-  if(!l.owned){el.className=el.className.replace(/\bbought\b/g,'').trim();if(!el.classList.contains('available'))el.classList.add('available');el.innerHTML='<div class="sale">売 地<small>¥1,000,000</small></div>';return}
-  el.classList.remove('available');el.classList.add('bought');
-  if(!l.building){el.innerHTML='<div class="boughtTag">購入済み<small>タップして建設</small></div>';return}
-  if(l.building==='park'){el.innerHTML='<div class="park">PARK</div>';return}
-  const c=CFG.buildings[l.building],icon=l.building==='convenience'?'🏪':'🛒';
-  el.innerHTML='<div class="building '+l.building+'"><div class="icon">'+icon+'</div><div>'+c.name+'</div></div>';
+function gameClock(){
+  const mins=(state.seconds*48)%1440,h=Math.floor(mins/60),m=mins%60;
+  return String(h).padStart(2,'0')+':'+String(m).padStart(2,'0');
+}
+function mapBounds(){
+  const coords=[{x:0,y:0},...lotValues()];
+  return {
+    minX:Math.min(...coords.map(v=>v.x)),
+    maxX:Math.max(...coords.map(v=>v.x)),
+    minY:Math.min(...coords.map(v=>v.y)),
+    maxY:Math.max(...coords.map(v=>v.y))
+  };
+}
+function dimensions(bounds=mapBounds()){
+  const cols=bounds.maxX-bounds.minX+1,rows=bounds.maxY-bounds.minY+1;
+  return {
+    cols,rows,
+    width:CFG.mapMargin*2+cols*CFG.lotSize+(cols-1)*CFG.roadSize,
+    height:CFG.mapMargin*2+rows*CFG.lotSize+(rows-1)*CFG.roadSize
+  };
+}
+function lotPosition(x,y,bounds){
+  const pitch=CFG.lotSize+CFG.roadSize;
+  return {
+    left:CFG.mapMargin+(x-bounds.minX)*pitch,
+    top:CFG.mapMargin+(y-bounds.minY)*pitch
+  };
+}
+function buildingMarkup(lot){
+  if(!lot.building)return '<div class="boughtTag">購入済み<small>タップして建設</small></div>';
+  if(lot.building==='park')return '<div class="park">PARK</div>';
+  const c=CFG.buildings[lot.building],icon=lot.building==='convenience'?'🏪':'🛒';
+  return '<div class="building '+lot.building+'"><div class="icon">'+icon+'</div><div>'+c.name+'</div></div>';
+}
+function renderMap(){
+  const bounds=mapBounds(),dims=dimensions(bounds),lotLayer=$('lotLayer'),roadLayer=$('roadLayer'),map=$('map');
+  map.style.width=dims.width+'px';
+  map.style.height=dims.height+'px';
+  lotLayer.replaceChildren();
+  roadLayer.replaceChildren();
+
+  const companyPos=lotPosition(0,0,bounds);
+  const company=document.createElement('div');
+  company.className='lot companyLot';
+  company.style.left=companyPos.left+'px';
+  company.style.top=companyPos.top+'px';
+  company.innerHTML='<div class="company"></div>';
+  lotLayer.appendChild(company);
+
+  for(const lot of lotValues()){
+    const pos=lotPosition(lot.x,lot.y,bounds);
+    const el=document.createElement('button');
+    el.type='button';
+    el.className='lot '+(lot.status==='bought'?'bought':'available');
+    el.dataset.key=key(lot.x,lot.y);
+    el.style.left=pos.left+'px';
+    el.style.top=pos.top+'px';
+    el.innerHTML=lot.status==='bought'
+      ? buildingMarkup(lot)
+      : '<div class="sale">売 地<small>¥1,000,000</small></div>';
+    lotLayer.appendChild(el);
+  }
+
+  for(let i=1;i<dims.cols;i++){
+    const road=document.createElement('div');
+    road.className='roadV';
+    road.style.left=(CFG.mapMargin+i*CFG.lotSize+(i-1)*CFG.roadSize)+'px';
+    roadLayer.appendChild(road);
+  }
+  for(let i=1;i<dims.rows;i++){
+    const road=document.createElement('div');
+    road.className='roadH';
+    road.style.top=(CFG.mapMargin+i*CFG.lotSize+(i-1)*CFG.roadSize)+'px';
+    roadLayer.appendChild(road);
+  }
 }
 function renderCompanies(){
- const counts={convenience:0,supermarket:0};state.lots.forEach(l=>{if(counts[l.building]!=null)counts[l.building]++});
- const items=[];for(const type of ['convenience','supermarket'])if(counts[type])items.push('<div class="companyItem"><span>'+CFG.buildings[type].name+' × '+counts[type]+'</span><strong>'+yen(Math.floor(CFG.economicUnit*state.population*CFG.buildings[type].rate*counts[type]))+'/日</strong></div>');
- $('companyList').innerHTML=items.length?items.join(''):'<div class="empty">まだ店舗・会社はありません。</div>';
+  const counts={convenience:0,supermarket:0};
+  lotValues().forEach(l=>{if(counts[l.building]!=null)counts[l.building]++});
+  const items=[];
+  for(const type of ['convenience','supermarket']){
+    if(counts[type])items.push('<div class="companyItem"><span>'+CFG.buildings[type].name+' × '+counts[type]+'</span><strong>'+yen(Math.floor(CFG.economicUnit*state.population*CFG.buildings[type].rate*counts[type]))+'/日</strong></div>');
+  }
+  $('companyList').innerHTML=items.length?items.join(''):'<div class="empty">まだ店舗・会社はありません。</div>';
 }
 function render(){
- $('mainCompanyTitle').textContent=state.companyName?state.companyName:'メイン会社';
- $('presidentLabel').textContent=state.presidentName?state.presidentName+'社長':'';
- $('money').textContent=yen(state.money);$('population').textContent=state.population.toLocaleString('ja-JP');$('clock').textContent=gameClock();$('day').textContent=state.day;$('incomeTop').textContent='+'+yen(dailyIncome())+' / 日';$('totalIncome').textContent=yen(dailyIncome())+' / 日';$('map').style.transform='translate(-50%,-50%) scale('+state.zoom+')';$('zoomLabel').textContent=Math.round(state.zoom*100)+'%';lotEls.forEach((el,i)=>renderLot(el,state.lots[i]));renderCompanies();
+  $('mainCompanyTitle').textContent=state.companyName?state.companyName:'メイン会社';
+  $('presidentLabel').textContent=state.presidentName?state.presidentName+'社長':'';
+  $('money').textContent=yen(state.money);
+  $('population').textContent=state.population.toLocaleString('ja-JP');
+  $('clock').textContent=gameClock();
+  $('day').textContent=state.day;
+  $('incomeTop').textContent='+'+yen(dailyIncome())+' / 日';
+  $('totalIncome').textContent=yen(dailyIncome())+' / 日';
+  renderMap();
+  $('map').style.transform='translate(-50%,-50%) scale('+state.zoom+')';
+  $('zoomLabel').textContent=Math.round(state.zoom*100)+'%';
+  renderCompanies();
 }
-function show(id){$(id).classList.add('show')}function hide(id){$(id).classList.remove('show')}
+function fitExpandedMap(){
+  const frame=$('townFrame'),dims=dimensions();
+  const w=frame.clientWidth||720,h=frame.clientHeight||720;
+  const fit=Math.min((w-28)/dims.width,(h-28)/dims.height,1.2);
+  state.zoom=Math.max(.32,Math.min(state.zoom,Math.floor(fit*100)/100));
+}
+function unlockAround(lot){
+  for(let dy=-1;dy<=1;dy++)for(let dx=-1;dx<=1;dx++){
+    if(dx===0&&dy===0)continue;
+    const x=lot.x+dx,y=lot.y+dy;
+    if(x===0&&y===0)continue;
+    const k=key(x,y);
+    if(!state.lots[k])state.lots[k]={x,y,status:'available',building:null};
+  }
+}
+function show(id){$(id).classList.add('show')}
+function hide(id){$(id).classList.remove('show')}
 async function localSave(label='ローカル保存'){
- if(!api)return false;
- try{await api.save.json(APP_ID,SAVE_KEY,state);$('saveStatus').textContent=label+'済み';return true}catch(e){console.warn(e);$('saveStatus').textContent='保存失敗';return false}
+  if(!api)return false;
+  try{await api.save.json(APP_ID,SAVE_KEY,state);$('saveStatus').textContent=label+'済み';return true}
+  catch(e){console.warn(e);$('saveStatus').textContent='保存失敗';return false}
 }
 async function githubSave(){
- $('saveBtn').disabled=true;$('saveStatus').textContent='保存中…';
- const ok=await localSave('ローカル保存');
- if(!ok){$('saveBtn').disabled=false;return}
- try{
-   if(!await api.sync.hasToken()){$('saveStatus').textContent='ローカル保存済み / GitHub設定なし';return}
-   const results=await api.sync.push();
-   const bad=results.some(r=>!['synced','created'].includes(r.status));
-   $('saveStatus').textContent=bad?'ローカル保存済み / GitHub未完了':'GitHub保存済み';
- }catch(e){console.warn(e);$('saveStatus').textContent='ローカル保存済み / GitHub失敗'}
- finally{$('saveBtn').disabled=false}
+  $('saveBtn').disabled=true;$('saveStatus').textContent='保存中…';
+  const ok=await localSave('ローカル保存');
+  if(!ok){$('saveBtn').disabled=false;return}
+  try{
+    if(!await api.sync.hasToken()){$('saveStatus').textContent='ローカル保存済み / GitHub設定なし';return}
+    const results=await api.sync.push();
+    const bad=results.some(r=>!['synced','created'].includes(r.status));
+    $('saveStatus').textContent=bad?'ローカル保存済み / GitHub未完了':'GitHub保存済み';
+  }catch(e){console.warn(e);$('saveStatus').textContent='ローカル保存済み / GitHub失敗'}
+  finally{$('saveBtn').disabled=false}
 }
 async function load(){
- api=await window.ForMySonsShared.createForMySons();
- const saved=await api.save.readJson(APP_ID,SAVE_KEY);
- if(saved&&Array.isArray(saved.lots)){state={...fresh(),...saved,lots:fresh().lots.map((d,i)=>({...d,...(saved.lots[i]||{})}))};$('saveStatus').textContent='ローカル保存を読み込み';}
- else $('saveStatus').textContent='新しい町';
- render();
- setupOnboarding();
+  api=await window.ForMySonsShared.createForMySons();
+  const saved=await api.save.readJson(APP_ID,SAVE_KEY);
+  if(saved){
+    state={...fresh(),...saved,lots:migrateLots(saved.lots)};
+    $('saveStatus').textContent='ローカル保存を読み込み';
+  }else{
+    $('saveStatus').textContent='新しい町';
+  }
+  render();
+  setupStartScreen();
 }
-lotEls.forEach((el,i)=>el.addEventListener('click',()=>{selectedLot=i;const lot=state.lots[i];if(!lot.owned)show('buyModal');else if(!lot.building){selectedBuilding=null;document.querySelectorAll('.buildChoices button').forEach(b=>b.classList.remove('selected'));show('buildModal')}}));
-$('buyNo').addEventListener('click',()=>hide('buyModal'));$('buyYes').addEventListener('click',()=>{hide('buyModal');if(state.money<CFG.land){$('saveStatus').textContent='土地を買うお金が足りません';return}state.money-=CFG.land;state.lots[selectedLot].owned=true;render()});
-document.querySelectorAll('.buildChoices button').forEach(b=>b.addEventListener('click',()=>{selectedBuilding=b.dataset.building;document.querySelectorAll('.buildChoices button').forEach(x=>x.classList.toggle('selected',x===b))}));
-$('buildNo').addEventListener('click',()=>hide('buildModal'));$('buildYes').addEventListener('click',()=>{if(!selectedBuilding)return;const c=CFG.buildings[selectedBuilding];hide('buildModal');if(state.money<c.price){$('saveStatus').textContent='建設するお金が足りません';return}state.money-=c.price;state.lots[selectedLot].building=selectedBuilding;if(c.pop)state.population+=c.pop;render()});
-$('zoomIn').addEventListener('click',()=>{state.zoom=Math.min(1.2,+(state.zoom+.08).toFixed(2));render()});$('zoomOut').addEventListener('click',()=>{state.zoom=Math.max(.42,+(state.zoom-.08).toFixed(2));render()});$('saveBtn').addEventListener('click',githubSave);
+
+$('map').addEventListener('click',event=>{
+  const el=event.target.closest('.lot[data-key]');
+  if(!el)return;
+  selectedLotKey=el.dataset.key;
+  const lot=state.lots[selectedLotKey];
+  if(!lot)return;
+  if(lot.status==='available')show('buyModal');
+  else if(lot.status==='bought'&&!lot.building){
+    selectedBuilding=null;
+    document.querySelectorAll('.buildChoices button').forEach(b=>b.classList.remove('selected'));
+    show('buildModal');
+  }
+});
+$('buyNo').addEventListener('click',()=>hide('buyModal'));
+$('buyYes').addEventListener('click',()=>{
+  hide('buyModal');
+  const lot=state.lots[selectedLotKey];
+  if(!lot)return;
+  if(state.money<CFG.land){$('saveStatus').textContent='土地を買うお金が足りません';return}
+  state.money-=CFG.land;
+  lot.status='bought';
+  unlockAround(lot);
+  render();
+  fitExpandedMap();
+  render();
+});
+document.querySelectorAll('.buildChoices button').forEach(b=>b.addEventListener('click',()=>{
+  selectedBuilding=b.dataset.building;
+  document.querySelectorAll('.buildChoices button').forEach(x=>x.classList.toggle('selected',x===b));
+}));
+$('buildNo').addEventListener('click',()=>hide('buildModal'));
+$('buildYes').addEventListener('click',()=>{
+  if(!selectedBuilding)return;
+  const lot=state.lots[selectedLotKey],c=CFG.buildings[selectedBuilding];
+  if(!lot||!c)return;
+  hide('buildModal');
+  if(state.money<c.price){$('saveStatus').textContent='建設するお金が足りません';return}
+  state.money-=c.price;
+  lot.building=selectedBuilding;
+  if(c.pop)state.population+=c.pop;
+  render();
+});
+$('zoomIn').addEventListener('click',()=>{state.zoom=Math.min(1.2,+(state.zoom+.08).toFixed(2));render()});
+$('zoomOut').addEventListener('click',()=>{state.zoom=Math.max(.32,+(state.zoom-.08).toFixed(2));render()});
+$('saveBtn').addEventListener('click',githubSave);
 
 const startImage='../assets/company-town-start.webp?v=1';
-function setupOnboarding(){
- $('startHero').style.backgroundImage='url('+startImage+')';
- if(state.onboardingComplete&&state.companyName&&state.presidentName){$('startOverlay').classList.remove('show');$('startOverlay').setAttribute('aria-hidden','true');return}
- $('startOverlay').classList.add('show');$('startOverlay').setAttribute('aria-hidden','false');
+function hideStart(){
+  gameRunning=true;
+  $('startOverlay').classList.remove('show');
+  $('startOverlay').setAttribute('aria-hidden','true');
 }
-function switchWizard(from,to){$(from).classList.remove('show');$(from).style.display='none';$(to).style.display='block';$(to).classList.add('show')}
-$('startGameIntro').addEventListener('click',()=>{ $('startStep').style.display='none'; $('companyStep').style.display='block'; $('companyStep').classList.add('show'); $('companyNameInput').focus(); });
-$('toPresidentStep').addEventListener('click',()=>{const v=$('companyNameInput').value.trim();if(!v){$('companyNameInput').focus();return}state.companyName=v;switchWizard('companyStep','presidentStep')});
-$('toFinalStep').addEventListener('click',()=>{const v=$('presidentNameInput').value.trim();if(!v){$('presidentNameInput').focus();return}state.presidentName=v;$('openingTitle').textContent='ここからはじまる、世界一大きな町をつくる'+state.presidentName+'社長の「'+state.companyName+'」ストーリー。';switchWizard('presidentStep','finalStep')});
-$('beginTown').addEventListener('click',async()=>{state.onboardingComplete=true;await localSave('初期設定');render();$('startOverlay').classList.remove('show');$('startOverlay').setAttribute('aria-hidden','true')});
+function setupStartScreen(){
+  $('startHero').style.backgroundImage='url('+startImage+')';
+  returningPlayer=Boolean(state.onboardingComplete&&state.companyName&&state.presidentName);
+  $('startStoryTitle').textContent=returningPlayer?'『'+state.companyName+'』ストーリー':'『　　　』ストーリー';
+  const intro=$('startStep').querySelector('.story');
+  intro.textContent=returningPlayer?state.companyName+'の町づくりをつづけよう。':'この町が、いつかこんなに大きくなったら。';
+  $('startOverlay').classList.add('show');
+  $('startOverlay').setAttribute('aria-hidden','false');
+}
+function switchWizard(from,to){
+  $(from).classList.remove('show');$(from).style.display='none';
+  $(to).style.display='block';$(to).classList.add('show');
+}
+$('startGameIntro').addEventListener('click',()=>{
+  if(returningPlayer){hideStart();return}
+  $('startStep').style.display='none';
+  $('companyStep').style.display='block';
+  $('companyStep').classList.add('show');
+  $('companyNameInput').focus();
+});
+$('toPresidentStep').addEventListener('click',()=>{
+  const v=$('companyNameInput').value.trim();
+  if(!v){$('companyNameInput').focus();return}
+  state.companyName=v;
+  switchWizard('companyStep','presidentStep');
+});
+$('toFinalStep').addEventListener('click',()=>{
+  const v=$('presidentNameInput').value.trim();
+  if(!v){$('presidentNameInput').focus();return}
+  state.presidentName=v;
+  $('openingTitle').textContent='ここからはじまる、世界一大きな町をつくる'+state.presidentName+'社長の「'+state.companyName+'」ストーリー。';
+  switchWizard('presidentStep','finalStep');
+});
+$('beginTown').addEventListener('click',async()=>{
+  state.onboardingComplete=true;
+  await localSave('初期設定');
+  render();
+  hideStart();
+});
 
 await load();
-setInterval(async()=>{state.seconds++;if(state.seconds>=CFG.secondsPerDay){state.seconds=0;state.day++;state.money+=dailyIncome();render();await localSave('Day '+state.day+' 自動保存')}else render()},1000);
+setInterval(async()=>{
+  if(!gameRunning)return;
+  state.seconds++;
+  if(state.seconds>=CFG.secondsPerDay){
+    state.seconds=0;state.day++;state.money+=dailyIncome();
+    render();await localSave('Day '+state.day+' 自動保存');
+  }else render();
+},1000);
 })();
 </script>
 </body>
