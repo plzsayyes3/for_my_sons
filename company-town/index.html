@@ -9,8 +9,8 @@
 :root{--bg:#172434;--panel:#22384f;--panel2:#1b2f44;--card:#fff;--ink:#26323b;--muted:#69757f;--grass:#88cd69;--road:#555d68;--edge:#c1c7cd;--line:#eef1f4;--money:#ffd55a}
 *{box-sizing:border-box}html,body{margin:0;min-height:100%;font-family:system-ui,-apple-system,"Segoe UI",sans-serif;background:var(--bg);color:var(--ink)}
 button{font:inherit}.app{width:min(100%,1080px);min-height:100vh;margin:auto;background:#e7ecef}
-.top{background:linear-gradient(180deg,var(--panel),var(--panel2));color:#fff;padding:10px 12px;display:grid;grid-template-columns:1.2fr 1fr 1fr;gap:8px}
-.stat{min-width:0;padding:7px 9px;border-left:1px solid #ffffff22}.stat:first-child{border-left:0}.label{font-size:10px;letter-spacing:.09em;opacity:.65}.value{font-size:19px;font-weight:850;white-space:nowrap}.money{color:var(--money)}.sub{font-size:11px;opacity:.72}
+.top{position:relative;background:linear-gradient(180deg,var(--panel),var(--panel2));color:#fff;padding:10px 118px 10px 12px;display:grid;grid-template-columns:1.2fr 1fr 1fr;gap:8px}
+.stat{min-width:0;padding:7px 9px;border-left:1px solid #ffffff22}.topStartBtn{position:absolute;right:12px;top:12px;min-width:94px;height:44px;border:1px solid #ffffff33;border-radius:11px;background:#ffffff18;color:#fff;font-weight:900;box-shadow:0 3px 10px #0002}.stat:first-child{border-left:0}.label{font-size:10px;letter-spacing:.09em;opacity:.65}.value{font-size:19px;font-weight:850;white-space:nowrap}.money{color:var(--money)}.sub{font-size:11px;opacity:.72}
 .townSection{padding:12px;display:flex;justify-content:center;background:#d8e0e4}.townFrame{width:min(92vw,720px);aspect-ratio:1;position:relative;overflow:hidden;border-radius:16px;background:var(--grass);box-shadow:0 8px 22px #0002}
 .controls{position:absolute;right:10px;top:10px;z-index:40;display:grid;gap:7px}.controls button{min-width:44px;height:44px;border:0;border-radius:10px;background:#233c58ee;color:#fff;font-weight:900;box-shadow:0 4px 12px #0003}.controls .save{padding:0 12px;font-size:13px}.zoomLabel{background:#fffed;padding:4px 6px;border-radius:8px;text-align:center;font-size:10px;font-weight:800}
 .viewport{position:absolute;inset:0;overflow:auto}.map{position:absolute;left:50%;top:50%;width:900px;height:900px;transform:translate(-50%,-50%) scale(.72);transform-origin:center;background:linear-gradient(#ffffff0b 1px,transparent 1px),linear-gradient(90deg,#ffffff0b 1px,transparent 1px),var(--grass);background-size:32px 32px}
@@ -21,7 +21,7 @@ button{font:inherit}.app{width:min(100%,1080px);min-height:100vh;margin:auto;bac
 .building{width:150px;min-height:105px;border:5px solid #394754;border-radius:10px;display:flex;flex-direction:column;align-items:center;justify-content:center;font-weight:900}.building .icon{font-size:38px}.convenience{background:#eef6e8;border-top:18px solid #3ba26c}.supermarket{background:#fff1d5;border-top:18px solid #e65f4f}.park{width:180px;height:145px;border-radius:20px;border:5px solid #4b8a52;background:radial-gradient(circle at 35% 32%,#3d9c50 0 22px,transparent 23px),radial-gradient(circle at 68% 60%,#318e46 0 27px,transparent 28px),linear-gradient(135deg,#bfe8a9,#8ed176);display:flex;align-items:flex-end;justify-content:center;padding:10px;font-weight:900}
 .bottom{padding:12px;background:#edf1f3;display:grid;grid-template-columns:1fr 1fr;gap:10px}.panel{background:#fff;border-radius:14px;padding:13px;min-height:160px}.panel h2{margin:0 0 9px;font-size:15px}.row{display:flex;justify-content:space-between;gap:12px;padding:5px 0;border-top:1px solid #edf0f2;font-size:13px}.row:first-of-type{border-top:0}.companyList{display:grid;gap:7px}.companyItem{display:flex;justify-content:space-between;gap:8px;background:#f3f6f8;border-radius:10px;padding:9px;font-size:12px}.empty{font-size:12px;color:var(--muted);line-height:1.6}
 .modalBack{position:absolute;inset:0;z-index:80;background:#0e18217a;display:none;align-items:center;justify-content:center;padding:20px}.modalBack.show{display:flex}.modal{width:min(420px,100%);background:#fff;border-radius:16px;padding:18px}.modal h3{margin:0 0 8px}.modal p{color:#53606a;line-height:1.5}.actions{display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap}.actions button,.buildChoices button{min-height:44px;border:0;border-radius:10px;padding:10px 14px;font-weight:800}.yes{background:#2d6e9c;color:#fff}.no{background:#e9edf0}.buildChoices{display:grid;gap:8px;margin:12px 0}.buildChoices button{text-align:left;background:#f2f5f7;border:1px solid #d8e0e5}.buildChoices button.selected{outline:3px solid #74bce8}.saveStatus{position:absolute;right:10px;top:164px;z-index:40;background:#ffffffdd;border-radius:8px;padding:5px 8px;font-size:10px;font-weight:700;max-width:170px;text-align:right}
-@media(max-width:700px){.top{grid-template-columns:1fr 1fr}.stat:nth-child(3){grid-column:1/-1}.value{font-size:17px}.townSection{padding:8px}.townFrame{width:100%}.bottom{grid-template-columns:1fr 1fr;padding:8px;gap:7px}.panel{padding:9px;min-height:145px}.panel h2{font-size:13px}.row,.companyItem,.empty{font-size:10px}}
+@media(max-width:700px){.top{grid-template-columns:1fr 1fr;padding:64px 10px 10px}.topStartBtn{right:10px;top:10px;height:42px}.stat:nth-child(3){grid-column:1/-1}.value{font-size:17px}.townSection{padding:8px}.townFrame{width:100%}.bottom{grid-template-columns:1fr 1fr;padding:8px;gap:7px}.panel{padding:9px;min-height:145px}.panel h2{font-size:13px}.row,.companyItem,.empty{font-size:10px}}
 
 .startOverlay{position:fixed;inset:0;z-index:200;background:#172434;color:#fff;display:none;align-items:center;justify-content:center;padding:16px}
 .startOverlay.show{display:flex}
@@ -79,6 +79,7 @@ button{font:inherit}.app{width:min(100%,1080px);min-height:100vh;margin:auto;bac
 </div>
 <div class="app gameShell" id="gameShell">
 <section class="top">
+  <button class="topStartBtn" type="button" id="backToStartBtn">↩ スタート</button>
   <div class="stat"><div class="label">TOWN MONEY</div><div class="value money" id="money">¥10,000,000</div><div class="sub" id="incomeTop">+¥100,000 / 日</div></div>
   <div class="stat"><div class="label">POPULATION</div><div class="value"><span id="population">10</span> 人</div><div class="sub">町の人口</div></div>
   <div class="stat"><div class="label">TIME</div><div class="value"><span id="clock">00:00</span> / Day <span id="day">1</span></div><div class="sub">1秒 = 48分 ・ 30秒 = 1日</div></div>
@@ -88,7 +89,6 @@ button{font:inherit}.app{width:min(100%,1080px);min-height:100vh;margin:auto;bac
   <div class="townFrame" id="townFrame">
     <div class="controls">
       <button class="save" type="button" id="saveBtn">💾 保存</button>
-      <button class="save" type="button" id="backToStartBtn">↩ START</button>
       <button type="button" id="zoomIn">＋</button>
       <button type="button" id="zoomOut">−</button>
       <div class="zoomLabel" id="zoomLabel">72%</div>
