@@ -160,7 +160,7 @@ const fresh=()=>({
   onboardingComplete:false,
   lots:initialLots()
 });
-let state=fresh(),api=null,selectedLotKey=null,selectedBuilding=null,returningPlayer=false;
+let state=fresh(),api=null,selectedLotKey=null,selectedBuilding=null,returningPlayer=false,gameRunning=false;
 const $=id=>document.getElementById(id), yen=n=>'¥'+Math.floor(n).toLocaleString('ja-JP');
 
 function migrateLots(savedLots){
@@ -388,6 +388,7 @@ $('saveBtn').addEventListener('click',githubSave);
 
 const startImage='../assets/company-town-start.webp?v=1';
 function hideStart(){
+  gameRunning=true;
   $('startOverlay').classList.remove('show');
   $('startOverlay').setAttribute('aria-hidden','true');
 }
@@ -433,6 +434,7 @@ $('beginTown').addEventListener('click',async()=>{
 
 await load();
 setInterval(async()=>{
+  if(!gameRunning)return;
   state.seconds++;
   if(state.seconds>=CFG.secondsPerDay){
     state.seconds=0;state.day++;state.money+=dailyIncome();
