@@ -75,6 +75,8 @@ const SHELL = [
   './shared/wanko-mini-multiplication.js?v=1',
   './shared/wanko-library-view.js?v=4',
   './shared/wanko-registration-request.js?v=1',
+  './company-town/?v=1',
+  './company-town/index.html',
   './paint/?v=10',
   './paint/index.html',
   './paint/styles.css?v=6',
@@ -107,6 +109,7 @@ const SHELL = [
   './assets/official-wankos/hammer.png?v=1',
   './assets/official-wankos/dorisha.png?v=1',
   './assets/official-wankos/ebifurai-fura.png?v=1',
+  './assets/company-town.svg?v=1',
   './assets/paint.svg'
 ];
 
