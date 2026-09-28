@@ -1,4 +1,4 @@
-const CACHE_NAME = 'for-my-sons-v86';
+const CACHE_NAME = 'for-my-sons-v87';
 const SHELL = [
   './',
   './index.html',
@@ -75,7 +75,7 @@ const SHELL = [
   './shared/wanko-mini-multiplication.js?v=1',
   './shared/wanko-library-view.js?v=4',
   './shared/wanko-registration-request.js?v=1',
-  './company-town/?v=1',
+  './company-town/?v=2',
   './company-town/index.html',
   './paint/?v=10',
   './paint/index.html',
@@ -110,6 +110,7 @@ const SHELL = [
   './assets/official-wankos/dorisha.png?v=1',
   './assets/official-wankos/ebifurai-fura.png?v=1',
   './assets/company-town.svg?v=1',
+  './assets/company-town-start.webp?v=1',
   './assets/paint.svg'
 ];
 

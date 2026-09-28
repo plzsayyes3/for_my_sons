@@ -22,10 +22,62 @@ button{font:inherit}.app{width:min(100%,1080px);min-height:100vh;margin:auto;bac
 .bottom{padding:12px;background:#edf1f3;display:grid;grid-template-columns:1fr 1fr;gap:10px}.panel{background:#fff;border-radius:14px;padding:13px;min-height:160px}.panel h2{margin:0 0 9px;font-size:15px}.row{display:flex;justify-content:space-between;gap:12px;padding:5px 0;border-top:1px solid #edf0f2;font-size:13px}.row:first-of-type{border-top:0}.companyList{display:grid;gap:7px}.companyItem{display:flex;justify-content:space-between;gap:8px;background:#f3f6f8;border-radius:10px;padding:9px;font-size:12px}.empty{font-size:12px;color:var(--muted);line-height:1.6}
 .modalBack{position:absolute;inset:0;z-index:80;background:#0e18217a;display:none;align-items:center;justify-content:center;padding:20px}.modalBack.show{display:flex}.modal{width:min(420px,100%);background:#fff;border-radius:16px;padding:18px}.modal h3{margin:0 0 8px}.modal p{color:#53606a;line-height:1.5}.actions{display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap}.actions button,.buildChoices button{min-height:44px;border:0;border-radius:10px;padding:10px 14px;font-weight:800}.yes{background:#2d6e9c;color:#fff}.no{background:#e9edf0}.buildChoices{display:grid;gap:8px;margin:12px 0}.buildChoices button{text-align:left;background:#f2f5f7;border:1px solid #d8e0e5}.buildChoices button.selected{outline:3px solid #74bce8}.saveStatus{position:absolute;right:10px;top:164px;z-index:40;background:#ffffffdd;border-radius:8px;padding:5px 8px;font-size:10px;font-weight:700;max-width:170px;text-align:right}
 @media(max-width:700px){.top{grid-template-columns:1fr 1fr}.stat:nth-child(3){grid-column:1/-1}.value{font-size:17px}.townSection{padding:8px}.townFrame{width:100%}.bottom{grid-template-columns:1fr 1fr;padding:8px;gap:7px}.panel{padding:9px;min-height:145px}.panel h2{font-size:13px}.row,.companyItem,.empty{font-size:10px}}
+
+.startOverlay{position:fixed;inset:0;z-index:200;background:#172434;color:#fff;display:none;align-items:center;justify-content:center;padding:16px}
+.startOverlay.show{display:flex}
+.startCard{width:min(92vw,760px);background:#20364e;border-radius:22px;overflow:hidden;box-shadow:0 24px 70px #0007}
+.startHero{position:relative;aspect-ratio:4/3;background:#0d1824 center/cover no-repeat}
+.startHero:after{content:"";position:absolute;inset:0;background:linear-gradient(transparent 45%,rgba(11,22,34,.88))}
+.startCopy{position:absolute;left:22px;right:22px;bottom:20px;z-index:2}
+.startCopy h1{margin:0 0 6px;font-size:clamp(26px,5vw,44px)}
+.startCopy p{margin:0;opacity:.86}
+.startBody{padding:18px}
+.story{line-height:1.9;margin:0 0 14px}
+.startBtn,.nextBtn{width:100%;min-height:52px;border:0;border-radius:14px;background:#ffd55a;color:#26323b;font-weight:900;font-size:17px}
+.wizard{display:none}.wizard.show{display:block}
+.wizard label{display:block;font-size:13px;font-weight:800;margin:12px 0 6px}
+.wizard input{width:100%;min-height:48px;border:2px solid #cfd8df;border-radius:12px;padding:10px 12px;font-size:16px}
+.wizard .hint{font-size:12px;color:#b9c7d3;margin-top:6px}
+.wizardTitle{font-size:20px;font-weight:900;line-height:1.6;margin:4px 0 14px}
+.gameShell.onboarding-hidden{visibility:hidden}
 </style>
 </head>
 <body>
-<div class="app">
+<div class="startOverlay" id="startOverlay" aria-hidden="true">
+  <div class="startCard">
+    <div class="startHero" id="startHero">
+      <div class="startCopy">
+        <h1>Company Town</h1>
+        <p>小さな会社から、世界一大きな町へ。</p>
+      </div>
+    </div>
+    <div class="startBody">
+      <div id="startStep">
+        <p class="story">この町が、いつかこんなに大きくなったら。</p>
+        <button type="button" class="startBtn" id="startGameIntro">START</button>
+      </div>
+      <div class="wizard" id="companyStep">
+        <p class="story">ここは、名の無い街。<strong>ななし町</strong>。<br>そこにあなたは、町にたくさんの人を呼び、みんなのためにがんばろうと、会社を立てました。</p>
+        <label for="companyNameInput">会社の名前は何ですか？</label>
+        <input id="companyNameInput" maxlength="24" autocomplete="off" placeholder="会社のなまえ">
+        <div class="hint">この名前はあとから会社情報に表示されます。</div>
+        <button type="button" class="nextBtn" id="toPresidentStep" style="margin-top:14px">つぎへ</button>
+      </div>
+      <div class="wizard" id="presidentStep">
+        <p class="story">そんな心やさしい会社の社長は――</p>
+        <label for="presidentNameInput">あなたの名前は何ですか？</label>
+        <input id="presidentNameInput" maxlength="16" autocomplete="off" placeholder="なまえ">
+        <div class="hint">ゲーム内では「○○社長」と呼ばれます。</div>
+        <button type="button" class="nextBtn" id="toFinalStep" style="margin-top:14px">つぎへ</button>
+      </div>
+      <div class="wizard" id="finalStep">
+        <div class="wizardTitle" id="openingTitle"></div>
+        <button type="button" class="startBtn" id="beginTown">町づくりをはじめる</button>
+      </div>
+    </div>
+  </div>
+</div>
+<div class="app gameShell" id="gameShell">
 <section class="top">
   <div class="stat"><div class="label">TOWN MONEY</div><div class="value money" id="money">¥10,000,000</div><div class="sub" id="incomeTop">+¥100,000 / 日</div></div>
   <div class="stat"><div class="label">POPULATION</div><div class="value"><span id="population">10</span> 人</div><div class="sub">町の人口</div></div>
@@ -66,7 +118,7 @@ button{font:inherit}.app{width:min(100%,1080px);min-height:100vh;margin:auto;bac
 </section>
 
 <section class="bottom">
-  <div class="panel"><h2>メイン会社</h2><div class="row"><span>基本利益</span><strong>¥100,000 / 日</strong></div><div class="row"><span>会社レベル</span><strong>Lv.1</strong></div><div class="row"><span>合計利益</span><strong id="totalIncome">¥100,000 / 日</strong></div></div>
+  <div class="panel"><h2 id="mainCompanyTitle">メイン会社</h2><div class="sub" id="presidentLabel" style="color:#69757f;margin-bottom:8px"></div><div class="row"><span>基本利益</span><strong>¥100,000 / 日</strong></div><div class="row"><span>会社レベル</span><strong>Lv.1</strong></div><div class="row"><span>合計利益</span><strong id="totalIncome">¥100,000 / 日</strong></div></div>
   <div class="panel"><h2>つくった会社系統</h2><div class="companyList" id="companyList"><div class="empty">まだ店舗・会社はありません。</div></div></div>
 </section>
 </div>
@@ -83,7 +135,7 @@ button{font:inherit}.app{width:min(100%,1080px);min-height:100vh;margin:auto;bac
 (async()=>{
 const APP_ID='company-town',SAVE_KEY='progress';
 const CFG={secondsPerDay:30,land:1_000_000,baseIncome:100_000,economicUnit:10_000,buildings:{convenience:{name:'コンビニ',price:1_000_000,rate:.03},supermarket:{name:'スーパー',price:1_500_000,rate:.05},park:{name:'公園',price:500_000,pop:50}}};
-const fresh=()=>({money:10_000_000,population:10,day:1,seconds:0,zoom:.72,lots:Array.from({length:8},()=>({owned:false,building:null}))});
+const fresh=()=>({money:10_000_000,population:10,day:1,seconds:0,zoom:.72,companyName:'',presidentName:'',onboardingComplete:false,lots:Array.from({length:8},()=>({owned:false,building:null}))});
 let state=fresh(),api=null,selectedLot=null,selectedBuilding=null;
 const $=id=>document.getElementById(id), yen=n=>'¥'+Math.floor(n).toLocaleString('ja-JP');
 const lotEls=[...document.querySelectorAll('.lot[data-id]')];
@@ -105,6 +157,8 @@ function renderCompanies(){
  $('companyList').innerHTML=items.length?items.join(''):'<div class="empty">まだ店舗・会社はありません。</div>';
 }
 function render(){
+ $('mainCompanyTitle').textContent=state.companyName?state.companyName:'メイン会社';
+ $('presidentLabel').textContent=state.presidentName?state.presidentName+'社長':'';
  $('money').textContent=yen(state.money);$('population').textContent=state.population.toLocaleString('ja-JP');$('clock').textContent=gameClock();$('day').textContent=state.day;$('incomeTop').textContent='+'+yen(dailyIncome())+' / 日';$('totalIncome').textContent=yen(dailyIncome())+' / 日';$('map').style.transform='translate(-50%,-50%) scale('+state.zoom+')';$('zoomLabel').textContent=Math.round(state.zoom*100)+'%';lotEls.forEach((el,i)=>renderLot(el,state.lots[i]));renderCompanies();
 }
 function show(id){$(id).classList.add('show')}function hide(id){$(id).classList.remove('show')}
@@ -130,12 +184,26 @@ async function load(){
  if(saved&&Array.isArray(saved.lots)){state={...fresh(),...saved,lots:fresh().lots.map((d,i)=>({...d,...(saved.lots[i]||{})}))};$('saveStatus').textContent='ローカル保存を読み込み';}
  else $('saveStatus').textContent='新しい町';
  render();
+ setupOnboarding();
 }
 lotEls.forEach((el,i)=>el.addEventListener('click',()=>{selectedLot=i;const lot=state.lots[i];if(!lot.owned)show('buyModal');else if(!lot.building){selectedBuilding=null;document.querySelectorAll('.buildChoices button').forEach(b=>b.classList.remove('selected'));show('buildModal')}}));
 $('buyNo').addEventListener('click',()=>hide('buyModal'));$('buyYes').addEventListener('click',()=>{hide('buyModal');if(state.money<CFG.land){$('saveStatus').textContent='土地を買うお金が足りません';return}state.money-=CFG.land;state.lots[selectedLot].owned=true;render()});
 document.querySelectorAll('.buildChoices button').forEach(b=>b.addEventListener('click',()=>{selectedBuilding=b.dataset.building;document.querySelectorAll('.buildChoices button').forEach(x=>x.classList.toggle('selected',x===b))}));
 $('buildNo').addEventListener('click',()=>hide('buildModal'));$('buildYes').addEventListener('click',()=>{if(!selectedBuilding)return;const c=CFG.buildings[selectedBuilding];hide('buildModal');if(state.money<c.price){$('saveStatus').textContent='建設するお金が足りません';return}state.money-=c.price;state.lots[selectedLot].building=selectedBuilding;if(c.pop)state.population+=c.pop;render()});
 $('zoomIn').addEventListener('click',()=>{state.zoom=Math.min(1.2,+(state.zoom+.08).toFixed(2));render()});$('zoomOut').addEventListener('click',()=>{state.zoom=Math.max(.42,+(state.zoom-.08).toFixed(2));render()});$('saveBtn').addEventListener('click',githubSave);
+
+const startImage='../assets/company-town-start.webp?v=1';
+function setupOnboarding(){
+ $('startHero').style.backgroundImage='url('+startImage+')';
+ if(state.onboardingComplete&&state.companyName&&state.presidentName){$('startOverlay').classList.remove('show');$('startOverlay').setAttribute('aria-hidden','true');return}
+ $('startOverlay').classList.add('show');$('startOverlay').setAttribute('aria-hidden','false');
+}
+function switchWizard(from,to){$(from).classList.remove('show');$(from).style.display='none';$(to).style.display='block';$(to).classList.add('show')}
+$('startGameIntro').addEventListener('click',()=>{ $('startStep').style.display='none'; $('companyStep').style.display='block'; $('companyStep').classList.add('show'); $('companyNameInput').focus(); });
+$('toPresidentStep').addEventListener('click',()=>{const v=$('companyNameInput').value.trim();if(!v){$('companyNameInput').focus();return}state.companyName=v;switchWizard('companyStep','presidentStep')});
+$('toFinalStep').addEventListener('click',()=>{const v=$('presidentNameInput').value.trim();if(!v){$('presidentNameInput').focus();return}state.presidentName=v;$('openingTitle').textContent='ここからはじまる、世界一大きな町をつくる'+state.presidentName+'社長の「'+state.companyName+'」ストーリー。';switchWizard('presidentStep','finalStep')});
+$('beginTown').addEventListener('click',async()=>{state.onboardingComplete=true;await localSave('初期設定');render();$('startOverlay').classList.remove('show');$('startOverlay').setAttribute('aria-hidden','true')});
+
 await load();
 setInterval(async()=>{state.seconds++;if(state.seconds>=CFG.secondsPerDay){state.seconds=0;state.day++;state.money+=dailyIncome();render();await localSave('Day '+state.day+' 自動保存')}else render()},1000);
 })();
