@@ -1,0 +1,144 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#22384f">
+<title>Company Town</title>
+<style>
+:root{--bg:#172434;--panel:#22384f;--panel2:#1b2f44;--card:#fff;--ink:#26323b;--muted:#69757f;--grass:#88cd69;--road:#555d68;--edge:#c1c7cd;--line:#eef1f4;--money:#ffd55a}
+*{box-sizing:border-box}html,body{margin:0;min-height:100%;font-family:system-ui,-apple-system,"Segoe UI",sans-serif;background:var(--bg);color:var(--ink)}
+button{font:inherit}.app{width:min(100%,1080px);min-height:100vh;margin:auto;background:#e7ecef}
+.top{background:linear-gradient(180deg,var(--panel),var(--panel2));color:#fff;padding:10px 12px;display:grid;grid-template-columns:1.2fr 1fr 1fr;gap:8px}
+.stat{min-width:0;padding:7px 9px;border-left:1px solid #ffffff22}.stat:first-child{border-left:0}.label{font-size:10px;letter-spacing:.09em;opacity:.65}.value{font-size:19px;font-weight:850;white-space:nowrap}.money{color:var(--money)}.sub{font-size:11px;opacity:.72}
+.townSection{padding:12px;display:flex;justify-content:center;background:#d8e0e4}.townFrame{width:min(92vw,720px);aspect-ratio:1;position:relative;overflow:hidden;border-radius:16px;background:var(--grass);box-shadow:0 8px 22px #0002}
+.controls{position:absolute;right:10px;top:10px;z-index:40;display:grid;gap:7px}.controls button{min-width:44px;height:44px;border:0;border-radius:10px;background:#233c58ee;color:#fff;font-weight:900;box-shadow:0 4px 12px #0003}.controls .save{padding:0 12px;font-size:13px}.zoomLabel{background:#fffed;padding:4px 6px;border-radius:8px;text-align:center;font-size:10px;font-weight:800}
+.viewport{position:absolute;inset:0;overflow:auto}.map{position:absolute;left:50%;top:50%;width:900px;height:900px;transform:translate(-50%,-50%) scale(.72);transform-origin:center;background:linear-gradient(#ffffff0b 1px,transparent 1px),linear-gradient(90deg,#ffffff0b 1px,transparent 1px),var(--grass);background-size:32px 32px}
+.roadV,.roadH{position:absolute;background:var(--road);box-shadow:inset 0 0 0 8px var(--edge);z-index:2;pointer-events:none}.roadV{top:0;bottom:0;width:50px}.roadV.v1{left:275px}.roadV.v2{left:575px}.roadH{left:0;right:0;height:50px}.roadH.h1{top:275px}.roadH.h2{top:575px}.roadV:after{content:"";position:absolute;top:0;bottom:0;left:50%;width:2px;background:repeating-linear-gradient(180deg,transparent 0 24px,var(--line) 24px 46px)}.roadH:after{content:"";position:absolute;left:0;right:0;top:50%;height:2px;background:repeating-linear-gradient(90deg,transparent 0 24px,var(--line) 24px 46px)}
+.lot{position:absolute;width:250px;height:250px;border-radius:12px;border:3px solid #416e603d;display:flex;align-items:center;justify-content:center;background:#98d77b;z-index:1}.lot.available,.lot.bought{cursor:pointer}.lot.companyLot{background:#a1dc83;border-color:#4f9251}.c1{left:25px}.c2{left:325px}.c3{left:625px}.r1{top:25px}.r2{top:325px}.r3{top:625px}
+.sale{background:#f5e4b7;border:4px solid #735131;color:#654627;border-radius:7px;padding:9px 13px;font-weight:900}.sale small,.boughtTag small{display:block;font-size:10px;text-align:center;opacity:.7}.boughtTag{background:#ffffffa8;border:2px solid #4f925155;border-radius:8px;padding:10px;font-weight:850}
+.company{position:relative;width:150px;height:105px;background:linear-gradient(#f1be80 0 34%,#dc914b 34%);border:5px solid #394754;border-radius:9px;box-shadow:0 10px 18px #0003}.company:before{content:"COMPANY";position:absolute;left:50%;top:-31px;transform:translateX(-50%);width:92px;height:32px;display:flex;align-items:center;justify-content:center;background:#eef7ff;border:5px solid #394754;border-bottom:0;border-radius:7px 7px 0 0;color:#2d668f;font-size:11px;font-weight:900}.company:after{content:"";position:absolute;left:50%;bottom:0;transform:translateX(-50%);width:30px;height:43px;background:#80c8f1;border:4px solid #394754;border-bottom:0}
+.building{width:150px;min-height:105px;border:5px solid #394754;border-radius:10px;display:flex;flex-direction:column;align-items:center;justify-content:center;font-weight:900}.building .icon{font-size:38px}.convenience{background:#eef6e8;border-top:18px solid #3ba26c}.supermarket{background:#fff1d5;border-top:18px solid #e65f4f}.park{width:180px;height:145px;border-radius:20px;border:5px solid #4b8a52;background:radial-gradient(circle at 35% 32%,#3d9c50 0 22px,transparent 23px),radial-gradient(circle at 68% 60%,#318e46 0 27px,transparent 28px),linear-gradient(135deg,#bfe8a9,#8ed176);display:flex;align-items:flex-end;justify-content:center;padding:10px;font-weight:900}
+.bottom{padding:12px;background:#edf1f3;display:grid;grid-template-columns:1fr 1fr;gap:10px}.panel{background:#fff;border-radius:14px;padding:13px;min-height:160px}.panel h2{margin:0 0 9px;font-size:15px}.row{display:flex;justify-content:space-between;gap:12px;padding:5px 0;border-top:1px solid #edf0f2;font-size:13px}.row:first-of-type{border-top:0}.companyList{display:grid;gap:7px}.companyItem{display:flex;justify-content:space-between;gap:8px;background:#f3f6f8;border-radius:10px;padding:9px;font-size:12px}.empty{font-size:12px;color:var(--muted);line-height:1.6}
+.modalBack{position:absolute;inset:0;z-index:80;background:#0e18217a;display:none;align-items:center;justify-content:center;padding:20px}.modalBack.show{display:flex}.modal{width:min(420px,100%);background:#fff;border-radius:16px;padding:18px}.modal h3{margin:0 0 8px}.modal p{color:#53606a;line-height:1.5}.actions{display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap}.actions button,.buildChoices button{min-height:44px;border:0;border-radius:10px;padding:10px 14px;font-weight:800}.yes{background:#2d6e9c;color:#fff}.no{background:#e9edf0}.buildChoices{display:grid;gap:8px;margin:12px 0}.buildChoices button{text-align:left;background:#f2f5f7;border:1px solid #d8e0e5}.buildChoices button.selected{outline:3px solid #74bce8}.saveStatus{position:absolute;right:10px;top:164px;z-index:40;background:#ffffffdd;border-radius:8px;padding:5px 8px;font-size:10px;font-weight:700;max-width:170px;text-align:right}
+@media(max-width:700px){.top{grid-template-columns:1fr 1fr}.stat:nth-child(3){grid-column:1/-1}.value{font-size:17px}.townSection{padding:8px}.townFrame{width:100%}.bottom{grid-template-columns:1fr 1fr;padding:8px;gap:7px}.panel{padding:9px;min-height:145px}.panel h2{font-size:13px}.row,.companyItem,.empty{font-size:10px}}
+</style>
+</head>
+<body>
+<div class="app">
+<section class="top">
+  <div class="stat"><div class="label">TOWN MONEY</div><div class="value money" id="money">¥10,000,000</div><div class="sub" id="incomeTop">+¥100,000 / 日</div></div>
+  <div class="stat"><div class="label">POPULATION</div><div class="value"><span id="population">10</span> 人</div><div class="sub">町の人口</div></div>
+  <div class="stat"><div class="label">TIME</div><div class="value"><span id="clock">00:00</span> / Day <span id="day">1</span></div><div class="sub">1秒 = 48分 ・ 30秒 = 1日</div></div>
+</section>
+
+<section class="townSection">
+  <div class="townFrame" id="townFrame">
+    <div class="controls">
+      <button class="save" type="button" id="saveBtn">💾 保存</button>
+      <button type="button" id="zoomIn">＋</button>
+      <button type="button" id="zoomOut">−</button>
+      <div class="zoomLabel" id="zoomLabel">72%</div>
+    </div>
+    <div class="saveStatus" id="saveStatus">読み込み中…</div>
+    <div class="viewport">
+      <div class="map" id="map">
+        <button class="lot available c1 r1" data-id="0" type="button"></button>
+        <button class="lot available c2 r1" data-id="1" type="button"></button>
+        <button class="lot available c3 r1" data-id="2" type="button"></button>
+        <button class="lot available c1 r2" data-id="3" type="button"></button>
+        <div class="lot companyLot c2 r2"><div class="company"></div></div>
+        <button class="lot available c3 r2" data-id="4" type="button"></button>
+        <button class="lot available c1 r3" data-id="5" type="button"></button>
+        <button class="lot available c2 r3" data-id="6" type="button"></button>
+        <button class="lot available c3 r3" data-id="7" type="button"></button>
+        <div class="roadV v1"></div><div class="roadV v2"></div><div class="roadH h1"></div><div class="roadH h2"></div>
+      </div>
+    </div>
+
+    <div class="modalBack" id="buyModal"><div class="modal"><h3>この土地を購入しますか？</h3><p>価格：<strong>¥1,000,000</strong></p><div class="actions"><button class="no" id="buyNo">N</button><button class="yes" id="buyYes">Y</button></div></div></div>
+    <div class="modalBack" id="buildModal"><div class="modal"><h3>何をつくりますか？</h3><div class="buildChoices">
+      <button data-building="convenience">🏪 コンビニ　¥1,000,000</button>
+      <button data-building="supermarket">🛒 スーパー　¥1,500,000</button>
+      <button data-building="park">🌳 公園　¥500,000</button>
+    </div><div class="actions"><button class="no" id="buildNo">N</button><button class="yes" id="buildYes">Y</button></div></div></div>
+  </div>
+</section>
+
+<section class="bottom">
+  <div class="panel"><h2>メイン会社</h2><div class="row"><span>基本利益</span><strong>¥100,000 / 日</strong></div><div class="row"><span>会社レベル</span><strong>Lv.1</strong></div><div class="row"><span>合計利益</span><strong id="totalIncome">¥100,000 / 日</strong></div></div>
+  <div class="panel"><h2>つくった会社系統</h2><div class="companyList" id="companyList"><div class="empty">まだ店舗・会社はありません。</div></div></div>
+</section>
+</div>
+
+<script src="../shared/for-my-sons-db.js?v=4"></script>
+<script src="../shared/profile-manager.js?v=2"></script>
+<script src="../shared/parent-lock.js?v=3"></script>
+<script src="../shared/save-store.js?v=2"></script>
+<script src="../shared/github-sync.js?v=9"></script>
+<script src="../shared/character-requests.js?v=5"></script>
+<script src="../shared/parent-requests.js?v=4"></script>
+<script src="../shared/for-my-sons.js?v=13"></script>
+<script>
+(async()=>{
+const APP_ID='company-town',SAVE_KEY='progress';
+const CFG={secondsPerDay:30,land:1_000_000,baseIncome:100_000,economicUnit:10_000,buildings:{convenience:{name:'コンビニ',price:1_000_000,rate:.03},supermarket:{name:'スーパー',price:1_500_000,rate:.05},park:{name:'公園',price:500_000,pop:50}}};
+const fresh=()=>({money:10_000_000,population:10,day:1,seconds:0,zoom:.72,lots:Array.from({length:8},()=>({owned:false,building:null}))});
+let state=fresh(),api=null,selectedLot=null,selectedBuilding=null;
+const $=id=>document.getElementById(id), yen=n=>'¥'+Math.floor(n).toLocaleString('ja-JP');
+const lotEls=[...document.querySelectorAll('.lot[data-id]')];
+
+function buildingIncome(){return state.lots.reduce((sum,l)=>{const c=l.building&&CFG.buildings[l.building];return sum+(c?.rate?CFG.economicUnit*state.population*c.rate:0)},0)}
+function dailyIncome(){return CFG.baseIncome+Math.floor(buildingIncome())}
+function gameClock(){const mins=(state.seconds*48)%1440,h=Math.floor(mins/60),m=mins%60;return String(h).padStart(2,'0')+':'+String(m).padStart(2,'0')}
+function renderLot(el,l){
+  if(!l.owned){el.className=el.className.replace(/\bbought\b/g,'').trim();if(!el.classList.contains('available'))el.classList.add('available');el.innerHTML='<div class="sale">売 地<small>¥1,000,000</small></div>';return}
+  el.classList.remove('available');el.classList.add('bought');
+  if(!l.building){el.innerHTML='<div class="boughtTag">購入済み<small>タップして建設</small></div>';return}
+  if(l.building==='park'){el.innerHTML='<div class="park">PARK</div>';return}
+  const c=CFG.buildings[l.building],icon=l.building==='convenience'?'🏪':'🛒';
+  el.innerHTML='<div class="building '+l.building+'"><div class="icon">'+icon+'</div><div>'+c.name+'</div></div>';
+}
+function renderCompanies(){
+ const counts={convenience:0,supermarket:0};state.lots.forEach(l=>{if(counts[l.building]!=null)counts[l.building]++});
+ const items=[];for(const type of ['convenience','supermarket'])if(counts[type])items.push('<div class="companyItem"><span>'+CFG.buildings[type].name+' × '+counts[type]+'</span><strong>'+yen(Math.floor(CFG.economicUnit*state.population*CFG.buildings[type].rate*counts[type]))+'/日</strong></div>');
+ $('companyList').innerHTML=items.length?items.join(''):'<div class="empty">まだ店舗・会社はありません。</div>';
+}
+function render(){
+ $('money').textContent=yen(state.money);$('population').textContent=state.population.toLocaleString('ja-JP');$('clock').textContent=gameClock();$('day').textContent=state.day;$('incomeTop').textContent='+'+yen(dailyIncome())+' / 日';$('totalIncome').textContent=yen(dailyIncome())+' / 日';$('map').style.transform='translate(-50%,-50%) scale('+state.zoom+')';$('zoomLabel').textContent=Math.round(state.zoom*100)+'%';lotEls.forEach((el,i)=>renderLot(el,state.lots[i]));renderCompanies();
+}
+function show(id){$(id).classList.add('show')}function hide(id){$(id).classList.remove('show')}
+async function localSave(label='ローカル保存'){
+ if(!api)return false;
+ try{await api.save.json(APP_ID,SAVE_KEY,state);$('saveStatus').textContent=label+'済み';return true}catch(e){console.warn(e);$('saveStatus').textContent='保存失敗';return false}
+}
+async function githubSave(){
+ $('saveBtn').disabled=true;$('saveStatus').textContent='保存中…';
+ const ok=await localSave('ローカル保存');
+ if(!ok){$('saveBtn').disabled=false;return}
+ try{
+   if(!await api.sync.hasToken()){$('saveStatus').textContent='ローカル保存済み / GitHub設定なし';return}
+   const results=await api.sync.push();
+   const bad=results.some(r=>!['synced','created'].includes(r.status));
+   $('saveStatus').textContent=bad?'ローカル保存済み / GitHub未完了':'GitHub保存済み';
+ }catch(e){console.warn(e);$('saveStatus').textContent='ローカル保存済み / GitHub失敗'}
+ finally{$('saveBtn').disabled=false}
+}
+async function load(){
+ api=await window.ForMySonsShared.createForMySons();
+ const saved=await api.save.readJson(APP_ID,SAVE_KEY);
+ if(saved&&Array.isArray(saved.lots)){state={...fresh(),...saved,lots:fresh().lots.map((d,i)=>({...d,...(saved.lots[i]||{})}))};$('saveStatus').textContent='ローカル保存を読み込み';}
+ else $('saveStatus').textContent='新しい町';
+ render();
+}
+lotEls.forEach((el,i)=>el.addEventListener('click',()=>{selectedLot=i;const lot=state.lots[i];if(!lot.owned)show('buyModal');else if(!lot.building){selectedBuilding=null;document.querySelectorAll('.buildChoices button').forEach(b=>b.classList.remove('selected'));show('buildModal')}}));
+$('buyNo').addEventListener('click',()=>hide('buyModal'));$('buyYes').addEventListener('click',()=>{hide('buyModal');if(state.money<CFG.land){$('saveStatus').textContent='土地を買うお金が足りません';return}state.money-=CFG.land;state.lots[selectedLot].owned=true;render()});
+document.querySelectorAll('.buildChoices button').forEach(b=>b.addEventListener('click',()=>{selectedBuilding=b.dataset.building;document.querySelectorAll('.buildChoices button').forEach(x=>x.classList.toggle('selected',x===b))}));
+$('buildNo').addEventListener('click',()=>hide('buildModal'));$('buildYes').addEventListener('click',()=>{if(!selectedBuilding)return;const c=CFG.buildings[selectedBuilding];hide('buildModal');if(state.money<c.price){$('saveStatus').textContent='建設するお金が足りません';return}state.money-=c.price;state.lots[selectedLot].building=selectedBuilding;if(c.pop)state.population+=c.pop;render()});
+$('zoomIn').addEventListener('click',()=>{state.zoom=Math.min(1.2,+(state.zoom+.08).toFixed(2));render()});$('zoomOut').addEventListener('click',()=>{state.zoom=Math.max(.42,+(state.zoom-.08).toFixed(2));render()});$('saveBtn').addEventListener('click',githubSave);
+await load();
+setInterval(async()=>{state.seconds++;if(state.seconds>=CFG.secondsPerDay){state.seconds=0;state.day++;state.money+=dailyIncome();render();await localSave('Day '+state.day+' 自動保存')}else render()},1000);
+})();
+</script>
+</body>
+</html>
