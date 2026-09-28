@@ -88,6 +88,7 @@ button{font:inherit}.app{width:min(100%,1080px);min-height:100vh;margin:auto;bac
   <div class="townFrame" id="townFrame">
     <div class="controls">
       <button class="save" type="button" id="saveBtn">💾 保存</button>
+      <button class="save" type="button" id="backToStartBtn">↩ START</button>
       <button type="button" id="zoomIn">＋</button>
       <button type="button" id="zoomOut">−</button>
       <div class="zoomLabel" id="zoomLabel">72%</div>
@@ -385,6 +386,11 @@ $('buildYes').addEventListener('click',()=>{
 $('zoomIn').addEventListener('click',()=>{state.zoom=Math.min(1.2,+(state.zoom+.08).toFixed(2));render()});
 $('zoomOut').addEventListener('click',()=>{state.zoom=Math.max(.32,+(state.zoom-.08).toFixed(2));render()});
 $('saveBtn').addEventListener('click',githubSave);
+$('backToStartBtn').addEventListener('click',async()=>{
+  gameRunning=false;
+  await localSave('スタート画面へ戻る前に保存');
+  setupStartScreen();
+});
 
 const startImage='../assets/company-town-start.webp?v=1';
 function hideStart(){
@@ -392,7 +398,18 @@ function hideStart(){
   $('startOverlay').classList.remove('show');
   $('startOverlay').setAttribute('aria-hidden','true');
 }
+function resetStartUi(){
+  $('startStep').style.display='block';
+  $('companyStep').style.display='none';
+  $('presidentStep').style.display='none';
+  $('finalStep').style.display='none';
+  $('companyStep').classList.remove('show');
+  $('presidentStep').classList.remove('show');
+  $('finalStep').classList.remove('show');
+}
 function setupStartScreen(){
+  gameRunning=false;
+  resetStartUi();
   $('startHero').style.backgroundImage='url('+startImage+')';
   returningPlayer=Boolean(state.onboardingComplete&&state.companyName&&state.presidentName);
   $('startStoryTitle').textContent=returningPlayer?'『'+state.companyName+'』ストーリー':'『　　　』ストーリー';
