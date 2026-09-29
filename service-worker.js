@@ -1,4 +1,4 @@
-const CACHE_NAME = 'for-my-sons-v92';
+const CACHE_NAME = 'for-my-sons-v93';
 const SHELL = [
   './',
   './index.html',
@@ -75,7 +75,7 @@ const SHELL = [
   './shared/wanko-mini-multiplication.js?v=1',
   './shared/wanko-library-view.js?v=4',
   './shared/wanko-registration-request.js?v=1',
-  './company-town/?v=7',
+  './company-town/?v=8',
   './company-town/index.html',
   './paint/?v=10',
   './paint/index.html',
