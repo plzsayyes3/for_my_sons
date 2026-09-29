@@ -82,7 +82,7 @@ button{font:inherit}.app{width:min(100%,1080px);min-height:100vh;margin:auto;bac
   <button class="topStartBtn" type="button" id="backToStartBtn">↩ スタート</button>
   <div class="stat"><div class="label">TOWN MONEY</div><div class="value money" id="money">¥10,000,000</div><div class="sub" id="incomeTop">+¥100,000 / 日</div></div>
   <div class="stat"><div class="label">POPULATION</div><div class="value"><span id="population">10</span> 人</div><div class="sub">自然 <span id="nature">0</span> ・ 歩行者 <span id="pedestrianCount">0</span>人</div></div>
-  <div class="stat"><div class="label">TIME</div><div class="value"><span id="clock">午前0時</span> / Day <span id="day">1</span></div><div class="sub">1秒 = 1時間 ・ 24秒 = 1日</div></div>
+  <div class="stat" id="timeStat" title="TIME"><div class="label">TIME</div><div class="value"><span id="clock">午前0時</span> / Day <span id="day">1</span></div><div class="sub" id="timeRuleLabel">1秒 = 1時間 ・ 24秒 = 1日</div></div>
 </section>
 
 <section class="townSection">
@@ -172,10 +172,12 @@ const fresh=()=>({
   companyConstruction:null,
   timePaused:false,
   timeSpeed:1,
+  debugDayPerSecond:false,
   lots:initialLots()
 });
 let state=fresh(),api=null,selectedLotKey=null,selectedBuilding=null,returningPlayer=false,gameRunning=false;
 let pedestrians=[],pedGraph={},pedGraphSignature='',pedAnimationStarted=false;
+let debugTapCount=0,debugTapTimer=null;
 const $=id=>document.getElementById(id), yen=n=>'¥'+Math.floor(n).toLocaleString('ja-JP');
 
 function migrateLots(savedLots){
@@ -423,6 +425,7 @@ function render(){
   const phase=phaseForHour(state.hour);$('skyBadge').textContent=phase.label;$('worldTint').style.background=phase.tint;
   $('timeMarker').style.left='calc('+(state.hour/24*100)+'% - 2px)';
   $('pauseTimeBtn').textContent=state.timePaused?'再開':'一時停止';$('timeSpeedBtn').textContent='×'+state.timeSpeed;
+  $('timeRuleLabel').textContent=state.debugDayPerSecond?'DEBUG: 1秒 = 1日':'1秒 = 1時間 ・ 24秒 = 1日';
   renderMap();$('map').style.transform='translate(-50%,-50%) scale('+state.zoom+')';$('zoomLabel').textContent=Math.round(state.zoom*100)+'%';
   renderCompanies();renderConstruction();renderBuildChoices();renderUnlocks();syncPedestrians();
 }
@@ -515,6 +518,18 @@ $('expandCompanyBtn').addEventListener('click',()=>startCompanyConstruction('exp
 $('rebuildCompanyBtn').addEventListener('click',()=>startCompanyConstruction('rebuild'));
 $('pauseTimeBtn').addEventListener('click',()=>{state.timePaused=!state.timePaused;render()});
 $('timeSpeedBtn').addEventListener('click',()=>{state.timeSpeed=state.timeSpeed===1?2:state.timeSpeed===2?4:1;render()});
+$('timeStat').addEventListener('click',()=>{
+  debugTapCount++;
+  clearTimeout(debugTapTimer);
+  debugTapTimer=setTimeout(()=>{debugTapCount=0},1500);
+  if(debugTapCount>=5){
+    debugTapCount=0;
+    state.debugDayPerSecond=!state.debugDayPerSecond;
+    $('saveStatus').textContent=state.debugDayPerSecond?'DEBUG ON: 1秒=1日':'DEBUG OFF: 通常時間';
+    localSave(state.debugDayPerSecond?'DEBUG時間ON':'DEBUG時間OFF');
+    render();
+  }
+});
 $('backToStartBtn').addEventListener('click',async()=>{gameRunning=false;await localSave('スタート画面へ戻る前に保存');setupStartScreen()});
 
 const startImage='../assets/company-town-start.webp?v=1';
@@ -537,7 +552,11 @@ await load();
 if(!pedAnimationStarted){pedAnimationStarted=true;requestAnimationFrame(animatePedestrians)}
 setInterval(()=>{
   if(!gameRunning||state.timePaused)return;
-  for(let i=0;i<state.timeSpeed;i++)advanceHour();
+  if(state.debugDayPerSecond){
+    for(let d=0;d<state.timeSpeed;d++)for(let h=0;h<24;h++)advanceHour();
+  }else{
+    for(let i=0;i<state.timeSpeed;i++)advanceHour();
+  }
   render();
 },1000);
 })();
