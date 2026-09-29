@@ -100,7 +100,7 @@
   {
     "id": "company-town",
     "name": "Company Town",
-    "url": "./company-town/?v=6",
+    "url": "./company-town/?v=7",
     "icon": "./assets/company-town.svg?v=1",
     "description": "会社を育てて、土地を買い、町を大きくしよう"
   }
