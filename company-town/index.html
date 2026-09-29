@@ -57,14 +57,14 @@ button{font:inherit}.app{width:min(100%,1080px);min-height:100vh;margin:auto;bac
         <button type="button" class="startBtn" id="startGameIntro">START</button>
       </div>
       <div class="wizard" id="companyStep">
-        <p class="story">ここは、名の無い街。<strong>ななし町</strong>。<br>そこにあなたは、町にたくさんの人を呼び、みんなのためにがんばろうと、会社を立てました。</p>
+        <p class="story">ここは、名の無い街、<strong>ななし町</strong>。<br>そこにあなたは、町にたくさんの人を呼び、みんなのためにがんばろうと、会社を立てました。<br><br>その会社の名前は―――</p>
         <label for="companyNameInput">会社の名前は何ですか？</label>
         <input id="companyNameInput" maxlength="24" autocomplete="off" placeholder="会社のなまえ">
         <div class="hint">この名前はあとから会社情報に表示されます。</div>
         <button type="button" class="nextBtn" id="toPresidentStep" style="margin-top:14px">つぎへ</button>
       </div>
       <div class="wizard" id="presidentStep">
-        <p class="story">そんな心やさしい会社の社長は――</p>
+        <p class="story">そんなこころやさしい会社の社長は―――</p>
         <label for="presidentNameInput">あなたの名前は何ですか？</label>
         <input id="presidentNameInput" maxlength="16" autocomplete="off" placeholder="なまえ">
         <div class="hint">ゲーム内では「○○社長」と呼ばれます。</div>
@@ -101,12 +101,12 @@ button{font:inherit}.app{width:min(100%,1080px);min-height:100vh;margin:auto;bac
       </div>
     </div>
 
-    <div class="modalBack" id="buyModal"><div class="modal"><h3>この土地を購入しますか？</h3><p>価格：<strong>¥1,000,000</strong></p><div class="actions"><button class="no" id="buyNo">N</button><button class="yes" id="buyYes">Y</button></div></div></div>
+    <div class="modalBack" id="buyModal"><div class="modal"><h3>この土地を購入しますか？</h3><p>価格：<strong>¥1,000,000</strong></p><div class="actions"><button class="no" id="buyNo">いいえ</button><button class="yes" id="buyYes">はい</button></div></div></div>
     <div class="modalBack" id="buildModal"><div class="modal"><h3>何をつくりますか？</h3><div class="buildChoices">
       <button data-building="convenience">🏪 コンビニ　¥1,000,000</button>
       <button data-building="supermarket">🛒 スーパー　¥1,500,000</button>
       <button data-building="park">🌳 公園　¥500,000</button>
-    </div><div class="actions"><button class="no" id="buildNo">N</button><button class="yes" id="buildYes">Y</button></div></div></div>
+    </div><div class="actions"><button class="no" id="buildNo">いいえ</button><button class="yes" id="buildYes">はい</button></div></div></div>
   </div>
 </section>
 
@@ -411,7 +411,7 @@ function setupStartScreen(){
   gameRunning=false;
   resetStartUi();
   $('startHero').style.backgroundImage='url('+startImage+')';
-  returningPlayer=Boolean(state.onboardingComplete&&state.companyName&&state.presidentName);
+  returningPlayer=Boolean(state.onboardingComplete||(state.companyName&&state.presidentName));
   $('startStoryTitle').textContent=returningPlayer?'『'+state.companyName+'』ストーリー':'『　　　』ストーリー';
   const intro=$('startStep').querySelector('.story');
   intro.textContent=returningPlayer?state.companyName+'の町づくりをつづけよう。':'この町が、いつかこんなに大きくなったら。';
@@ -439,7 +439,7 @@ $('toFinalStep').addEventListener('click',()=>{
   const v=$('presidentNameInput').value.trim();
   if(!v){$('presidentNameInput').focus();return}
   state.presidentName=v;
-  $('openingTitle').textContent='ここからはじまる、世界一大きな町をつくる'+state.presidentName+'社長の「'+state.companyName+'」ストーリー。';
+  $('openingTitle').textContent='ここからはじまる、世界一大きな町をつくる'+state.presidentName+'社長の'+state.companyName+'ストーリー。';
   switchWizard('presidentStep','finalStep');
 });
 $('beginTown').addEventListener('click',async()=>{
