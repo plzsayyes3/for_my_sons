@@ -13,6 +13,7 @@ test('Company Town unlock conditions match progression rules', () => {
   assert.match(source, /population50:state\.population>=50/);
   assert.match(source, /population100:state\.population>=100/);
   assert.match(source, /population200:state\.population>=200/);
+  assert.match(source, /population500:state\.population>=500/);
   assert.match(source, /company2:state\.companyLevel>=2/);
   assert.match(source, /company3:state\.companyLevel>=3/);
   assert.match(source, /nature100:naturePoints\(\)>=100/);
@@ -27,4 +28,13 @@ test('Company Town has hidden five-tap one-day-per-second debug mode', () => {
   assert.match(source, /debugTapCount>=5/);
   assert.match(source, /debugDayPerSecond:false/);
   assert.match(source, /for\(let d=0;d<state\.timeSpeed;d\+\+\)for\(let h=0;h<24;h\+\+\)advanceHour\(\)/);
+});
+
+test('Housing expands population capacity instead of adding residents instantly', () => {
+  assert.match(source, /houses:\{name:'分譲戸建て4戸'.*capacity:20/);
+  assert.match(source, /apartment:\{name:'マンション'.*capacity:100/);
+  assert.match(source, /highrise:\{name:'高層マンション'.*capacity:300/);
+  assert.match(source, /function housingCapacity\(\)/);
+  assert.match(source, /function applyDailyMoveIn\(\)/);
+  assert.match(source, /const moved=applyDailyMoveIn\(\)/);
 });
