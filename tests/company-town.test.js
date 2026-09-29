@@ -22,3 +22,9 @@ test('Company Town unlock conditions match progression rules', () => {
 test('Normal park contributes fifty nature points', () => {
   assert.match(source, /park:\{name:'公園',icon:'🌳',price:500_000,pop:50,nature:50/);
 });
+
+test('Company Town has hidden five-tap one-day-per-second debug mode', () => {
+  assert.match(source, /debugTapCount>=5/);
+  assert.match(source, /debugDayPerSecond:false/);
+  assert.match(source, /for\(let d=0;d<state\.timeSpeed;d\+\+\)for\(let h=0;h<24;h\+\+\)advanceHour\(\)/);
+});
