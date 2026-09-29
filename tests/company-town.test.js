@@ -21,7 +21,7 @@ test('Company Town unlock conditions match progression rules', () => {
 });
 
 test('Normal park contributes fifty nature points', () => {
-  assert.match(source, /park:\{name:'公園',icon:'🌳',price:500_000,pop:50,nature:50/);
+  assert.match(source, /park:\{name:'公園',icon:'🌳',price:500_000,nature:50,moveIn:1/);
 });
 
 test('Company Town has hidden five-tap one-day-per-second debug mode', () => {
