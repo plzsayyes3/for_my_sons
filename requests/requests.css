@@ -1,0 +1,11 @@
+.requests-screen{width:min(100%,980px);min-height:100svh;margin:0 auto;padding:calc(env(safe-area-inset-top) + 22px) clamp(18px,5vw,42px) calc(env(safe-area-inset-bottom) + 28px)}
+.requests-hero{padding:22px;border:1px solid var(--glass-border);border-radius:28px;background:var(--glass);box-shadow:var(--shadow);backdrop-filter:blur(24px) saturate(135%);-webkit-backdrop-filter:blur(24px) saturate(135%)}
+.requests-back{display:inline-flex;margin-bottom:18px;color:rgba(15,23,42,.66);font-size:13px;font-weight:800;text-decoration:none}
+.requests-hero h1{margin:0;font-size:clamp(28px,7vw,38px);line-height:1.08;letter-spacing:-.035em}
+.requests-copy{margin:9px 0 0;color:rgba(15,23,42,.62);font-size:13px;line-height:1.5}
+.requests-profile{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:18px;padding-top:15px;border-top:1px solid rgba(15,23,42,.08)}
+.requests-profile span{font-size:12px;font-weight:750;color:rgba(15,23,42,.62)}
+.requests-profile button{border:0;border-radius:999px;padding:9px 13px;background:rgba(255,255,255,.72);color:#0f172a;font:inherit;font-size:12px;font-weight:750}
+.requests-history{margin-top:18px}
+.requests-guard{padding:22px;border-radius:18px;background:rgba(255,255,255,.72);color:rgba(15,23,42,.66);font-size:14px;font-weight:750;line-height:1.6;text-align:center}
+@media(min-width:700px){.requests-hero{padding:26px 28px}.requests-history{padding:22px}}
