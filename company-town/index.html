@@ -11,17 +11,17 @@
 button{font:inherit}.app{width:min(100%,1080px);min-height:100vh;margin:auto;background:#e7ecef}
 .top{position:relative;background:linear-gradient(180deg,var(--panel),var(--panel2));color:#fff;padding:10px 118px 10px 12px;display:grid;grid-template-columns:1.2fr 1fr 1fr;gap:8px}
 .stat{min-width:0;padding:7px 9px;border-left:1px solid #ffffff22}.topStartBtn{position:absolute;right:12px;top:12px;min-width:94px;height:44px;border:1px solid #ffffff33;border-radius:11px;background:#ffffff18;color:#fff;font-weight:900;box-shadow:0 3px 10px #0002}.stat:first-child{border-left:0}.label{font-size:10px;letter-spacing:.09em;opacity:.65}.value{font-size:19px;font-weight:850;white-space:nowrap}.money{color:var(--money)}.sub{font-size:11px;opacity:.72}
-.townSection{padding:12px;display:flex;justify-content:center;background:#d8e0e4}.townFrame{width:min(92vw,720px);aspect-ratio:1;position:relative;overflow:hidden;border-radius:16px;background:var(--grass);box-shadow:0 8px 22px #0002}
+.townSection{padding:12px;display:flex;justify-content:center;background:#d8e0e4}.townFrame{width:min(92vw,720px);aspect-ratio:1;position:relative;overflow:hidden;border-radius:16px;background:var(--grass);box-shadow:0 8px 22px #0002}.worldTint{position:absolute;inset:0;z-index:30;pointer-events:none;background:rgba(7,20,55,.52);transition:background 1s linear}.skyBadge{position:absolute;left:10px;top:10px;z-index:41;background:#ffffffdd;border-radius:9px;padding:6px 9px;font-size:11px;font-weight:900;box-shadow:0 3px 10px #0002}
 .controls{position:absolute;right:10px;top:10px;z-index:40;display:grid;gap:7px}.controls button{min-width:44px;height:44px;border:0;border-radius:10px;background:#233c58ee;color:#fff;font-weight:900;box-shadow:0 4px 12px #0003}.controls .save{padding:0 12px;font-size:13px}.zoomLabel{background:#fffed;padding:4px 6px;border-radius:8px;text-align:center;font-size:10px;font-weight:800}
 .viewport{position:absolute;inset:0;overflow:auto}.map{position:absolute;left:50%;top:50%;width:900px;height:900px;transform:translate(-50%,-50%) scale(.72);transform-origin:center;background:linear-gradient(#ffffff0b 1px,transparent 1px),linear-gradient(90deg,#ffffff0b 1px,transparent 1px),var(--grass);background-size:32px 32px}
 .roadV,.roadH{position:absolute;background:var(--road);box-shadow:inset 0 0 0 8px var(--edge);z-index:2;pointer-events:none}.roadV{top:0;bottom:0;width:50px}.roadV.v1{left:275px}.roadV.v2{left:575px}.roadH{left:0;right:0;height:50px}.roadH.h1{top:275px}.roadH.h2{top:575px}.roadV:after{content:"";position:absolute;top:0;bottom:0;left:50%;width:2px;background:repeating-linear-gradient(180deg,transparent 0 24px,var(--line) 24px 46px)}.roadH:after{content:"";position:absolute;left:0;right:0;top:50%;height:2px;background:repeating-linear-gradient(90deg,transparent 0 24px,var(--line) 24px 46px)}
 .lot{position:absolute;width:250px;height:250px;border-radius:12px;border:3px solid #416e603d;display:flex;align-items:center;justify-content:center;background:#98d77b;z-index:1}.lot.available,.lot.bought{cursor:pointer}.lot.companyLot{background:#a1dc83;border-color:#4f9251}.c1{left:25px}.c2{left:325px}.c3{left:625px}.r1{top:25px}.r2{top:325px}.r3{top:625px}
 .sale{background:#f5e4b7;border:4px solid #735131;color:#654627;border-radius:7px;padding:9px 13px;font-weight:900}.sale small,.boughtTag small{display:block;font-size:10px;text-align:center;opacity:.7}.boughtTag{background:#ffffffa8;border:2px solid #4f925155;border-radius:8px;padding:10px;font-weight:850}
-.company{position:relative;width:150px;height:105px;background:linear-gradient(#f1be80 0 34%,#dc914b 34%);border:5px solid #394754;border-radius:9px;box-shadow:0 10px 18px #0003}.company:before{content:"COMPANY";position:absolute;left:50%;top:-31px;transform:translateX(-50%);width:92px;height:32px;display:flex;align-items:center;justify-content:center;background:#eef7ff;border:5px solid #394754;border-bottom:0;border-radius:7px 7px 0 0;color:#2d668f;font-size:11px;font-weight:900}.company:after{content:"";position:absolute;left:50%;bottom:0;transform:translateX(-50%);width:30px;height:43px;background:#80c8f1;border:4px solid #394754;border-bottom:0}
+.company{position:relative;width:150px;height:105px;background:linear-gradient(#f1be80 0 34%,#dc914b 34%);border:5px solid #394754;border-radius:9px;box-shadow:0 10px 18px #0003;transition:width .35s,height .35s,background .35s}.company.companyLv2{width:170px;height:130px;background:linear-gradient(#d6f1ff 0 28%,#6baed6 28%)}.company.companyLv3{width:190px;height:155px;background:linear-gradient(#d6f1ff 0 22%,#4e95c4 22%)}.company.companyLv4{width:205px;height:175px;background:linear-gradient(#dff4ff 0 18%,#397dab 18%)}.companyConstruction{position:absolute;inset:auto 12px 12px;z-index:3;background:#24384ddd;color:#fff;border-radius:8px;padding:6px;text-align:center;font-size:11px;font-weight:900}.company:before{content:"COMPANY";position:absolute;left:50%;top:-31px;transform:translateX(-50%);width:92px;height:32px;display:flex;align-items:center;justify-content:center;background:#eef7ff;border:5px solid #394754;border-bottom:0;border-radius:7px 7px 0 0;color:#2d668f;font-size:11px;font-weight:900}.company:after{content:"";position:absolute;left:50%;bottom:0;transform:translateX(-50%);width:30px;height:43px;background:#80c8f1;border:4px solid #394754;border-bottom:0}
 .building{width:150px;min-height:105px;border:5px solid #394754;border-radius:10px;display:flex;flex-direction:column;align-items:center;justify-content:center;font-weight:900}.building .icon{font-size:38px}.convenience{background:#eef6e8;border-top:18px solid #3ba26c}.supermarket{background:#fff1d5;border-top:18px solid #e65f4f}.park{width:180px;height:145px;border-radius:20px;border:5px solid #4b8a52;background:radial-gradient(circle at 35% 32%,#3d9c50 0 22px,transparent 23px),radial-gradient(circle at 68% 60%,#318e46 0 27px,transparent 28px),linear-gradient(135deg,#bfe8a9,#8ed176);display:flex;align-items:flex-end;justify-content:center;padding:10px;font-weight:900}
-.bottom{padding:12px;background:#edf1f3;display:grid;grid-template-columns:1fr 1fr;gap:10px}.panel{background:#fff;border-radius:14px;padding:13px;min-height:160px}.panel h2{margin:0 0 9px;font-size:15px}.row{display:flex;justify-content:space-between;gap:12px;padding:5px 0;border-top:1px solid #edf0f2;font-size:13px}.row:first-of-type{border-top:0}.companyList{display:grid;gap:7px}.companyItem{display:flex;justify-content:space-between;gap:8px;background:#f3f6f8;border-radius:10px;padding:9px;font-size:12px}.empty{font-size:12px;color:var(--muted);line-height:1.6}
+.bottom{padding:12px;background:#edf1f3;display:grid;grid-template-columns:1fr 1fr;gap:10px}.panel{background:#fff;border-radius:14px;padding:13px;min-height:160px}.companyActions{display:grid;grid-template-columns:1fr 1fr;gap:7px;margin-top:10px}.companyAction{border:0;border-radius:10px;padding:9px 7px;background:#2d6e9c;color:#fff;font-weight:850;font-size:12px}.companyAction.alt{background:#637789}.companyAction:disabled{opacity:.45}.constructionProgress{margin-top:8px}.progressTrack{height:10px;background:#e5eaee;border-radius:999px;overflow:hidden}.progressFill{height:100%;width:0;background:#5faee5;transition:width .25s linear}.progressText{font-size:11px;color:#69757f;margin-top:4px}.timeTools{grid-column:1/-1;background:#fff;border-radius:14px;padding:10px 12px;display:flex;align-items:center;gap:8px}.timeTools button{border:0;border-radius:9px;background:#263d55;color:#fff;font-weight:850;padding:8px 11px}.dayTimeline{flex:1;height:10px;border-radius:999px;position:relative;overflow:hidden;background:linear-gradient(90deg,#0f1c42 0 25%,#8fd3ff 25% 66.67%,#ff9c5f 66.67% 75%,#0f1c42 75% 100%)}.timeMarker{position:absolute;top:-3px;width:4px;height:16px;background:#fff;box-shadow:0 0 0 2px #263d55}.panel h2{margin:0 0 9px;font-size:15px}.row{display:flex;justify-content:space-between;gap:12px;padding:5px 0;border-top:1px solid #edf0f2;font-size:13px}.row:first-of-type{border-top:0}.companyList{display:grid;gap:7px}.companyItem{display:flex;justify-content:space-between;gap:8px;background:#f3f6f8;border-radius:10px;padding:9px;font-size:12px}.empty{font-size:12px;color:var(--muted);line-height:1.6}
 .modalBack{position:absolute;inset:0;z-index:80;background:#0e18217a;display:none;align-items:center;justify-content:center;padding:20px}.modalBack.show{display:flex}.modal{width:min(420px,100%);background:#fff;border-radius:16px;padding:18px}.modal h3{margin:0 0 8px}.modal p{color:#53606a;line-height:1.5}.actions{display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap}.actions button,.buildChoices button{min-height:44px;border:0;border-radius:10px;padding:10px 14px;font-weight:800}.yes{background:#2d6e9c;color:#fff}.no{background:#e9edf0}.buildChoices{display:grid;gap:8px;margin:12px 0}.buildChoices button{text-align:left;background:#f2f5f7;border:1px solid #d8e0e5}.buildChoices button.selected{outline:3px solid #74bce8}.saveStatus{position:absolute;right:10px;top:164px;z-index:40;background:#ffffffdd;border-radius:8px;padding:5px 8px;font-size:10px;font-weight:700;max-width:170px;text-align:right}
-@media(max-width:700px){.top{grid-template-columns:1fr 1fr;padding:64px 10px 10px}.topStartBtn{right:10px;top:10px;height:42px}.stat:nth-child(3){grid-column:1/-1}.value{font-size:17px}.townSection{padding:8px}.townFrame{width:100%}.bottom{grid-template-columns:1fr 1fr;padding:8px;gap:7px}.panel{padding:9px;min-height:145px}.panel h2{font-size:13px}.row,.companyItem,.empty{font-size:10px}}
+@media(max-width:700px){.top{grid-template-columns:1fr 1fr;padding:64px 10px 10px}.topStartBtn{right:10px;top:10px;height:42px}.stat:nth-child(3){grid-column:1/-1}.value{font-size:17px}.townSection{padding:8px}.townFrame{width:100%}.bottom{grid-template-columns:1fr 1fr;padding:8px;gap:7px}.panel{padding:9px;min-height:145px}.panel h2{font-size:13px}.row,.companyItem,.empty{font-size:10px}.companyActions{grid-template-columns:1fr}.timeTools{grid-column:1/-1;flex-wrap:wrap}}
 
 .startOverlay{position:fixed;inset:0;z-index:200;background:#172434;color:#fff;display:none;align-items:center;justify-content:center;padding:16px}
 .startOverlay.show{display:flex}
@@ -82,11 +82,12 @@ button{font:inherit}.app{width:min(100%,1080px);min-height:100vh;margin:auto;bac
   <button class="topStartBtn" type="button" id="backToStartBtn">↩ スタート</button>
   <div class="stat"><div class="label">TOWN MONEY</div><div class="value money" id="money">¥10,000,000</div><div class="sub" id="incomeTop">+¥100,000 / 日</div></div>
   <div class="stat"><div class="label">POPULATION</div><div class="value"><span id="population">10</span> 人</div><div class="sub">町の人口</div></div>
-  <div class="stat"><div class="label">TIME</div><div class="value"><span id="clock">00:00</span> / Day <span id="day">1</span></div><div class="sub">1秒 = 48分 ・ 30秒 = 1日</div></div>
+  <div class="stat"><div class="label">TIME</div><div class="value"><span id="clock">午前0時</span> / Day <span id="day">1</span></div><div class="sub">1秒 = 1時間 ・ 24秒 = 1日</div></div>
 </section>
 
 <section class="townSection">
   <div class="townFrame" id="townFrame">
+    <div class="skyBadge" id="skyBadge">🌙 夜</div>
     <div class="controls">
       <button class="save" type="button" id="saveBtn">💾 保存</button>
       <button type="button" id="zoomIn">＋</button>
@@ -100,6 +101,7 @@ button{font:inherit}.app{width:min(100%,1080px);min-height:100vh;margin:auto;bac
         <div id="roadLayer"></div>
       </div>
     </div>
+    <div class="worldTint" id="worldTint"></div>
 
     <div class="modalBack" id="buyModal"><div class="modal"><h3>この土地を購入しますか？</h3><p>価格：<strong>¥1,000,000</strong></p><div class="actions"><button class="no" id="buyNo">いいえ</button><button class="yes" id="buyYes">はい</button></div></div></div>
     <div class="modalBack" id="buildModal"><div class="modal"><h3>何をつくりますか？</h3><div class="buildChoices">
@@ -111,8 +113,9 @@ button{font:inherit}.app{width:min(100%,1080px);min-height:100vh;margin:auto;bac
 </section>
 
 <section class="bottom">
-  <div class="panel"><h2 id="mainCompanyTitle">メイン会社</h2><div class="sub" id="presidentLabel" style="color:#69757f;margin-bottom:8px"></div><div class="row"><span>基本利益</span><strong>¥100,000 / 日</strong></div><div class="row"><span>会社レベル</span><strong>Lv.1</strong></div><div class="row"><span>合計利益</span><strong id="totalIncome">¥100,000 / 日</strong></div></div>
+  <div class="panel"><h2 id="mainCompanyTitle">メイン会社</h2><div class="sub" id="presidentLabel" style="color:#69757f;margin-bottom:8px"></div><div class="row"><span>基本利益</span><strong id="baseIncome">¥100,000 / 日</strong></div><div class="row"><span>会社レベル</span><strong id="companyLevel">Lv.1</strong></div><div class="row"><span>合計利益</span><strong id="totalIncome">¥100,000 / 日</strong></div><div class="row"><span>ビル状態</span><strong id="buildingState">通常</strong></div><div class="companyActions"><button class="companyAction" id="expandCompanyBtn" type="button">増築する<br><small>3日</small></button><button class="companyAction alt" id="rebuildCompanyBtn" type="button">建て替える<br><small>30日</small></button></div><div class="constructionProgress"><div class="progressTrack"><div class="progressFill" id="constructionFill"></div></div><div class="progressText" id="constructionText">工事はありません</div></div></div>
   <div class="panel"><h2>つくった会社系統</h2><div class="companyList" id="companyList"><div class="empty">まだ店舗・会社はありません。</div></div></div>
+  <div class="timeTools"><button type="button" id="pauseTimeBtn">一時停止</button><button type="button" id="timeSpeedBtn">×1</button><div class="dayTimeline"><div class="timeMarker" id="timeMarker"></div></div></div>
 </section>
 </div>
 
@@ -128,13 +131,14 @@ button{font:inherit}.app{width:min(100%,1080px);min-height:100vh;margin:auto;bac
 (async()=>{
 const APP_ID='company-town',SAVE_KEY='progress';
 const CFG={
-  secondsPerDay:30,
+  hoursPerDay:24,
   land:1_000_000,
-  baseIncome:100_000,
+  baseIncomePerLevel:100_000,
   economicUnit:10_000,
   lotSize:250,
   roadSize:50,
   mapMargin:25,
+  construction:{expand:{name:'増築',hours:72,levelGain:1},rebuild:{name:'建て替え',hours:720,levelGain:2}},
   buildings:{
     convenience:{name:'コンビニ',price:1_000_000,rate:.03},
     supermarket:{name:'スーパー',price:1_500_000,rate:.05},
@@ -154,11 +158,15 @@ const fresh=()=>({
   money:10_000_000,
   population:10,
   day:1,
-  seconds:0,
+  hour:0,
   zoom:.72,
   companyName:'',
   presidentName:'',
   onboardingComplete:false,
+  companyLevel:1,
+  companyConstruction:null,
+  timePaused:false,
+  timeSpeed:1,
   lots:initialLots()
 });
 let state=fresh(),api=null,selectedLotKey=null,selectedBuilding=null,returningPlayer=false,gameRunning=false;
@@ -187,41 +195,49 @@ function migrateLots(savedLots){
   }
   return initialLots();
 }
+function migrateSaved(saved){
+  const next={...fresh(),...saved,lots:migrateLots(saved?.lots)};
+  if(!Number.isFinite(Number(saved?.hour))){
+    const oldSeconds=Number(saved?.seconds)||0;
+    next.hour=Math.max(0,Math.min(23,Math.floor(oldSeconds*24/30)));
+  }else next.hour=((Number(saved.hour)%24)+24)%24;
+  delete next.seconds;
+  next.companyLevel=Math.max(1,Number(next.companyLevel)||1);
+  next.timeSpeed=[1,2,4].includes(Number(next.timeSpeed))?Number(next.timeSpeed):1;
+  next.timePaused=Boolean(next.timePaused);
+  return next;
+}
 function lotValues(){return Object.values(state.lots)}
+function companyBaseIncome(){return CFG.baseIncomePerLevel*state.companyLevel}
 function buildingIncome(){
   return lotValues().reduce((sum,l)=>{
     const c=l.building&&CFG.buildings[l.building];
     return sum+(c?.rate?CFG.economicUnit*state.population*c.rate:0);
   },0);
 }
-function dailyIncome(){return CFG.baseIncome+Math.floor(buildingIncome())}
-function gameClock(){
-  const mins=(state.seconds*48)%1440,h=Math.floor(mins/60),m=mins%60;
-  return String(h).padStart(2,'0')+':'+String(m).padStart(2,'0');
+function dailyIncome(){return companyBaseIncome()+Math.floor(buildingIncome())}
+function jpHour(h){
+  if(h===0)return '午前0時';
+  if(h<12)return '午前'+h+'時';
+  if(h===12)return '午後0時';
+  return '午後'+(h-12)+'時';
+}
+function phaseForHour(h){
+  if(h>=6&&h<16)return {label:'☀️ 昼',tint:'rgba(255,255,255,0)'};
+  if(h>=16&&h<18)return {label:'🌇 夕焼け',tint:'rgba(255,118,50,.28)'};
+  return {label:'🌙 夜',tint:'rgba(7,20,55,.52)'};
 }
 function mapBounds(){
   const coords=[{x:0,y:0},...lotValues()];
-  return {
-    minX:Math.min(...coords.map(v=>v.x)),
-    maxX:Math.max(...coords.map(v=>v.x)),
-    minY:Math.min(...coords.map(v=>v.y)),
-    maxY:Math.max(...coords.map(v=>v.y))
-  };
+  return {minX:Math.min(...coords.map(v=>v.x)),maxX:Math.max(...coords.map(v=>v.x)),minY:Math.min(...coords.map(v=>v.y)),maxY:Math.max(...coords.map(v=>v.y))};
 }
 function dimensions(bounds=mapBounds()){
   const cols=bounds.maxX-bounds.minX+1,rows=bounds.maxY-bounds.minY+1;
-  return {
-    cols,rows,
-    width:CFG.mapMargin*2+cols*CFG.lotSize+(cols-1)*CFG.roadSize,
-    height:CFG.mapMargin*2+rows*CFG.lotSize+(rows-1)*CFG.roadSize
-  };
+  return {cols,rows,width:CFG.mapMargin*2+cols*CFG.lotSize+(cols-1)*CFG.roadSize,height:CFG.mapMargin*2+rows*CFG.lotSize+(rows-1)*CFG.roadSize};
 }
 function lotPosition(x,y,bounds){
   const pitch=CFG.lotSize+CFG.roadSize;
-  return {
-    left:CFG.mapMargin+(x-bounds.minX)*pitch,
-    top:CFG.mapMargin+(y-bounds.minY)*pitch
-  };
+  return {left:CFG.mapMargin+(x-bounds.minX)*pitch,top:CFG.mapMargin+(y-bounds.minY)*pitch};
 }
 function buildingMarkup(lot){
   if(!lot.building)return '<div class="boughtTag">購入済み<small>タップして建設</small></div>';
@@ -229,88 +245,82 @@ function buildingMarkup(lot){
   const c=CFG.buildings[lot.building],icon=lot.building==='convenience'?'🏪':'🛒';
   return '<div class="building '+lot.building+'"><div class="icon">'+icon+'</div><div>'+c.name+'</div></div>';
 }
+function companyClass(){
+  if(state.companyLevel>=4)return 'company companyLv4';
+  if(state.companyLevel>=3)return 'company companyLv3';
+  if(state.companyLevel>=2)return 'company companyLv2';
+  return 'company';
+}
+function companyConstructionMarkup(){
+  if(!state.companyConstruction)return '';
+  return '<div class="companyConstruction">🚧 '+state.companyConstruction.name+'工事中<br>あと'+Math.ceil(state.companyConstruction.remainingHours/24)+'日</div>';
+}
 function renderMap(){
   const bounds=mapBounds(),dims=dimensions(bounds),lotLayer=$('lotLayer'),roadLayer=$('roadLayer'),map=$('map');
-  map.style.width=dims.width+'px';
-  map.style.height=dims.height+'px';
-  lotLayer.replaceChildren();
-  roadLayer.replaceChildren();
-
+  map.style.width=dims.width+'px'; map.style.height=dims.height+'px';
+  lotLayer.replaceChildren(); roadLayer.replaceChildren();
   const companyPos=lotPosition(0,0,bounds);
   const company=document.createElement('div');
-  company.className='lot companyLot';
-  company.style.left=companyPos.left+'px';
-  company.style.top=companyPos.top+'px';
-  company.innerHTML='<div class="company"></div>';
+  company.className='lot companyLot'; company.style.left=companyPos.left+'px'; company.style.top=companyPos.top+'px';
+  company.innerHTML='<div class="'+companyClass()+'">'+companyConstructionMarkup()+'</div>';
   lotLayer.appendChild(company);
-
   for(const lot of lotValues()){
-    const pos=lotPosition(lot.x,lot.y,bounds);
-    const el=document.createElement('button');
-    el.type='button';
-    el.className='lot '+(lot.status==='bought'?'bought':'available');
-    el.dataset.key=key(lot.x,lot.y);
-    el.style.left=pos.left+'px';
-    el.style.top=pos.top+'px';
-    el.innerHTML=lot.status==='bought'
-      ? buildingMarkup(lot)
-      : '<div class="sale">売 地<small>¥1,000,000</small></div>';
+    const pos=lotPosition(lot.x,lot.y,bounds),el=document.createElement('button');
+    el.type='button'; el.className='lot '+(lot.status==='bought'?'bought':'available'); el.dataset.key=key(lot.x,lot.y);
+    el.style.left=pos.left+'px';el.style.top=pos.top+'px';
+    el.innerHTML=lot.status==='bought'?buildingMarkup(lot):'<div class="sale">売 地<small>¥1,000,000</small></div>';
     lotLayer.appendChild(el);
   }
-
-  for(let i=1;i<dims.cols;i++){
-    const road=document.createElement('div');
-    road.className='roadV';
-    road.style.left=(CFG.mapMargin+i*CFG.lotSize+(i-1)*CFG.roadSize)+'px';
-    roadLayer.appendChild(road);
-  }
-  for(let i=1;i<dims.rows;i++){
-    const road=document.createElement('div');
-    road.className='roadH';
-    road.style.top=(CFG.mapMargin+i*CFG.lotSize+(i-1)*CFG.roadSize)+'px';
-    roadLayer.appendChild(road);
-  }
+  for(let i=1;i<dims.cols;i++){const road=document.createElement('div');road.className='roadV';road.style.left=(CFG.mapMargin+i*CFG.lotSize+(i-1)*CFG.roadSize)+'px';roadLayer.appendChild(road)}
+  for(let i=1;i<dims.rows;i++){const road=document.createElement('div');road.className='roadH';road.style.top=(CFG.mapMargin+i*CFG.lotSize+(i-1)*CFG.roadSize)+'px';roadLayer.appendChild(road)}
 }
 function renderCompanies(){
   const counts={convenience:0,supermarket:0};
   lotValues().forEach(l=>{if(counts[l.building]!=null)counts[l.building]++});
   const items=[];
-  for(const type of ['convenience','supermarket']){
-    if(counts[type])items.push('<div class="companyItem"><span>'+CFG.buildings[type].name+' × '+counts[type]+'</span><strong>'+yen(Math.floor(CFG.economicUnit*state.population*CFG.buildings[type].rate*counts[type]))+'/日</strong></div>');
-  }
+  for(const type of ['convenience','supermarket'])if(counts[type])items.push('<div class="companyItem"><span>'+CFG.buildings[type].name+' × '+counts[type]+'</span><strong>'+yen(Math.floor(CFG.economicUnit*state.population*CFG.buildings[type].rate*counts[type]))+'/日</strong></div>');
   $('companyList').innerHTML=items.length?items.join(''):'<div class="empty">まだ店舗・会社はありません。</div>';
+}
+function renderConstruction(){
+  $('companyLevel').textContent='Lv.'+state.companyLevel;
+  $('baseIncome').textContent=yen(companyBaseIncome())+' / 日';
+  const c=state.companyConstruction;
+  if(c){
+    const done=c.totalHours-c.remainingHours,pct=Math.max(0,Math.min(100,done/c.totalHours*100));
+    $('constructionFill').style.width=pct+'%';
+    $('constructionText').textContent=c.name+'工事中 ・ あと'+Math.ceil(c.remainingHours/24)+'日';
+    $('buildingState').textContent='工事中';
+    $('expandCompanyBtn').disabled=true;$('rebuildCompanyBtn').disabled=true;
+  }else{
+    $('constructionFill').style.width='0%';$('constructionText').textContent='工事はありません';$('buildingState').textContent='通常';
+    $('expandCompanyBtn').disabled=false;$('rebuildCompanyBtn').disabled=false;
+  }
 }
 function render(){
   $('mainCompanyTitle').textContent=state.companyName?state.companyName:'メイン会社';
   $('presidentLabel').textContent=state.presidentName?state.presidentName+'社長':'';
-  $('money').textContent=yen(state.money);
-  $('population').textContent=state.population.toLocaleString('ja-JP');
-  $('clock').textContent=gameClock();
-  $('day').textContent=state.day;
-  $('incomeTop').textContent='+'+yen(dailyIncome())+' / 日';
-  $('totalIncome').textContent=yen(dailyIncome())+' / 日';
-  renderMap();
-  $('map').style.transform='translate(-50%,-50%) scale('+state.zoom+')';
-  $('zoomLabel').textContent=Math.round(state.zoom*100)+'%';
-  renderCompanies();
+  $('money').textContent=yen(state.money);$('population').textContent=state.population.toLocaleString('ja-JP');
+  $('clock').textContent=jpHour(state.hour);$('day').textContent=state.day;
+  $('incomeTop').textContent='+'+yen(dailyIncome())+' / 日';$('totalIncome').textContent=yen(dailyIncome())+' / 日';
+  const phase=phaseForHour(state.hour);$('skyBadge').textContent=phase.label;$('worldTint').style.background=phase.tint;
+  $('timeMarker').style.left='calc('+(state.hour/24*100)+'% - 2px)';
+  $('pauseTimeBtn').textContent=state.timePaused?'再開':'一時停止';$('timeSpeedBtn').textContent='×'+state.timeSpeed;
+  renderMap();$('map').style.transform='translate(-50%,-50%) scale('+state.zoom+')';$('zoomLabel').textContent=Math.round(state.zoom*100)+'%';
+  renderCompanies();renderConstruction();
 }
 function fitExpandedMap(){
-  const frame=$('townFrame'),dims=dimensions();
-  const w=frame.clientWidth||720,h=frame.clientHeight||720;
+  const frame=$('townFrame'),dims=dimensions(),w=frame.clientWidth||720,h=frame.clientHeight||720;
   const fit=Math.min((w-28)/dims.width,(h-28)/dims.height,1.2);
   state.zoom=Math.max(.32,Math.min(state.zoom,Math.floor(fit*100)/100));
 }
 function unlockAround(lot){
   for(let dy=-1;dy<=1;dy++)for(let dx=-1;dx<=1;dx++){
     if(dx===0&&dy===0)continue;
-    const x=lot.x+dx,y=lot.y+dy;
-    if(x===0&&y===0)continue;
-    const k=key(x,y);
-    if(!state.lots[k])state.lots[k]={x,y,status:'available',building:null};
+    const x=lot.x+dx,y=lot.y+dy;if(x===0&&y===0)continue;
+    const k=key(x,y);if(!state.lots[k])state.lots[k]={x,y,status:'available',building:null};
   }
 }
-function show(id){$(id).classList.add('show')}
-function hide(id){$(id).classList.remove('show')}
+function show(id){$(id).classList.add('show')}function hide(id){$(id).classList.remove('show')}
 async function localSave(label='ローカル保存'){
   if(!api)return false;
   try{await api.save.json(APP_ID,SAVE_KEY,state);$('saveStatus').textContent=label+'済み';return true}
@@ -318,12 +328,10 @@ async function localSave(label='ローカル保存'){
 }
 async function githubSave(){
   $('saveBtn').disabled=true;$('saveStatus').textContent='保存中…';
-  const ok=await localSave('ローカル保存');
-  if(!ok){$('saveBtn').disabled=false;return}
+  const ok=await localSave('ローカル保存');if(!ok){$('saveBtn').disabled=false;return}
   try{
     if(!await api.sync.hasToken()){$('saveStatus').textContent='ローカル保存済み / GitHub設定なし';return}
-    const results=await api.sync.push();
-    const bad=results.some(r=>!['synced','created'].includes(r.status));
+    const results=await api.sync.push(),bad=results.some(r=>!['synced','created'].includes(r.status));
     $('saveStatus').textContent=bad?'ローカル保存済み / GitHub未完了':'GitHub保存済み';
   }catch(e){console.warn(e);$('saveStatus').textContent='ローカル保存済み / GitHub失敗'}
   finally{$('saveBtn').disabled=false}
@@ -331,132 +339,74 @@ async function githubSave(){
 async function load(){
   api=await window.ForMySonsShared.createForMySons();
   const saved=await api.save.readJson(APP_ID,SAVE_KEY);
-  if(saved){
-    state={...fresh(),...saved,lots:migrateLots(saved.lots)};
-    $('saveStatus').textContent='ローカル保存を読み込み';
-  }else{
-    $('saveStatus').textContent='新しい町';
+  if(saved){state=migrateSaved(saved);$('saveStatus').textContent='ローカル保存を読み込み'}
+  else $('saveStatus').textContent='新しい町';
+  render();setupStartScreen();
+}
+function startCompanyConstruction(type){
+  if(state.companyConstruction)return;
+  const cfg=CFG.construction[type];if(!cfg)return;
+  state.companyConstruction={type,name:cfg.name,totalHours:cfg.hours,remainingHours:cfg.hours,levelGain:cfg.levelGain};
+  render();localSave(cfg.name+'開始');
+}
+function advanceHour(){
+  state.hour++;
+  if(state.companyConstruction){
+    state.companyConstruction.remainingHours--;
+    if(state.companyConstruction.remainingHours<=0){
+      state.companyLevel+=state.companyConstruction.levelGain;
+      const finished=state.companyConstruction.name;
+      state.companyConstruction=null;
+      $('saveStatus').textContent=finished+'が完成しました';
+    }
   }
-  render();
-  setupStartScreen();
+  if(state.hour>=24){
+    state.hour=0;state.day++;state.money+=dailyIncome();
+    localSave('Day '+state.day+' 自動保存');
+  }
 }
 
 $('map').addEventListener('click',event=>{
-  const el=event.target.closest('.lot[data-key]');
-  if(!el)return;
-  selectedLotKey=el.dataset.key;
-  const lot=state.lots[selectedLotKey];
-  if(!lot)return;
+  const el=event.target.closest('.lot[data-key]');if(!el)return;
+  selectedLotKey=el.dataset.key;const lot=state.lots[selectedLotKey];if(!lot)return;
   if(lot.status==='available')show('buyModal');
-  else if(lot.status==='bought'&&!lot.building){
-    selectedBuilding=null;
-    document.querySelectorAll('.buildChoices button').forEach(b=>b.classList.remove('selected'));
-    show('buildModal');
-  }
+  else if(lot.status==='bought'&&!lot.building){selectedBuilding=null;document.querySelectorAll('.buildChoices button').forEach(b=>b.classList.remove('selected'));show('buildModal')}
 });
 $('buyNo').addEventListener('click',()=>hide('buyModal'));
-$('buyYes').addEventListener('click',()=>{
-  hide('buyModal');
-  const lot=state.lots[selectedLotKey];
-  if(!lot)return;
-  if(state.money<CFG.land){$('saveStatus').textContent='土地を買うお金が足りません';return}
-  state.money-=CFG.land;
-  lot.status='bought';
-  unlockAround(lot);
-  render();
-  fitExpandedMap();
-  render();
-});
-document.querySelectorAll('.buildChoices button').forEach(b=>b.addEventListener('click',()=>{
-  selectedBuilding=b.dataset.building;
-  document.querySelectorAll('.buildChoices button').forEach(x=>x.classList.toggle('selected',x===b));
-}));
+$('buyYes').addEventListener('click',()=>{hide('buyModal');const lot=state.lots[selectedLotKey];if(!lot)return;if(state.money<CFG.land){$('saveStatus').textContent='土地を買うお金が足りません';return}state.money-=CFG.land;lot.status='bought';unlockAround(lot);render();fitExpandedMap();render()});
+document.querySelectorAll('.buildChoices button').forEach(b=>b.addEventListener('click',()=>{selectedBuilding=b.dataset.building;document.querySelectorAll('.buildChoices button').forEach(x=>x.classList.toggle('selected',x===b))}));
 $('buildNo').addEventListener('click',()=>hide('buildModal'));
-$('buildYes').addEventListener('click',()=>{
-  if(!selectedBuilding)return;
-  const lot=state.lots[selectedLotKey],c=CFG.buildings[selectedBuilding];
-  if(!lot||!c)return;
-  hide('buildModal');
-  if(state.money<c.price){$('saveStatus').textContent='建設するお金が足りません';return}
-  state.money-=c.price;
-  lot.building=selectedBuilding;
-  if(c.pop)state.population+=c.pop;
-  render();
-});
+$('buildYes').addEventListener('click',()=>{if(!selectedBuilding)return;const lot=state.lots[selectedLotKey],c=CFG.buildings[selectedBuilding];if(!lot||!c)return;hide('buildModal');if(state.money<c.price){$('saveStatus').textContent='建設するお金が足りません';return}state.money-=c.price;lot.building=selectedBuilding;if(c.pop)state.population+=c.pop;render()});
 $('zoomIn').addEventListener('click',()=>{state.zoom=Math.min(1.2,+(state.zoom+.08).toFixed(2));render()});
 $('zoomOut').addEventListener('click',()=>{state.zoom=Math.max(.32,+(state.zoom-.08).toFixed(2));render()});
 $('saveBtn').addEventListener('click',githubSave);
-$('backToStartBtn').addEventListener('click',async()=>{
-  gameRunning=false;
-  await localSave('スタート画面へ戻る前に保存');
-  setupStartScreen();
-});
+$('expandCompanyBtn').addEventListener('click',()=>startCompanyConstruction('expand'));
+$('rebuildCompanyBtn').addEventListener('click',()=>startCompanyConstruction('rebuild'));
+$('pauseTimeBtn').addEventListener('click',()=>{state.timePaused=!state.timePaused;render()});
+$('timeSpeedBtn').addEventListener('click',()=>{state.timeSpeed=state.timeSpeed===1?2:state.timeSpeed===2?4:1;render()});
+$('backToStartBtn').addEventListener('click',async()=>{gameRunning=false;await localSave('スタート画面へ戻る前に保存');setupStartScreen()});
 
 const startImage='../assets/company-town-start.webp?v=1';
-function hideStart(){
-  gameRunning=true;
-  $('startOverlay').classList.remove('show');
-  $('startOverlay').setAttribute('aria-hidden','true');
-}
-function resetStartUi(){
-  $('startStep').style.display='block';
-  $('companyStep').style.display='none';
-  $('presidentStep').style.display='none';
-  $('finalStep').style.display='none';
-  $('companyStep').classList.remove('show');
-  $('presidentStep').classList.remove('show');
-  $('finalStep').classList.remove('show');
-}
+function hideStart(){gameRunning=true;$('startOverlay').classList.remove('show');$('startOverlay').setAttribute('aria-hidden','true')}
+function resetStartUi(){$('startStep').style.display='block';$('companyStep').style.display='none';$('presidentStep').style.display='none';$('finalStep').style.display='none';$('companyStep').classList.remove('show');$('presidentStep').classList.remove('show');$('finalStep').classList.remove('show')}
 function setupStartScreen(){
-  gameRunning=false;
-  resetStartUi();
-  $('startHero').style.backgroundImage='url('+startImage+')';
+  gameRunning=false;resetStartUi();$('startHero').style.backgroundImage='url('+startImage+')';
   returningPlayer=Boolean(state.onboardingComplete||(state.companyName&&state.presidentName));
   $('startStoryTitle').textContent=returningPlayer?'『'+state.companyName+'』ストーリー':'『　　　』ストーリー';
-  const intro=$('startStep').querySelector('.story');
-  intro.textContent=returningPlayer?state.companyName+'の町づくりをつづけよう。':'この町が、いつかこんなに大きくなったら。';
-  $('startOverlay').classList.add('show');
-  $('startOverlay').setAttribute('aria-hidden','false');
+  $('startStep').querySelector('.story').textContent=returningPlayer?state.companyName+'の町づくりをつづけよう。':'この町が、いつかこんなに大きくなったら。';
+  $('startOverlay').classList.add('show');$('startOverlay').setAttribute('aria-hidden','false');
 }
-function switchWizard(from,to){
-  $(from).classList.remove('show');$(from).style.display='none';
-  $(to).style.display='block';$(to).classList.add('show');
-}
-$('startGameIntro').addEventListener('click',()=>{
-  if(returningPlayer){hideStart();return}
-  $('startStep').style.display='none';
-  $('companyStep').style.display='block';
-  $('companyStep').classList.add('show');
-  $('companyNameInput').focus();
-});
-$('toPresidentStep').addEventListener('click',()=>{
-  const v=$('companyNameInput').value.trim();
-  if(!v){$('companyNameInput').focus();return}
-  state.companyName=v;
-  switchWizard('companyStep','presidentStep');
-});
-$('toFinalStep').addEventListener('click',()=>{
-  const v=$('presidentNameInput').value.trim();
-  if(!v){$('presidentNameInput').focus();return}
-  state.presidentName=v;
-  $('openingTitle').textContent='ここからはじまる、世界一大きな町をつくる'+state.presidentName+'社長の'+state.companyName+'ストーリー。';
-  switchWizard('presidentStep','finalStep');
-});
-$('beginTown').addEventListener('click',async()=>{
-  state.onboardingComplete=true;
-  await localSave('初期設定');
-  render();
-  hideStart();
-});
+function switchWizard(from,to){$(from).classList.remove('show');$(from).style.display='none';$(to).style.display='block';$(to).classList.add('show')}
+$('startGameIntro').addEventListener('click',()=>{if(returningPlayer){hideStart();return}$('startStep').style.display='none';$('companyStep').style.display='block';$('companyStep').classList.add('show');$('companyNameInput').focus()});
+$('toPresidentStep').addEventListener('click',()=>{const v=$('companyNameInput').value.trim();if(!v){$('companyNameInput').focus();return}state.companyName=v;switchWizard('companyStep','presidentStep')});
+$('toFinalStep').addEventListener('click',()=>{const v=$('presidentNameInput').value.trim();if(!v){$('presidentNameInput').focus();return}state.presidentName=v;$('openingTitle').textContent='ここからはじまる、世界一大きな町をつくる'+state.presidentName+'社長の'+state.companyName+'ストーリー。';switchWizard('presidentStep','finalStep')});
+$('beginTown').addEventListener('click',async()=>{state.onboardingComplete=true;await localSave('初期設定');render();hideStart()});
 
 await load();
-setInterval(async()=>{
-  if(!gameRunning)return;
-  state.seconds++;
-  if(state.seconds>=CFG.secondsPerDay){
-    state.seconds=0;state.day++;state.money+=dailyIncome();
-    render();await localSave('Day '+state.day+' 自動保存');
-  }else render();
+setInterval(()=>{
+  if(!gameRunning||state.timePaused)return;
+  for(let i=0;i<state.timeSpeed;i++)advanceHour();
+  render();
 },1000);
 })();
 </script>
