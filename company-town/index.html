@@ -57,14 +57,14 @@ button{font:inherit}.app{width:min(100%,1080px);min-height:100vh;margin:auto;bac
         <button type="button" class="startBtn" id="startGameIntro">START</button>
       </div>
       <div class="wizard" id="companyStep">
-        <p class="story">ここは、名の無い街。<strong>ななし町</strong>。<br>そこにあなたは、町にたくさんの人を呼び、みんなのためにがんばろうと、会社を立てました。</p>
+        <p class="story">ここは、名の無い街、<strong>ななし町</strong>。<br>そこにあなたは、町にたくさんの人を呼び、みんなのためにがんばろうと、会社を立てました。<br><br>その会社の名前は―――</p>
         <label for="companyNameInput">会社の名前は何ですか？</label>
         <input id="companyNameInput" maxlength="24" autocomplete="off" placeholder="会社のなまえ">
         <div class="hint">この名前はあとから会社情報に表示されます。</div>
         <button type="button" class="nextBtn" id="toPresidentStep" style="margin-top:14px">つぎへ</button>
       </div>
       <div class="wizard" id="presidentStep">
-        <p class="story">そんな心やさしい会社の社長は――</p>
+        <p class="story">そんなこころやさしい会社の社長は―――</p>
         <label for="presidentNameInput">あなたの名前は何ですか？</label>
         <input id="presidentNameInput" maxlength="16" autocomplete="off" placeholder="なまえ">
         <div class="hint">ゲーム内では「○○社長」と呼ばれます。</div>
@@ -411,7 +411,7 @@ function setupStartScreen(){
   gameRunning=false;
   resetStartUi();
   $('startHero').style.backgroundImage='url('+startImage+')';
-  returningPlayer=Boolean(state.onboardingComplete&&state.companyName&&state.presidentName);
+  returningPlayer=Boolean(state.onboardingComplete||(state.companyName&&state.presidentName));
   $('startStoryTitle').textContent=returningPlayer?'『'+state.companyName+'』ストーリー':'『　　　』ストーリー';
   const intro=$('startStep').querySelector('.story');
   intro.textContent=returningPlayer?state.companyName+'の町づくりをつづけよう。':'この町が、いつかこんなに大きくなったら。';
@@ -439,7 +439,7 @@ $('toFinalStep').addEventListener('click',()=>{
   const v=$('presidentNameInput').value.trim();
   if(!v){$('presidentNameInput').focus();return}
   state.presidentName=v;
-  $('openingTitle').textContent='ここからはじまる、世界一大きな町をつくる'+state.presidentName+'社長の「'+state.companyName+'」ストーリー。';
+  $('openingTitle').textContent='ここからはじまる、世界一大きな町をつくる'+state.presidentName+'社長の'+state.companyName+'ストーリー。';
   switchWizard('presidentStep','finalStep');
 });
 $('beginTown').addEventListener('click',async()=>{
