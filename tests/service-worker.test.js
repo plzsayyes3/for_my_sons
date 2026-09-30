@@ -21,7 +21,7 @@ test('service worker precaches request assets under a new cache version', () => 
   assert.match(source, /\.\/wanko-deck\/\?v=4/);
   assert.match(source, /\.\/paint\/\?v=10/);
   assert.match(source, /\.\/paint\/app\.js\?v=10/);
-  assert.match(source, /\.\/company-town\/\?v=10/);
+  assert.match(source, /\.\/company-town\/\?v=11/);
   assert.doesNotThrow(() => new vm.Script(source));
   assert.doesNotMatch(source, /\\n/);
 });
