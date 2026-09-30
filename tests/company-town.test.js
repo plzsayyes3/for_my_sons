@@ -10,9 +10,12 @@ test('Company Town uses one visible pedestrian per 100 population', () => {
 });
 
 test('Company Town unlock conditions match progression rules', () => {
+  assert.match(source, /population30:state\.population>=30/);
   assert.match(source, /population50:state\.population>=50/);
   assert.match(source, /population100:state\.population>=100/);
+  assert.match(source, /population150:state\.population>=150/);
   assert.match(source, /population200:state\.population>=200/);
+  assert.match(source, /population300:state\.population>=300/);
   assert.match(source, /population500:state\.population>=500/);
   assert.match(source, /company2:state\.companyLevel>=2/);
   assert.match(source, /company3:state\.companyLevel>=3/);
@@ -37,4 +40,12 @@ test('Housing expands population capacity instead of adding residents instantly'
   assert.match(source, /function housingCapacity\(\)/);
   assert.match(source, /function applyDailyMoveIn\(\)/);
   assert.match(source, /const moved=applyDailyMoveIn\(\)/);
+});
+
+test('Early community buildings unlock with population progression', () => {
+  assert.match(source, /bakery:\{name:'パン屋'.*unlock:'population30'/);
+  assert.match(source, /clinic:\{name:'クリニック'.*moveIn:2.*unlock:'population100'/);
+  assert.match(source, /nursery:\{name:'保育園'.*moveIn:2.*unlock:'population150'/);
+  assert.match(source, /postoffice:\{name:'郵便局'.*moveIn:1.*unlock:'population200'/);
+  assert.match(source, /school:\{name:'小学校'.*moveIn:3.*unlock:'population300'/);
 });
