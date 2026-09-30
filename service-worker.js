@@ -1,4 +1,4 @@
-const CACHE_NAME = 'for-my-sons-v96';
+const CACHE_NAME = 'for-my-sons-v97';
 const SHELL = [
   './',
   './index.html',
@@ -75,7 +75,7 @@ const SHELL = [
   './shared/wanko-mini-multiplication.js?v=1',
   './shared/wanko-library-view.js?v=4',
   './shared/wanko-registration-request.js?v=1',
-  './company-town/?v=11',
+  './company-town/?v=12',
   './company-town/index.html',
   './paint/?v=10',
   './paint/index.html',
@@ -111,6 +111,10 @@ const SHELL = [
   './assets/official-wankos/ebifurai-fura.png?v=1',
   './assets/company-town.svg?v=1',
   './assets/company-town-start.webp?v=1',
+  './assets/company-town/kenney/rpg-urban/grass.png?v=1',
+  './assets/company-town/kenney/rpg-urban/asphalt.png?v=1',
+  './assets/company-town/kenney/rpg-urban/pavement.png?v=1',
+  './assets/company-town/kenney/rpg-urban/urban_tilemap.png?v=1',
   './assets/paint.svg'
 ];
 

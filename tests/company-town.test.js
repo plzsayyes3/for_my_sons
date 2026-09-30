@@ -49,3 +49,10 @@ test('Early community buildings unlock with population progression', () => {
   assert.match(source, /postoffice:\{name:'郵便局'.*moveIn:1.*unlock:'population200'/);
   assert.match(source, /school:\{name:'小学校'.*moveIn:3.*unlock:'population300'/);
 });
+
+test('Company Town uses Kenney RPG Urban assets for ground and roads', () => {
+  assert.match(source, /kenney\/rpg-urban\/grass\.png\?v=1/);
+  assert.match(source, /kenney\/rpg-urban\/asphalt\.png\?v=1/);
+  assert.match(source, /kenney\/rpg-urban\/pavement\.png\?v=1/);
+  assert.match(source, /roadIntersection/);
+});
