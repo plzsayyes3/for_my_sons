@@ -2,8 +2,8 @@ const CACHE_NAME = 'for-my-sons-v130';
 const SHELL = [
   './',
   './index.html',
-  './styles.css?v=4',
-  './app.js?v=5',
+  './styles.css?v=5',
+  './app.js?v=6',
   './apps.json',
   './manifest.webmanifest',
   './shared/for-my-sons-db.js?v=4',
