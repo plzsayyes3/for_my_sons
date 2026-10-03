@@ -13,7 +13,7 @@
   <title>For My Sons</title>
   <link rel="manifest" href="./manifest.webmanifest">
   <link rel="icon" href="./assets/for-my-sons-icon.svg" type="image/svg+xml">
-  <link rel="stylesheet" href="./styles.css?v=4">
+  <link rel="stylesheet" href="./styles.css?v=5">
 </head>
 <body>
   <main class="home-screen" aria-labelledby="home-title">
@@ -41,7 +41,17 @@
     </section>
 
     <section class="apps-section" aria-label="アプリ">
-      <div id="app-grid" class="app-grid" aria-live="polite"></div>
+      <section id="recent-apps-section" class="app-category recent-apps-category" hidden aria-labelledby="recent-apps-title">
+        <div class="category-heading">
+          <div>
+            <p class="category-kicker">RECENT</p>
+            <h2 id="recent-apps-title">さいきん</h2>
+          </div>
+          <span class="category-note">すぐにもどれる</span>
+        </div>
+        <div id="recent-app-grid" class="app-grid app-grid-recent"></div>
+      </section>
+      <div id="app-sections" class="app-sections" aria-live="polite"></div>
     </section>
 
     <section id="new-game-request" class="new-game-request" aria-label="新しいゲームを作ってほしい"></section>
@@ -78,6 +88,6 @@
   <script src="./shared/wanko-library-store.js?v=1"></script>
   <script src="./shared/wanko-library.js"></script>
   <script src="./shared/parent-history-view.js?v=3"></script>
-  <script src="./app.js?v=5" defer></script>
+  <script src="./app.js?v=6" defer></script>
 </body>
 </html>
