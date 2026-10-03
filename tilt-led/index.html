@@ -772,7 +772,9 @@
 
         if (gameRunning && !gamePaused) {
           const distance = circularLedDistance(positions.playerPos, positions.enemyPos);
-          if (distance <= HIT_DISTANCE) registerHit(now);
+          const blueHalfSpan = lives > 0 ? Math.floor(lives / 2) : 0;
+          const hitDistance = Math.max(HIT_DISTANCE, blueHalfSpan + 0.5);
+          if (distance <= hitDistance) registerHit(now);
         }
 
         requestAnimationFrame(render);
