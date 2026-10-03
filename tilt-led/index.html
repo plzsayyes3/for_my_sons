@@ -270,9 +270,10 @@
       const LED_COUNT = 100;
       const MAX_TILT = 28;
       const DEAD_ZONE = 1.8;
-      const SMOOTHING = 0.17;
-      const WATER_SPRING = 0.018;
-      const WATER_DAMPING = 0.91;
+      const SMOOTHING = 0.12;
+      const SENSOR_GAIN = 0.50;
+      const WATER_SPRING = 0.009;
+      const WATER_DAMPING = 0.94;
       const WATER_SPREAD = 11;
 
       const app = document.querySelector('#app');
@@ -334,8 +335,8 @@
           status.textContent = 'OK！ スマホをかたむけてみよう。';
         }
 
-        targetX = value.x - zeroX;
-        targetY = value.y - zeroY;
+        targetX = (value.x - zeroX) * SENSOR_GAIN;
+        targetY = (value.y - zeroY) * SENSOR_GAIN;
       }
 
       function setCenter() {
@@ -443,7 +444,7 @@
           const targetMotion = shortestAngle(lastTargetAngle, targetAngle);
 
           waterVelocity += angleDelta * WATER_SPRING;
-          waterVelocity += targetMotion * 0.025;
+          waterVelocity += targetMotion * 0.010;
           waterVelocity *= WATER_DAMPING;
           waterAngle += waterVelocity;
           waterStrength += (strength - waterStrength) * 0.08;
