@@ -30,9 +30,9 @@
   {
     "id": "tilt-led",
     "name": "ひかりリング",
-    "url": "./tilt-led/?v=11",
+    "url": "./tilt-led/?v=12",
     "icon": "./assets/tilt-led.svg?v=1",
-    "description": "スマホをかたむけて、円形のLEDを動かそう"
+    "description": "青のLEDを傾きで動かして、追いかけてくる赤から逃げよう"
   },
   {
     "id": "typing",
