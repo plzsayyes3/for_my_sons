@@ -110,8 +110,8 @@
     <a class="chip" href="../" aria-label="For My Sonsにもどる">‹ HOME</a>
     <button class="chip" id="reset" type="button">RESET</button>
     <button class="chip" id="gravity" type="button">GRAVITY ON</button>
-    <button class="chip" id="motion" type="button">傾き OFF</button>
-    <div class="chip hint">傾ける・1本指で引っぱる・2本指でつまむ</div>
+    <button class="chip" id="motion" type="button">ジャイロ OFF</button>
+    <div class="chip hint">画面を傾ける・引っぱる・つまむ・飛ばす</div>
   </div>
 
   <div class="loading" id="loading">3D JELLY LOADING…</div>
@@ -152,9 +152,11 @@ renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 const scene = new THREE.Scene();
 scene.background = new THREE.Color(0xeeeae3);
 
-const camera = new THREE.PerspectiveCamera(34, viewport.width / viewport.height, 0.05, 50);
-camera.position.set(0, 3.25, 7.2);
-camera.lookAt(0, 0.72, 0);
+const camera = new THREE.PerspectiveCamera(28, viewport.width / viewport.height, 0.05, 50);
+// Front-on composition: no looking down into the box. The container is read as
+// a clear case seen straight from the front.
+camera.position.set(0, 1.18, 7.2);
+camera.lookAt(0, 1.18, 0);
 
 const clock = new THREE.Clock();
 
@@ -319,7 +321,7 @@ for (const x of [-2.85, 2.85]) {
 
 const CONTAINER = {
   halfX: 2.42,
-  halfZ: 1.38,
+  halfZ: 0.78,
   height: 2.35,
   wall: 0.035
 };
@@ -333,7 +335,7 @@ const glassMaterial = new THREE.MeshPhysicalMaterial({
   metalness: 0,
   transmission: 0.88,
   transparent: true,
-  opacity: 0.13,
+  opacity: 0.095,
   thickness: 0.08,
   ior: 1.45,
   clearcoat: 1,
@@ -346,7 +348,7 @@ const rimMaterial = new THREE.MeshStandardMaterial({
   color: 0xa8c5d1,
   roughness: 0.32,
   transparent: true,
-  opacity: 0.42,
+  opacity: 0.55,
   depthWrite: false
 });
 
@@ -772,7 +774,7 @@ async function enableMotion() {
       const permission = await DeviceMotionEvent.requestPermission();
       state.motion.permission = permission;
       if (permission !== "granted") {
-        motionButton.textContent = "傾き NG";
+        motionButton.textContent = "ジャイロ NG";
         return false;
       }
     }
@@ -786,12 +788,12 @@ async function enableMotion() {
     state.motion.enabled = true;
     state.motion.permission = "granted";
     addEventListener("devicemotion", onDeviceMotion, { passive: true });
-    motionButton.textContent = "傾き ON";
+    motionButton.textContent = "ジャイロ ON";
     return true;
   } catch (error) {
     console.warn("Motion sensor unavailable.", error);
     state.motion.permission = "error";
-    motionButton.textContent = "傾き ERROR";
+    motionButton.textContent = "ジャイロ ERROR";
     return false;
   }
 }
@@ -804,7 +806,7 @@ function disableMotion() {
   state.motion.linearX = 0;
   state.motion.linearY = 0;
   state.motion.linearZ = 0;
-  motionButton.textContent = "傾き OFF";
+  motionButton.textContent = "ジャイロ OFF";
 }
 
 function collideWithContainer() {
@@ -870,36 +872,43 @@ function physicsStep(dt) {
     state.touchFloat = Math.max(0, state.touchFloat - dt * 1.65);
   }
 
+  const touchFactor = state.dragging ? 0.24 : 1.0;
+  const releaseGravityScale = state.dragging
+    ? 0.05
+    : THREE.MathUtils.lerp(1.0, 0.28, state.touchFloat);
+
   if (state.gravityOn) {
-    const gravityScale = state.dragging
-      ? 0.04
-      : THREE.MathUtils.lerp(1.0, 0.22, state.touchFloat);
-    state.velocity.y -= 7.7 * gravityScale * dt;
+    if (state.motion.enabled) {
+      // accelerationIncludingGravity is rotated into the same axes as the
+      // rendered landscape stage. Negating it gives the actual gravity direction.
+      // X means screen-right/left; Y means screen-up/down. There is no hidden
+      // depth-axis tilt anymore, so the jelly always moves where the screen tilts.
+      const gravityX = THREE.MathUtils.clamp(-state.motion.gravityX / 9.81, -1, 1);
+      const gravityY = THREE.MathUtils.clamp(-state.motion.gravityY / 9.81, -1, 1);
+
+      state.velocity.x += gravityX * 7.0 * touchFactor * releaseGravityScale * dt;
+      state.velocity.y += gravityY * 7.0 * touchFactor * releaseGravityScale * dt;
+    } else {
+      // Sensor off: keep a normal screen-down gravity.
+      state.velocity.y -= 7.7 * releaseGravityScale * dt;
+    }
   }
 
   if (state.motion.enabled) {
-    // Gravity projected into the screen makes the jelly slide across the desk.
-    // Touch reduces sensor force so it never fights the finger.
-    const touchFactor = state.dragging ? 0.28 : 1.0;
-    const tiltX = THREE.MathUtils.clamp(state.motion.gravityX / 9.81, -1, 1);
-    const tiltY = THREE.MathUtils.clamp(state.motion.gravityY / 9.81, -1, 1);
-
-    state.velocity.x += tiltX * 4.1 * touchFactor * dt;
-    state.velocity.z += -tiltY * 2.9 * touchFactor * dt;
 
     // Fast device movement is separate from tilt: it excites the soft-body
-    // springs rather than simply translating the whole jelly.
+    // springs in the same front-view axes.
     const shakeX = THREE.MathUtils.clamp(state.motion.linearX, -7, 7);
     const shakeY = THREE.MathUtils.clamp(state.motion.linearY, -7, 7);
     const shakeZ = THREE.MathUtils.clamp(state.motion.linearZ, -7, 7);
 
-    state.wobbleXVelocity += shakeX * 0.052 * touchFactor * dt * 60;
-    state.wobbleZVelocity += -shakeY * 0.042 * touchFactor * dt * 60;
-    state.squashVelocity += -shakeZ * 0.030 * touchFactor * dt * 60;
+    state.wobbleXVelocity += -shakeX * 0.052 * touchFactor * dt * 60;
+    state.squashVelocity += shakeY * 0.042 * touchFactor * dt * 60;
+    state.wobbleZVelocity += -shakeZ * 0.024 * touchFactor * dt * 60;
 
-    // A small face-normal shake can lift the pudding slightly, but never launch it.
-    if (!state.dragging && Math.abs(shakeZ) > 1.8) {
-      state.velocity.y += THREE.MathUtils.clamp(-shakeZ * 0.018, -0.08, 0.08);
+    // Sudden vertical screen motion gives a small visible hop.
+    if (!state.dragging && Math.abs(shakeY) > 1.8) {
+      state.velocity.y += THREE.MathUtils.clamp(-shakeY * 0.020, -0.09, 0.09);
     }
   }
 
@@ -930,6 +939,10 @@ function physicsStep(dt) {
   }
 
   state.position.addScaledVector(state.velocity, dt);
+
+  // Front view behaves like a shallow display case rather than a deep 3D room.
+  state.velocity.z *= Math.pow(0.16, dt);
+  state.position.z *= Math.pow(0.20, dt);
 
   collideWithContainer();
 
