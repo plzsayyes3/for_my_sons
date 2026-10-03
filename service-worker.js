@@ -1,4 +1,4 @@
-const CACHE_NAME = 'for-my-sons-v127';
+const CACHE_NAME = 'for-my-sons-v128';
 const SHELL = [
   './',
   './index.html',
@@ -26,7 +26,7 @@ const SHELL = [
   './tilt-led/?v=30',
   './tilt-led/index.html',
   './tilt-led/manifest.webmanifest?v=7',
-  './yukkuri-danmaku/?v=1',
+  './yukkuri-danmaku/?v=2',
   './yukkuri-danmaku/index.html',
   './yukkuri-danmaku/assets/reimu.png?v=1',
   './yukkuri-danmaku/assets/marisa.png?v=1',

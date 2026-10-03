@@ -11,6 +11,15 @@ body{display:grid;place-items:center;background:radial-gradient(circle at 50% 20
 #game{position:relative;width:min(100vw,calc(100vh*.5625));height:min(100vh,calc(100vw*1.77778));max-width:480px;max-height:854px;overflow:hidden;background:#0b0914;touch-action:none}
 canvas{display:block;width:100%;height:100%;touch-action:none}
 #home{position:absolute;z-index:9;left:10px;top:max(38px,env(safe-area-inset-top));padding:6px 9px;border-radius:999px;background:#0007;color:#fff;text-decoration:none;font-size:10px;font-weight:700}
+#modeButton{position:absolute;z-index:9;right:10px;top:max(88px,calc(env(safe-area-inset-top) + 64px));padding:6px 10px;border:1px solid #ffffff29;border-radius:999px;background:#0007;color:#fff;font-size:10px;font-weight:700;backdrop-filter:blur(6px)}
+#touchpad{position:absolute;z-index:3;left:10px;right:10px;bottom:max(22px,env(safe-area-inset-bottom));height:28%;min-height:150px;border:1px solid #ffffff2c;border-radius:22px;background:linear-gradient(180deg,#ffffff05,#ffffff13);pointer-events:none;box-shadow:inset 0 0 36px #0003}
+#touchpad::before{content:"TOUCH PAD";position:absolute;left:0;right:0;top:10px;text-align:center;font-size:9px;letter-spacing:.18em;opacity:.38}
+#padDot{position:absolute;width:28px;height:28px;margin:-14px 0 0 -14px;border:1px solid #ffffff99;border-radius:50%;background:#ffffff1c;box-shadow:0 0 0 6px #ffffff0a;opacity:0;transform:scale(.8);transition:opacity .08s,transform .08s}
+#padDot.active{opacity:1;transform:scale(1)}
+.control-choice{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:12px 0 4px}
+.mode-btn{padding:10px 8px;border:1px solid #ffffff26;border-radius:12px;background:#ffffff0d;color:#fff;font-size:12px;box-shadow:none}
+.mode-btn.is-active{background:#fff0c7;color:#29131c;border-color:#fff0c7}
+.mode-caption{font-size:10px;opacity:.58;margin-top:7px;line-height:1.5}
 #hud{position:absolute;inset:0;pointer-events:none;text-shadow:0 2px 5px #000}.top{position:absolute;left:12px;right:12px;top:max(10px,env(safe-area-inset-top));display:flex;justify-content:space-between;font-size:12px}.top b{font-size:15px}
 #bossbar{position:absolute;left:14px;right:14px;top:57px;height:7px;border:1px solid #ffffff59;background:#0006;border-radius:20px;overflow:hidden}#bossfill{height:100%;background:linear-gradient(90deg,#ff4f68,#ff9c6f)}
 #spell{position:absolute;top:72px;left:0;right:0;text-align:center;font-weight:700;font-size:13px}
@@ -23,17 +32,37 @@ button{border:0;border-radius:999px;padding:13px 26px;font-weight:700;font-size:
 <body>
 <div id="game">
 <a id="home" href="../">← HOME</a>
+<button id="modeButton" type="button">操作: PAD</button>
 <canvas id="c" width="480" height="854"></canvas>
+<div id="touchpad" aria-hidden="true"><div id="padDot"></div></div>
 <div id="hud"><div class="top"><div><b id="score">000000</b><br>SCORE</div><div style="text-align:right"><b id="life">♥♥♥</b><br>REIMU</div></div><div id="bossbar"><div id="bossfill"></div></div><div id="spell">魔符「ぐるぐるスターダスト」</div></div>
-<div id="overlay"><div class="panel"><h1>ゆっくり弾幕 v1</h1><div class="sub">フリー配布「たぬき式ゆっくり」の実素材を使った、東方Project二次創作の1ボス試作版。</div><button id="start">START</button><div class="help">スマホ：ドラッグ移動<br>PC：矢印 / WASD　Shift：低速<br>ショットは自動</div></div></div>
+<div id="overlay"><div class="panel"><h1>ゆっくり弾幕 v1</h1><div class="sub">フリー配布「たぬき式ゆっくり」の実素材を使った、東方Project二次創作の1ボス試作版。</div>
+<div class="control-choice" aria-label="スマホ操作方式"><button class="mode-btn" data-mode="touchpad" type="button">タッチパッド</button><button class="mode-btn" data-mode="direct" type="button">直接タッチ</button></div>
+<div class="mode-caption" id="modeCaption">画面下部をタッチパッドとして使います。</div>
+<button id="start">START</button><div class="help">PC：矢印 / WASD　Shift：低速<br>ショットは自動</div></div></div>
 <div id="credit">たぬき式ゆっくり / 東方Project二次創作 / Dark Shrine Loop (CC0)</div>
 </div>
 <audio id="bgm" loop preload="none" src="https://lpc.opengameart.org/sites/default/files/qubodup-yd-DarkShrineLoop-OpenGameArt.mp3"></audio>
 <script>
 (()=>{'use strict';
-const W=480,H=854,c=document.getElementById('c'),x=c.getContext('2d'),overlay=document.getElementById('overlay'),start=document.getElementById('start'),scoreEl=document.getElementById('score'),lifeEl=document.getElementById('life'),bossFill=document.getElementById('bossfill'),spell=document.getElementById('spell'),bgm=document.getElementById('bgm');bgm.volume=.27;
+const W=480,H=854,c=document.getElementById('c'),x=c.getContext('2d'),overlay=document.getElementById('overlay'),start=document.getElementById('start'),scoreEl=document.getElementById('score'),lifeEl=document.getElementById('life'),bossFill=document.getElementById('bossfill'),spell=document.getElementById('spell'),bgm=document.getElementById('bgm'),touchpad=document.getElementById('touchpad'),padDot=document.getElementById('padDot'),modeButton=document.getElementById('modeButton'),modeCaption=document.getElementById('modeCaption');bgm.volume=.27;
 const imgs={};for(const [k,s] of Object.entries({reimu:'./assets/reimu.png?v=1',marisa:'./assets/marisa.png?v=1'})){imgs[k]=new Image;imgs[k].src=s}
-let run=false,last=0,t=0,score=0,lives=3,flash=0,shake=0,drag=false,bullets=[],shots=[],parts=[];const keys=new Set;
+let run=false,last=0,t=0,score=0,lives=3,flash=0,shake=0,drag=false,padLast=null,bullets=[],shots=[],parts=[];const keys=new Set;
+let controlMode='touchpad';
+try{controlMode=localStorage.getItem('yukkuriDanmakuControlMode')||'touchpad'}catch(_){}
+if(!['touchpad','direct'].includes(controlMode))controlMode='touchpad';
+function setMode(mode){
+  controlMode=mode;
+  try{localStorage.setItem('yukkuriDanmakuControlMode',mode)}catch(_){}
+  touchpad.hidden=mode!=='touchpad';
+  modeButton.textContent=mode==='touchpad'?'操作: PAD':'操作: DIRECT';
+  modeCaption.textContent=mode==='touchpad'?'画面下部をタッチパッドとして使います。':'画面を直接タッチして霊夢を動かします。';
+  document.querySelectorAll('.mode-btn').forEach(btn=>btn.classList.toggle('is-active',btn.dataset.mode===mode));
+  drag=false;padLast=null;padDot.classList.remove('active');
+}
+document.querySelectorAll('.mode-btn').forEach(btn=>btn.addEventListener('click',()=>setMode(btn.dataset.mode)));
+modeButton.addEventListener('click',()=>setMode(controlMode==='touchpad'?'direct':'touchpad'));
+setMode(controlMode);
 const p={x:W/2,y:H-118,r:4,cd:0,inv:0},b={x:W/2,y:125,hp:1000,max:1000,phase:0,pt:0,vx:55};
 const clamp=(v,a,z)=>Math.max(a,Math.min(z,v)),rnd=(a,z)=>a+Math.random()*(z-a);
 function hud(){scoreEl.textContent=String(score).padStart(6,'0');lifeEl.textContent='♥'.repeat(Math.max(0,lives));bossFill.style.width=100*b.hp/b.max+'%'}
@@ -41,7 +70,35 @@ function reset(){run=true;t=score=flash=shake=0;lives=3;bullets=[];shots=[];part
 start.onclick=reset;
 addEventListener('keydown',e=>{keys.add(e.key.toLowerCase());if(['arrowup','arrowdown','arrowleft','arrowright',' '].includes(e.key.toLowerCase()))e.preventDefault()});addEventListener('keyup',e=>keys.delete(e.key.toLowerCase()));
 function pos(e){const r=c.getBoundingClientRect();return{x:(e.clientX-r.left)*W/r.width,y:(e.clientY-r.top)*H/r.height}}
-c.onpointerdown=e=>{drag=true;const q=pos(e);p.x=q.x;p.y=q.y};c.onpointermove=e=>{if(!drag)return;const q=pos(e);p.x=clamp(q.x,20,W-20);p.y=clamp(q.y,110,H-25)};addEventListener('pointerup',()=>drag=false);
+const PAD_TOP=H*.72,PAD_GAIN=1.15;
+function movePadDot(q){
+  padDot.style.left=(q.x/W*100)+'%';
+  padDot.style.top=((q.y-PAD_TOP)/(H-PAD_TOP)*100)+'%';
+}
+c.onpointerdown=e=>{
+  const q=pos(e);
+  if(controlMode==='touchpad'){
+    if(q.y<PAD_TOP)return;
+    drag=true;padLast=q;movePadDot(q);padDot.classList.add('active');
+  }else{
+    drag=true;p.x=clamp(q.x,20,W-20);p.y=clamp(q.y,110,H-25);
+  }
+  try{c.setPointerCapture(e.pointerId)}catch(_){}
+};
+c.onpointermove=e=>{
+  if(!drag)return;
+  const q=pos(e);
+  if(controlMode==='touchpad'){
+    if(!padLast)padLast=q;
+    p.x=clamp(p.x+(q.x-padLast.x)*PAD_GAIN,20,W-20);
+    p.y=clamp(p.y+(q.y-padLast.y)*PAD_GAIN,110,H-25);
+    padLast=q;movePadDot(q);
+  }else{
+    p.x=clamp(q.x,20,W-20);p.y=clamp(q.y,110,H-25);
+  }
+};
+function endDrag(){drag=false;padLast=null;padDot.classList.remove('active')}
+addEventListener('pointerup',endDrag);addEventListener('pointercancel',endDrag);
 function fire(X,Y,a,s,type='orb',r=7){bullets.push({x:X,y:Y,vx:Math.cos(a)*s,vy:Math.sin(a)*s,r,type,a:rnd(0,6.28),spin:rnd(-2,2)})}
 function ring(n,s,o=0,type='orb'){for(let i=0;i<n;i++)fire(b.x,b.y+18,o+i*Math.PI*2/n,s,type,type==='needle'?5:7)}
 function fan(n,sp,s){const a=Math.atan2(p.y-b.y,p.x-b.x);for(let i=0;i<n;i++)fire(b.x,b.y+14,a+(i/(n-1)-.5)*sp,s,'rice',6)}
