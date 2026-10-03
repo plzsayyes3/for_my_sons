@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" role="img" aria-labelledby="t d">
+  <title id="t">スライム</title>
+  <desc id="d">透明なぷるぷるスライム</desc>
+  <defs>
+    <radialGradient id="g" cx="34%" cy="24%" r="74%">
+      <stop offset="0" stop-color="#ffffff" stop-opacity=".96"/>
+      <stop offset=".25" stop-color="#dff5fb" stop-opacity=".9"/>
+      <stop offset=".68" stop-color="#9fd3e1" stop-opacity=".86"/>
+      <stop offset="1" stop-color="#6fa8bb" stop-opacity=".9"/>
+    </radialGradient>
+  </defs>
+  <rect width="128" height="128" rx="28" fill="#f3eee6"/>
+  <ellipse cx="64" cy="99" rx="38" ry="9" fill="#72533c" opacity=".16"/>
+  <path d="M31 82c0-27 12-50 33-50s33 23 33 50c0 14-13 22-33 22S31 96 31 82Z" fill="url(#g)" stroke="#7faebd" stroke-width="3"/>
+  <ellipse cx="49" cy="50" rx="10" ry="6" fill="#fff" opacity=".68" transform="rotate(-24 49 50)"/>
+  <path d="M50 75c2-4 5-4 7 0M71 75c2-4 5-4 7 0M59 84c3 3 7 3 10 0" fill="none" stroke="#435663" stroke-width="3.5" stroke-linecap="round"/>
+</svg>
