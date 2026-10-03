@@ -30,9 +30,9 @@
   {
     "id": "tilt-led",
     "name": "ひかりリング",
-    "url": "./tilt-led/?v=18",
+    "url": "./tilt-led/?v=19",
     "icon": "./assets/tilt-led.svg?v=1",
-    "description": "7つの青LEDを守って赤から逃げる。生存タイムを競おう"
+    "description": "赤から逃げて生存タイムを競う。自分と家族のベスト記録に挑戦"
   },
   {
     "id": "typing",
