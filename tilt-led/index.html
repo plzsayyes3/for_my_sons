@@ -10,7 +10,7 @@
   <meta http-equiv="Expires" content="0">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-  <link rel="manifest" href="./manifest.webmanifest?v=2">
+  <link rel="manifest" href="./manifest.webmanifest?v=3">
   <title>ひかりリング | For My Sons</title>
   <style>
     * { box-sizing: border-box; }
@@ -565,7 +565,22 @@
       min-height: 0;
       padding: 8px 14px 10px;
     }
-    .landscape-stage .stage { padding: 0; }
+    .landscape-stage .topbar {
+      position: relative;
+      z-index: 6;
+    }
+    .landscape-stage .stage {
+      position: absolute;
+      inset: 0;
+      z-index: 1;
+      padding: 0;
+      display: grid;
+      place-items: center;
+      pointer-events: none;
+    }
+    .landscape-stage .ring-shell {
+      pointer-events: auto;
+    }
     .landscape-stage .ring-shell {
       width: min(calc(100cqh - 74px), 72cqw, 660px);
     }
@@ -587,6 +602,7 @@
     }
     .landscape-stage .controls {
       position: absolute;
+      z-index: 6;
       right: 16px;
       bottom: 10px;
       width: min(34cqw, 280px);
@@ -730,15 +746,19 @@
       const ENEMY_SPEED_FAST_INTERVAL_MS = 2000;
       const ENEMY_SPEED_FAST_START_MS = 50000;
       const ENEMY_SPEED_MAX = 0.0405;
+      const ENEMY_LOOKAHEAD_MIN = 7;
+      const ENEMY_LOOKAHEAD_MAX = 24;
+      const ENEMY_LOOKAHEAD_VELOCITY_BONUS = 8;
       const HIT_DISTANCE = 2.1;
       const HIT_COOLDOWN_MS = 950;
       const STARTING_LIVES = 5;
-      const BUILD_VERSION = '25';
-      const ACTIVE_CACHE_NAME = 'for-my-sons-v122';
+      const BUILD_VERSION = '26';
+      const ACTIVE_CACHE_NAME = 'for-my-sons-v123';
       const RECORD_APP_ID = 'tilt-led';
       const RECORD_SAVE_KEY = 'survival-record';
       const FALLBACK_RECORD_KEY = 'tilt-led-best-centiseconds';
 
+      const landscapeStage = document.querySelector('#landscape-stage');
       const app = document.querySelector('#app');
       const ring = document.querySelector('#ring');
       const ledsRoot = document.querySelector('#leds');
@@ -801,6 +821,29 @@
         led.style.setProperty('--a', (i * 360 / LED_COUNT) + 'deg');
         ledsRoot.appendChild(led);
         leds.push(led);
+      }
+
+      function syncLandscapeViewport() {
+        const viewport = window.visualViewport;
+        const width = viewport?.width || window.innerWidth;
+        const height = viewport?.height || window.innerHeight;
+        const left = viewport?.offsetLeft || 0;
+        const top = viewport?.offsetTop || 0;
+        const portrait = height > width;
+
+        if (portrait) {
+          landscapeStage.style.width = height + 'px';
+          landscapeStage.style.height = width + 'px';
+          landscapeStage.style.left = (left + width / 2) + 'px';
+          landscapeStage.style.top = (top + height / 2) + 'px';
+          landscapeStage.style.transform = 'translate(-50%, -50%) rotate(90deg)';
+        } else {
+          landscapeStage.style.width = width + 'px';
+          landscapeStage.style.height = height + 'px';
+          landscapeStage.style.left = left + 'px';
+          landscapeStage.style.top = top + 'px';
+          landscapeStage.style.transform = 'none';
+        }
       }
 
       function screenAngle() {
@@ -1221,8 +1264,27 @@
       }
 
       function updateEnemy(now) {
-        const chase = shortestAngle(enemyAngle, playerAngle);
         const speed = currentEnemySpeed(now);
+        const directDistance = Math.abs(shortestAngle(enemyAngle, playerAngle));
+        const distanceRatio = Math.min(1, directDistance / Math.PI);
+        const playerSpeedRatio = Math.min(1, Math.abs(playerVelocity) / Math.max(0.001, currentMaxSpeed()));
+
+        const lookAheadFrames =
+          ENEMY_LOOKAHEAD_MIN +
+          (ENEMY_LOOKAHEAD_MAX - ENEMY_LOOKAHEAD_MIN) * distanceRatio +
+          ENEMY_LOOKAHEAD_VELOCITY_BONUS * playerSpeedRatio;
+
+        const predictedPlayerAngle = normalizedAngle(
+          playerAngle + playerVelocity * lookAheadFrames
+        );
+
+        let chase = shortestAngle(enemyAngle, predictedPlayerAngle);
+
+        // 青がほぼ止まっている時は先読みしすぎず、現在位置を直接狙う。
+        if (Math.abs(playerVelocity) < 0.0015) {
+          chase = shortestAngle(enemyAngle, playerAngle);
+        }
+
         const step = Math.max(-speed, Math.min(speed, chase));
         enemyAngle = normalizedAngle(enemyAngle + step);
       }
@@ -1346,6 +1408,7 @@
       });
 
       window.addEventListener('orientationchange', () => {
+        syncLandscapeViewport();
         calibrated = false;
         targetX = 0;
         targetY = 0;
@@ -1354,6 +1417,11 @@
         playerVelocity = 0;
         if (sensorStarted) status.textContent = '向きがかわったので、基準を取りなおします。';
       });
+
+      window.addEventListener('resize', syncLandscapeViewport);
+      window.visualViewport?.addEventListener('resize', syncLandscapeViewport);
+      window.visualViewport?.addEventListener('scroll', syncLandscapeViewport);
+      syncLandscapeViewport();
 
       void refreshCachesOnBuildChange();
       void ensureRecordSystem();
