@@ -10,7 +10,7 @@
   <meta http-equiv="Expires" content="0">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-  <link rel="manifest" href="./manifest.webmanifest?v=6">
+  <link rel="manifest" href="./manifest.webmanifest?v=7">
   <title>ひかりリング | For My Sons</title>
   <style>
     * { box-sizing: border-box; }
@@ -763,8 +763,8 @@
       const HIT_DISTANCE = 2.1;
       const INVINCIBILITY_MS = 1000;
       const STARTING_LIVES = 5;
-      const BUILD_VERSION = '29';
-      const ACTIVE_CACHE_NAME = 'for-my-sons-v126';
+      const BUILD_VERSION = '30';
+      const ACTIVE_CACHE_NAME = 'for-my-sons-v127';
       const RECORD_APP_ID = 'tilt-led';
       const RECORD_SAVE_KEY = 'survival-record';
       const FALLBACK_RECORD_KEY = 'tilt-led-best-centiseconds';
@@ -860,17 +860,53 @@
         }
       }
 
+      function isAppleTouchDevice() {
+        return /iPad|iPhone|iPod/.test(navigator.userAgent) ||
+          (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+      }
+
+      function normalizedDegrees(value) {
+        return ((Number(value || 0) % 360) + 360) % 360;
+      }
+
       function screenAngle() {
-        const value = screen.orientation && Number.isFinite(screen.orientation.angle)
-          ? screen.orientation.angle
-          : (typeof window.orientation === 'number' ? window.orientation : 0);
-        return ((value % 360) + 360) % 360;
+        const legacyAngle = typeof window.orientation === 'number'
+          ? normalizedDegrees(window.orientation)
+          : null;
+        const apiAngle = screen.orientation && Number.isFinite(screen.orientation.angle)
+          ? normalizedDegrees(screen.orientation.angle)
+          : null;
+
+        // iPad / iPhone Safari は screen.orientation.angle が
+        // 実際の持ち方と食い違う場合があるため legacy 値を優先する。
+        if (isAppleTouchDevice() && legacyAngle !== null) return legacyAngle;
+        if (apiAngle !== null) return apiAngle;
+        if (legacyAngle !== null) return legacyAngle;
+        return 0;
+      }
+
+      function sensorAngleForGame() {
+        const viewport = window.visualViewport;
+        const width = viewport?.width || window.innerWidth;
+        const height = viewport?.height || window.innerHeight;
+        const physicalPortrait = height > width;
+        const rawAngle = screenAngle();
+
+        if (physicalPortrait) {
+          // 描画キャンバスを時計回り90°で横向きにしているため、
+          // センサーも同じ論理座標へ固定する。
+          // iPadで rawAngle が90/270を返しても二重回転させない。
+          return rawAngle === 180 ? 270 : 90;
+        }
+
+        // 横持ちなのに0/180が返るiPad Safariでは、
+        // 画面寸法を優先して横向きとして扱う。
+        if (rawAngle !== 90 && rawAngle !== 270) return 90;
+        return rawAngle;
       }
 
       function transformForScreen(beta, gamma) {
-        const physicalAngle = screenAngle();
-        const forcedPortraitRotation = window.matchMedia('(orientation: portrait)').matches ? 90 : 0;
-        const angle = (physicalAngle + forcedPortraitRotation) % 360;
+        const angle = sensorAngleForGame();
         if (angle === 90) return { x: beta, y: -gamma };
         if (angle === 180) return { x: -gamma, y: -beta };
         if (angle === 270) return { x: -beta, y: gamma };
@@ -1456,14 +1492,16 @@
       });
 
       window.addEventListener('orientationchange', () => {
-        syncLandscapeViewport();
-        calibrated = false;
-        targetX = 0;
-        targetY = 0;
-        smoothX = 0;
-        smoothY = 0;
-        playerVelocity = 0;
-        if (sensorStarted) status.textContent = '向きがかわったので、基準を取りなおします。';
+        setTimeout(() => {
+          syncLandscapeViewport();
+          calibrated = false;
+          targetX = 0;
+          targetY = 0;
+          smoothX = 0;
+          smoothY = 0;
+          playerVelocity = 0;
+          if (sensorStarted) status.textContent = '向きがかわったので、基準を取りなおします。';
+        }, 220);
       });
 
       window.addEventListener('resize', syncLandscapeViewport);
