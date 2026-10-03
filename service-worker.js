@@ -1,4 +1,4 @@
-const CACHE_NAME = 'for-my-sons-v121';
+const CACHE_NAME = 'for-my-sons-v122';
 const SHELL = [
   './',
   './index.html',
@@ -23,9 +23,9 @@ const SHELL = [
   './kids-3d-playgrand/manual.html?v=5',
   './piano/?v=14',
   './piano/index.html?v=14',
-  './tilt-led/?v=24',
+  './tilt-led/?v=25',
   './tilt-led/index.html',
-  './tilt-led/manifest.webmanifest?v=1',
+  './tilt-led/manifest.webmanifest?v=2',
   './slime/?v=4',
   './slime/index.html',
   './split-puzzle/?v=6',
@@ -179,4 +179,11 @@ self.addEventListener('fetch', (event) => {
       throw error;
     }
   })());
+});
+
+
+self.addEventListener('message', (event) => {
+  if (event.data?.type === 'SKIP_WAITING') {
+    self.skipWaiting();
+  }
 });
