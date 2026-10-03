@@ -305,6 +305,161 @@
       accent-color: #63f2be;
       touch-action: pan-x;
     }
+    [hidden] { display: none !important; }
+    .new-record-badge {
+      margin-top: 2px;
+      padding: 3px 7px;
+      border: 1px solid rgba(255,230,105,.45);
+      border-radius: 999px;
+      background: rgba(255,214,62,.12);
+      color: #ffe56b;
+      font-size: 7px;
+      font-weight: 950;
+      letter-spacing: .12em;
+      white-space: nowrap;
+    }
+    .records-modal {
+      position: fixed;
+      inset: 0;
+      z-index: 24;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      padding: 14px;
+    }
+    .records-modal.is-open { display: flex; }
+    .records-backdrop {
+      position: absolute;
+      inset: 0;
+      background: rgba(0,0,0,.64);
+      backdrop-filter: blur(5px);
+      -webkit-backdrop-filter: blur(5px);
+    }
+    .records-card {
+      position: relative;
+      z-index: 1;
+      width: min(100%, 430px);
+      max-height: min(88cqh, 430px);
+      overflow: auto;
+      padding: 17px;
+      border: 1px solid rgba(198,255,235,.14);
+      border-radius: 22px;
+      background: #0b1815;
+      box-shadow: 0 18px 70px rgba(0,0,0,.46);
+    }
+    .records-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 11px;
+    }
+    .records-head h2 { margin: 0; font-size: 20px; }
+    .records-close {
+      width: 42px;
+      height: 42px;
+      border: 1px solid rgba(198,255,235,.12);
+      border-radius: 13px;
+      background: rgba(255,255,255,.04);
+      color: #eafff7;
+      font: inherit;
+      font-size: 17px;
+      font-weight: 900;
+    }
+    .personal-record {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      align-items: end;
+      gap: 2px 12px;
+      padding: 12px 14px;
+      border: 1px solid rgba(139,200,255,.18);
+      border-radius: 17px;
+      background: rgba(91,171,255,.07);
+    }
+    .personal-record span {
+      color: rgba(215,238,255,.65);
+      font-size: 9px;
+      font-weight: 900;
+      letter-spacing: .15em;
+    }
+    .personal-record strong {
+      grid-row: 1 / 3;
+      grid-column: 2;
+      color: #9bd0ff;
+      font-size: 28px;
+      line-height: 1;
+      font-variant-numeric: tabular-nums;
+    }
+    .personal-record small {
+      color: #e8f6ff;
+      font-size: 12px;
+      font-weight: 850;
+    }
+    .family-record-title {
+      margin: 13px 3px 7px;
+      color: rgba(224,255,244,.52);
+      font-size: 9px;
+      font-weight: 900;
+      letter-spacing: .15em;
+    }
+    .family-record-list {
+      display: grid;
+      gap: 6px;
+      margin: 0;
+      padding: 0;
+      list-style: none;
+    }
+    .family-record-list li {
+      display: grid;
+      grid-template-columns: 26px minmax(0,1fr) auto;
+      align-items: center;
+      gap: 8px;
+      min-height: 38px;
+      padding: 7px 10px;
+      border: 1px solid rgba(255,255,255,.07);
+      border-radius: 13px;
+      background: rgba(255,255,255,.025);
+    }
+    .family-record-list li.is-me {
+      border-color: rgba(91,171,255,.25);
+      background: rgba(91,171,255,.075);
+    }
+    .record-rank {
+      color: rgba(255,229,107,.8);
+      font-size: 12px;
+      font-weight: 950;
+      text-align: center;
+    }
+    .record-name {
+      min-width: 0;
+      overflow: hidden;
+      color: #eafff7;
+      font-size: 12px;
+      font-weight: 850;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    .record-name em {
+      margin-left: 5px;
+      color: #8bc8ff;
+      font-size: 8px;
+      font-style: normal;
+      letter-spacing: .08em;
+    }
+    .record-score {
+      color: #b9ddff;
+      font-size: 14px;
+      font-weight: 950;
+      font-variant-numeric: tabular-nums;
+    }
+    .family-record-list .record-empty {
+      display: block;
+      min-height: 0;
+      color: rgba(224,255,244,.5);
+      font-size: 11px;
+      text-align: center;
+    }
+
     .settings-modal {
       position: fixed;
       inset: 0;
@@ -434,7 +589,8 @@
       width: min(34cqw, 280px);
     }
     .landscape-stage .hint { display: none; }
-    .landscape-stage .settings-modal { position: absolute; }
+    .landscape-stage .settings-modal,
+    .landscape-stage .records-modal { position: absolute; }
 
     @media (orientation: portrait) {
       .landscape-stage {
@@ -468,6 +624,7 @@
         <p class="eyebrow">ESCAPE RING · SENSOR GAME</p>
         <h1>ひかりリング</h1>
       </div>
+      <button class="mini-button" id="records-button" type="button" aria-label="家族の記録を見る">🏆</button>
       <button class="mini-button" id="settings-button" type="button" aria-label="設定をひらく">⚙️</button>
     </header>
 
@@ -484,6 +641,7 @@
           <div class="time-counter" aria-label="経過時間">
             <span class="time-number" id="time-count">0.00</span>
             <span class="time-unit">SEC</span>
+            <span class="new-record-badge" id="new-record-badge" hidden>NEW RECORD</span>
           </div>
         </div>
       </div>
@@ -516,8 +674,40 @@
       <button class="settings-action" id="center-button" type="button">この位置を まんなかにする</button>
     </section>
   </div>
+
+  <div class="records-modal" id="records-modal" aria-hidden="true">
+    <div class="records-backdrop" id="records-backdrop"></div>
+    <section class="records-card" role="dialog" aria-modal="true" aria-labelledby="records-title">
+      <div class="records-head">
+        <div>
+          <p class="eyebrow">RECORDS</p>
+          <h2 id="records-title">きろく</h2>
+        </div>
+        <button class="records-close" id="records-close" type="button" aria-label="記録をとじる">✕</button>
+      </div>
+
+      <div class="personal-record">
+        <span>MY BEST</span>
+        <strong id="my-best">—</strong>
+        <small id="record-profile">読み込み中…</small>
+      </div>
+
+      <div class="family-record-title">FAMILY RECORD</div>
+      <ol class="family-record-list" id="family-record-list">
+        <li class="record-empty">記録を読み込み中…</li>
+      </ol>
+    </section>
+  </div>
   </div>
 
+  <script src="../shared/for-my-sons-db.js?v=2"></script>
+  <script src="../shared/profile-manager.js?v=2"></script>
+  <script src="../shared/parent-lock.js?v=3"></script>
+  <script src="../shared/save-store.js?v=2"></script>
+  <script src="../shared/github-sync.js?v=9"></script>
+  <script src="../shared/character-requests.js?v=5"></script>
+  <script src="../shared/parent-requests.js?v=4"></script>
+  <script src="../shared/for-my-sons.js?v=13"></script>
   <script>
     (() => {
       const LED_COUNT = 100;
@@ -537,11 +727,22 @@
       const HIT_DISTANCE = 2.1;
       const HIT_COOLDOWN_MS = 950;
       const STARTING_LIVES = 7;
+      const RECORD_APP_ID = 'tilt-led';
+      const RECORD_SAVE_KEY = 'survival-record';
+      const FALLBACK_RECORD_KEY = 'tilt-led-best-centiseconds';
 
       const app = document.querySelector('#app');
       const ring = document.querySelector('#ring');
       const ledsRoot = document.querySelector('#leds');
       const startButton = document.querySelector('#start-button');
+      const recordsButton = document.querySelector('#records-button');
+      const recordsModal = document.querySelector('#records-modal');
+      const recordsBackdrop = document.querySelector('#records-backdrop');
+      const recordsClose = document.querySelector('#records-close');
+      const myBest = document.querySelector('#my-best');
+      const recordProfile = document.querySelector('#record-profile');
+      const familyRecordList = document.querySelector('#family-record-list');
+      const newRecordBadge = document.querySelector('#new-record-badge');
       const settingsButton = document.querySelector('#settings-button');
       const settingsModal = document.querySelector('#settings-modal');
       const settingsBackdrop = document.querySelector('#settings-backdrop');
@@ -575,6 +776,10 @@
       let gameStartedAt = 0;
       let pausedAt = 0;
       let pausedTotal = 0;
+      let sharedApi = null;
+      let currentProfile = null;
+      let familyRecords = [];
+      let recordInitPromise = null;
 
       const savedSpeed = Number(localStorage.getItem('tilt-led-speed'));
       let speedSetting = Number.isFinite(savedSpeed) && savedSpeed >= 1 && savedSpeed <= 10 ? savedSpeed : 10;
@@ -732,12 +937,139 @@
         return (normalizedAngle(enemyAngle) / (Math.PI * 2)) * LED_COUNT;
       }
 
+      function formatRecord(cs) {
+        return Number.isFinite(cs) && cs > 0 ? (cs / 100).toFixed(2) : '—';
+      }
+
+      function renderFamilyRecords() {
+        myBest.textContent = formatRecord(
+          familyRecords.find(item => item.profile.id === currentProfile?.id)?.bestCs || 0
+        );
+        recordProfile.textContent = currentProfile?.label || 'この端末';
+
+        const sorted = [...familyRecords].sort((a, b) => {
+          if ((b.bestCs || 0) !== (a.bestCs || 0)) return (b.bestCs || 0) - (a.bestCs || 0);
+          return String(a.profile.label).localeCompare(String(b.profile.label), 'ja');
+        });
+
+        familyRecordList.replaceChildren();
+        if (!sorted.length) {
+          const empty = document.createElement('li');
+          empty.className = 'record-empty';
+          empty.textContent = 'まだ家族の記録がありません';
+          familyRecordList.appendChild(empty);
+          return;
+        }
+
+        sorted.forEach((item, index) => {
+          const li = document.createElement('li');
+          if (item.profile.id === currentProfile?.id) li.classList.add('is-me');
+
+          const rank = document.createElement('span');
+          rank.className = 'record-rank';
+          rank.textContent = item.bestCs > 0 ? String(index + 1) : '—';
+
+          const name = document.createElement('span');
+          name.className = 'record-name';
+          name.textContent = item.profile.label || item.profile.id;
+          if (item.profile.id === currentProfile?.id) {
+            const you = document.createElement('em');
+            you.textContent = 'YOU';
+            name.appendChild(you);
+          }
+
+          const score = document.createElement('strong');
+          score.className = 'record-score';
+          score.textContent = formatRecord(item.bestCs);
+
+          li.append(rank, name, score);
+          familyRecordList.appendChild(li);
+        });
+      }
+
+      async function refreshFamilyRecords() {
+        if (!sharedApi || !currentProfile) {
+          const fallbackBest = Number(localStorage.getItem(FALLBACK_RECORD_KEY)) || 0;
+          familyRecords = [{
+            profile: currentProfile || { id: 'local', label: 'この端末' },
+            bestCs: fallbackBest
+          }];
+          renderFamilyRecords();
+          return;
+        }
+
+        let profiles = await sharedApi.profile.list();
+        if (!profiles.some(profile => profile.id === currentProfile.id)) {
+          profiles = [currentProfile, ...profiles];
+        }
+        const realProfiles = profiles.filter(profile => profile.id !== 'profile-1');
+        if (realProfiles.length) profiles = realProfiles;
+
+        familyRecords = await Promise.all(profiles.map(async profile => {
+          try {
+            const record = await sharedApi.save.get(profile.id, RECORD_APP_ID, RECORD_SAVE_KEY);
+            return {
+              profile,
+              bestCs: Number(record?.value?.bestCs) || 0
+            };
+          } catch (error) {
+            console.warn('Record load failed for', profile.id, error);
+            return { profile, bestCs: 0 };
+          }
+        }));
+        renderFamilyRecords();
+      }
+
+      function ensureRecordSystem() {
+        if (recordInitPromise) return recordInitPromise;
+        recordInitPromise = (async () => {
+          try {
+            if (!window.ForMySonsShared?.createForMySons) throw new Error('shared api unavailable');
+            sharedApi = await window.ForMySonsShared.createForMySons();
+            currentProfile = await sharedApi.profile.current();
+          } catch (error) {
+            console.warn('Tilt LED record system fallback.', error);
+            sharedApi = null;
+            currentProfile = { id: 'local', label: 'この端末' };
+          }
+          await refreshFamilyRecords();
+        })();
+        return recordInitPromise;
+      }
+
+      async function saveRecord(finalCs) {
+        await ensureRecordSystem();
+
+        const existing = familyRecords.find(item => item.profile.id === currentProfile?.id);
+        const previousBest = Number(existing?.bestCs) || 0;
+        const isNewRecord = finalCs > previousBest;
+
+        if (isNewRecord) {
+          if (sharedApi) {
+            await sharedApi.save.json(RECORD_APP_ID, RECORD_SAVE_KEY, {
+              bestCs: finalCs,
+              bestSeconds: finalCs / 100,
+              updatedAt: new Date().toISOString()
+            });
+          } else {
+            localStorage.setItem(FALLBACK_RECORD_KEY, String(finalCs));
+          }
+          await refreshFamilyRecords();
+        }
+
+        newRecordBadge.hidden = !isNewRecord;
+        status.textContent = isNewRecord
+          ? 'NEW RECORD!  ' + formatRecord(finalCs) + ' 秒'
+          : '記録 ' + formatRecord(finalCs) + ' 秒  /  BEST ' + formatRecord(previousBest) + ' 秒';
+      }
+
       function resetGame() {
         lives = STARTING_LIVES;
         lifeCount.textContent = String(lives);
         lifeCount.classList.remove('is-danger');
         timeCount.textContent = '0.00';
         timeCount.classList.remove('is-final');
+        newRecordBadge.hidden = true;
         playerAngle = 0;
         playerVelocity = 0;
         lastTargetAngle = 0;
@@ -753,7 +1085,10 @@
         status.textContent = '青がなくなるまで逃げよう。';
       }
 
-      function gameOver() {
+      function gameOver(now) {
+        const finalElapsed = Math.max(0, now - gameStartedAt - pausedTotal);
+        const finalCs = Math.round(finalElapsed / 10);
+        timeCount.textContent = formatRecord(finalCs);
         gameRunning = false;
         gamePaused = false;
         startButton.disabled = false;
@@ -761,7 +1096,8 @@
         lifeCount.textContent = '0';
         lifeCount.classList.add('is-danger');
         timeCount.classList.add('is-final');
-        status.textContent = '記録 ' + timeCount.textContent + ' 秒';
+        status.textContent = '記録を保存中…';
+        void saveRecord(finalCs);
       }
 
       function registerHit(now) {
@@ -774,7 +1110,7 @@
         setTimeout(() => ring.classList.remove('is-hit'), 180);
 
         if (lives <= 0) {
-          gameOver();
+          gameOver(now);
           return;
         }
 
@@ -882,22 +1218,41 @@
         localStorage.setItem('tilt-led-speed', String(speedSetting));
       });
 
-      function setSettingsOpen(open) {
-        settingsModal.classList.toggle('is-open', open);
-        settingsModal.setAttribute('aria-hidden', String(!open));
+      function syncModalPause() {
+        const modalOpen =
+          settingsModal.classList.contains('is-open') ||
+          recordsModal.classList.contains('is-open');
 
-        if (gameRunning) {
-          if (open && !gamePaused) {
-            gamePaused = true;
-            pausedAt = performance.now();
-          } else if (!open && gamePaused) {
-            pausedTotal += performance.now() - pausedAt;
-            pausedAt = 0;
-            gamePaused = false;
-          }
+        if (!gameRunning) return;
+        if (modalOpen && !gamePaused) {
+          gamePaused = true;
+          pausedAt = performance.now();
+        } else if (!modalOpen && gamePaused) {
+          pausedTotal += performance.now() - pausedAt;
+          pausedAt = 0;
+          gamePaused = false;
         }
       }
 
+      function setSettingsOpen(open) {
+        settingsModal.classList.toggle('is-open', open);
+        settingsModal.setAttribute('aria-hidden', String(!open));
+        syncModalPause();
+      }
+
+      async function setRecordsOpen(open) {
+        recordsModal.classList.toggle('is-open', open);
+        recordsModal.setAttribute('aria-hidden', String(!open));
+        syncModalPause();
+        if (open) {
+          await ensureRecordSystem();
+          await refreshFamilyRecords();
+        }
+      }
+
+      recordsButton.addEventListener('click', () => void setRecordsOpen(true));
+      recordsClose.addEventListener('click', () => void setRecordsOpen(false));
+      recordsBackdrop.addEventListener('click', () => void setRecordsOpen(false));
       settingsButton.addEventListener('click', () => setSettingsOpen(true));
       settingsClose.addEventListener('click', () => setSettingsOpen(false));
       settingsBackdrop.addEventListener('click', () => setSettingsOpen(false));
@@ -913,9 +1268,9 @@
       });
 
       window.addEventListener('keydown', (event) => {
-        if (event.key === 'Escape' && settingsModal.classList.contains('is-open')) {
-          setSettingsOpen(false);
-        }
+        if (event.key !== 'Escape') return;
+        if (recordsModal.classList.contains('is-open')) void setRecordsOpen(false);
+        else if (settingsModal.classList.contains('is-open')) setSettingsOpen(false);
       });
 
       window.addEventListener('orientationchange', () => {
@@ -928,6 +1283,7 @@
         if (sensorStarted) status.textContent = '向きがかわったので、基準を取りなおします。';
       });
 
+      void ensureRecordSystem();
       renderLeds();
       requestAnimationFrame(render);
     })();
