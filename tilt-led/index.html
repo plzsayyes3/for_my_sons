@@ -446,6 +446,9 @@
       const SPRING_MIN = 0.0035;
       const SPRING_MAX = 0.012;
       const ENEMY_SPEED = 0.0135;
+      const ENEMY_SPEED_STEP = 0.0016;
+      const ENEMY_SPEED_INTERVAL_MS = 7000;
+      const ENEMY_SPEED_MAX = 0.027;
       const HIT_DISTANCE = 2.1;
       const HIT_COOLDOWN_MS = 950;
       const STARTING_LIVES = 7;
@@ -720,9 +723,17 @@
         playerAngle = normalizedAngle(playerAngle);
       }
 
-      function updateEnemy() {
+      function currentEnemySpeed(now) {
+        if (!gameRunning) return ENEMY_SPEED;
+        const elapsed = Math.max(0, now - gameStartedAt - pausedTotal);
+        const level = Math.floor(elapsed / ENEMY_SPEED_INTERVAL_MS);
+        return Math.min(ENEMY_SPEED_MAX, ENEMY_SPEED + level * ENEMY_SPEED_STEP);
+      }
+
+      function updateEnemy(now) {
         const chase = shortestAngle(enemyAngle, playerAngle);
-        const step = Math.max(-ENEMY_SPEED, Math.min(ENEMY_SPEED, chase));
+        const speed = currentEnemySpeed(now);
+        const step = Math.max(-speed, Math.min(speed, chase));
         enemyAngle = normalizedAngle(enemyAngle + step);
       }
 
@@ -763,7 +774,7 @@
         updatePlayer();
 
         if (gameRunning && !gamePaused) {
-          updateEnemy();
+          updateEnemy(now);
           const elapsed = Math.max(0, now - gameStartedAt - pausedTotal);
           timeCount.textContent = (elapsed / 1000).toFixed(2);
         }
