@@ -10,7 +10,7 @@
   <meta http-equiv="Expires" content="0">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-  <link rel="manifest" href="./manifest.webmanifest?v=5">
+  <link rel="manifest" href="./manifest.webmanifest?v=6">
   <title>ひかりリング | For My Sons</title>
   <style>
     * { box-sizing: border-box; }
@@ -185,6 +185,12 @@
     .ring-shell.is-hit .led.is-player {
       background: #fff;
       box-shadow: 0 0 14px #fff, 0 0 32px rgba(255,255,255,.8);
+    }
+    .ring-shell.is-invincible .led.is-player {
+      animation: invincibleBlink .18s steps(2, end) infinite;
+    }
+    @keyframes invincibleBlink {
+      50% { opacity: .32; }
     }
     .center {
       position: absolute;
@@ -755,10 +761,10 @@
       const ENEMY_LOOKAHEAD_MAX = 16;
       const ENEMY_LOOKAHEAD_VELOCITY_BONUS = 5;
       const HIT_DISTANCE = 2.1;
-      const HIT_COOLDOWN_MS = 950;
+      const INVINCIBILITY_MS = 1000;
       const STARTING_LIVES = 5;
-      const BUILD_VERSION = '28';
-      const ACTIVE_CACHE_NAME = 'for-my-sons-v125';
+      const BUILD_VERSION = '29';
+      const ACTIVE_CACHE_NAME = 'for-my-sons-v126';
       const RECORD_APP_ID = 'tilt-led';
       const RECORD_SAVE_KEY = 'survival-record';
       const FALLBACK_RECORD_KEY = 'tilt-led-best-centiseconds';
@@ -1183,6 +1189,7 @@
         timeCount.textContent = '0.00';
         timeCount.classList.remove('is-final');
         newRecordBadge.hidden = true;
+        ring.classList.remove('is-hit', 'is-invincible');
         playerAngle = 0;
         playerVelocity = 0;
         lastTargetAngle = 0;
@@ -1217,21 +1224,27 @@
       }
 
       function registerHit(now) {
-        if (!gameRunning || now - lastHitAt < HIT_COOLDOWN_MS) return;
+        if (!gameRunning || now - lastHitAt < INVINCIBILITY_MS) return;
         lastHitAt = now;
         lives = Math.max(0, lives - 1);
         lifeCount.textContent = String(lives);
         lifeCount.classList.toggle('is-danger', lives <= 2);
-        ring.classList.add('is-hit');
+
+        ring.classList.add('is-hit', 'is-invincible');
         setTimeout(() => ring.classList.remove('is-hit'), 180);
+        setTimeout(() => {
+          if (performance.now() - lastHitAt >= INVINCIBILITY_MS - 30) {
+            ring.classList.remove('is-invincible');
+          }
+        }, INVINCIBILITY_MS);
 
         if (lives <= 0) {
+          ring.classList.remove('is-invincible');
           gameOver(now);
           return;
         }
 
-        enemyAngle = normalizedAngle(playerAngle + Math.PI);
-        status.textContent = '青が1つ減った。残り ' + lives + '。';
+        status.textContent = '青が1つ減った。1秒むてき。残り ' + lives + '。';
       }
 
       function updatePlayer() {
