@@ -1,4 +1,4 @@
-const CACHE_NAME = 'for-my-sons-v123';
+const CACHE_NAME = 'for-my-sons-v122';
 const SHELL = [
   './',
   './index.html',
@@ -26,7 +26,7 @@ const SHELL = [
   './tilt-led/?v=26',
   './tilt-led/index.html',
   './tilt-led/manifest.webmanifest?v=3',
-  './slime/?v=4',
+  './slime/?v=5',
   './slime/index.html',
   './split-puzzle/?v=6',
   './split-puzzle/index.html',
