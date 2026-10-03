@@ -110,7 +110,7 @@
     }
     .ring-shell {
       position: relative;
-      width: min(78vw, 57svh, 390px);
+      width: min(92vw, 88svh, 640px);
       aspect-ratio: 1;
       border-radius: 50%;
       touch-action: none;
@@ -137,13 +137,13 @@
       position: absolute;
       left: 50%;
       top: 50%;
-      width: 11px;
-      height: 11px;
-      margin: -5.5px 0 0 -5.5px;
+      width: 44px;
+      height: 44px;
+      margin: -22px 0 0 -22px;
       border-radius: 50%;
       transform:
         rotate(var(--a))
-        translateY(calc(min(39vw, 28.5svh, 195px) * -1))
+        translateY(calc(min(46vw, 44svh, 320px) * -1))
         scale(var(--s));
       background: rgb(38 68 59);
       opacity: calc(.34 + var(--b) * .66);
@@ -157,8 +157,8 @@
       background: rgb(91 171 255);
       opacity: 1;
       box-shadow:
-        0 0 8px rgba(75,161,255,.95),
-        0 0 22px rgba(75,161,255,.72);
+        0 0 14px rgba(75,161,255,.95),
+        0 0 38px rgba(75,161,255,.72);
     }
     .led.is-player-near {
       background: rgb(91 171 255);
@@ -171,8 +171,8 @@
       background: rgb(255 72 72);
       opacity: 1;
       box-shadow:
-        0 0 8px rgba(255,67,67,.96),
-        0 0 24px rgba(255,67,67,.78);
+        0 0 14px rgba(255,67,67,.96),
+        0 0 40px rgba(255,67,67,.78);
     }
     .led.is-enemy-near {
       background: rgb(38 68 59);
@@ -525,14 +525,14 @@
       }
       .hud { position: absolute; left: 74px; top: calc(env(safe-area-inset-top) + 8px); }
       .stage { padding: 0; }
-      .ring-shell { width: min(62svh, 350px); }
+      .ring-shell { width: min(88svh, 640px); }
       .led {
-        width: 10px;
-        height: 10px;
-        margin: -5px 0 0 -5px;
+        width: 40px;
+        height: 40px;
+        margin: -20px 0 0 -20px;
         transform:
           rotate(var(--a))
-          translateY(calc(min(31svh, 175px) * -1))
+          translateY(calc(min(44svh, 320px) * -1))
           scale(var(--s));
       }
       .controls {
@@ -564,15 +564,15 @@
     }
     .landscape-stage .stage { padding: 0; }
     .landscape-stage .ring-shell {
-      width: min(62cqh, 350px);
+      width: min(90cqh, 72cqw, 660px);
     }
     .landscape-stage .led {
-      width: 10px;
-      height: 10px;
-      margin: -5px 0 0 -5px;
+      width: 40px;
+      height: 40px;
+      margin: -20px 0 0 -20px;
       transform:
         rotate(var(--a))
-        translateY(calc(min(31cqh, 175px) * -1))
+        translateY(calc(min(45cqh, 36cqw, 330px) * -1))
         scale(var(--s));
     }
     .landscape-stage .hud {
