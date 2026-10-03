@@ -115,14 +115,13 @@
       position: absolute;
       left: 50%;
       top: 50%;
-      width: clamp(12px, 4.2vw, 20px);
-      aspect-ratio: 1;
-      margin: calc(clamp(12px, 4.2vw, 20px) / -2);
+      width: 18px;
+      height: 18px;
+      margin: -9px 0 0 -9px;
       border-radius: 50%;
       transform:
         rotate(var(--a))
         translateY(calc(min(39vw, 29svh, 195px) * -1))
-        rotate(calc(var(--a) * -1))
         scale(var(--s));
       background: rgb(52 83 72);
       opacity: calc(.28 + var(--b) * .72);
@@ -217,12 +216,12 @@
       .stage { padding: 0; }
       .ring-shell { width: min(62svh, 350px); }
       .led {
-        width: clamp(10px, 3.2svh, 18px);
-        margin: calc(clamp(10px, 3.2svh, 18px) / -2);
+        width: 16px;
+        height: 16px;
+        margin: -8px 0 0 -8px;
         transform:
           rotate(var(--a))
           translateY(calc(min(31svh, 175px) * -1))
-          rotate(calc(var(--a) * -1))
           scale(var(--s));
       }
       .controls {
