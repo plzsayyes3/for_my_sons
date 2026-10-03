@@ -199,29 +199,44 @@
       box-shadow: inset 0 0 20px rgba(0,0,0,.72);
       pointer-events: none;
     }
-    .life-counter {
+    .time-counter {
       display: grid;
       place-items: center;
+      align-content: center;
       width: 100%;
       height: 100%;
+      gap: 2px;
     }
-    .life-number {
+    .time-number {
       color: #8bc8ff;
-      font-size: clamp(42px, 12vw, 64px);
+      font-size: clamp(24px, 4.8cqh, 42px);
       font-weight: 950;
       line-height: 1;
-      letter-spacing: -.04em;
+      letter-spacing: -.045em;
       font-variant-numeric: tabular-nums;
       text-shadow:
         0 0 10px rgba(91,171,255,.65),
         0 0 28px rgba(91,171,255,.35);
     }
-    .life-number.is-danger {
-      color: #ff8a8a;
+    .time-number.is-final {
+      color: #ffffff;
       text-shadow:
-        0 0 10px rgba(255,72,72,.75),
-        0 0 28px rgba(255,72,72,.4);
+        0 0 10px rgba(255,255,255,.62),
+        0 0 30px rgba(91,171,255,.42);
     }
+    .time-unit {
+      color: rgba(181,218,255,.58);
+      font-size: 8px;
+      font-weight: 900;
+      letter-spacing: .16em;
+    }
+    .life-count {
+      color: #8bc8ff;
+      font-size: 15px;
+      font-weight: 950;
+      font-variant-numeric: tabular-nums;
+    }
+    .life-count.is-danger { color: #ff8585; }
     .controls {
       flex: 0 0 auto;
       display: grid;
@@ -373,12 +388,79 @@
       }
       .hint { display: none; }
     }
+    .landscape-stage {
+      position: fixed;
+      left: 0;
+      top: 0;
+      width: 100vw;
+      height: 100svh;
+      overflow: hidden;
+      container-type: size;
+      transform-origin: 50% 50%;
+      background:
+        radial-gradient(circle at 50% 42%, rgba(42,255,184,.07), transparent 36%),
+        linear-gradient(180deg, #0a1714 0%, #050a09 100%);
+    }
+    .landscape-stage .app {
+      width: 100%;
+      height: 100%;
+      min-height: 0;
+      padding: 8px 14px 10px;
+    }
+    .landscape-stage .stage { padding: 0; }
+    .landscape-stage .ring-shell {
+      width: min(62cqh, 350px);
+    }
+    .landscape-stage .led {
+      width: 7px;
+      height: 7px;
+      margin: -3.5px 0 0 -3.5px;
+      transform:
+        rotate(var(--a))
+        translateY(calc(min(31cqh, 175px) * -1))
+        scale(var(--s));
+    }
+    .landscape-stage .hud {
+      position: absolute;
+      left: 70px;
+      top: 9px;
+      z-index: 6;
+      min-height: 34px;
+    }
+    .landscape-stage .controls {
+      position: absolute;
+      right: 16px;
+      bottom: 10px;
+      width: min(34cqw, 280px);
+    }
+    .landscape-stage .hint { display: none; }
+    .landscape-stage .settings-modal { position: absolute; }
+
+    @media (orientation: portrait) {
+      .landscape-stage {
+        left: 50%;
+        top: 50%;
+        width: 100svh;
+        height: 100vw;
+        transform: translate(-50%, -50%) rotate(90deg);
+      }
+    }
+    @media (orientation: landscape) {
+      .landscape-stage {
+        left: 0;
+        top: 0;
+        width: 100vw;
+        height: 100svh;
+        transform: none;
+      }
+    }
     @media (prefers-reduced-motion: reduce) {
       .led { transition: none; }
     }
   </style>
 </head>
 <body>
+  <div class="landscape-stage" id="landscape-stage">
   <main class="app" id="app">
     <header class="topbar">
       <a class="back" href="../" aria-label="For My Sonsにもどる">‹</a>
@@ -390,7 +472,7 @@
     </header>
 
     <section class="hud" aria-label="ゲーム状況">
-      <div class="hud-pill">TIME <span class="time-count" id="time-count">0.00</span>s</div>
+      <div class="hud-pill">BLUE <span class="life-count" id="life-count">7</span></div>
     </section>
 
     <section class="stage" aria-label="赤いLEDから逃げるゲーム">
@@ -399,8 +481,9 @@
         <div class="ring-guide"></div>
         <div id="leds"></div>
         <div class="center">
-          <div class="life-counter" id="life-counter" aria-label="残り7">
-            <span class="life-number" id="life-number">7</span>
+          <div class="time-counter" aria-label="経過時間">
+            <span class="time-number" id="time-count">0.00</span>
+            <span class="time-unit">SEC</span>
           </div>
         </div>
       </div>
@@ -408,7 +491,7 @@
 
     <section class="controls">
       <button class="start" id="start-button" type="button">ゲームスタート</button>
-      <p class="status" id="status">青は7つ。赤に当たると1つ減る。</p>
+      <p class="status" id="status">どこまで逃げられるか、タイム勝負。</p>
       <p class="hint">青のかたまりが自分。スマホを傾けて赤から逃げよう。</p>
     </section>
   </main>
@@ -432,6 +515,7 @@
 
       <button class="settings-action" id="center-button" type="button">この位置を まんなかにする</button>
     </section>
+  </div>
   </div>
 
   <script>
@@ -464,8 +548,7 @@
       const settingsClose = document.querySelector('#settings-close');
       const centerButton = document.querySelector('#center-button');
       const status = document.querySelector('#status');
-      const lifeCounter = document.querySelector('#life-counter');
-      const lifeNumber = document.querySelector('#life-number');
+      const lifeCount = document.querySelector('#life-count');
       const timeCount = document.querySelector('#time-count');
       const speedSlider = document.querySelector('#speed-slider');
       const speedValue = document.querySelector('#speed-value');
@@ -506,16 +589,6 @@
         leds.push(led);
       }
 
-      async function requestLandscapeLock() {
-        try {
-          if (screen.orientation && typeof screen.orientation.lock === 'function') {
-            await screen.orientation.lock('landscape');
-          }
-        } catch (error) {
-          // ブラウザ側で固定できなくても、そのまま横向き前提でゲームを開始する。
-        }
-      }
-
       function screenAngle() {
         const value = screen.orientation && Number.isFinite(screen.orientation.angle)
           ? screen.orientation.angle
@@ -524,7 +597,9 @@
       }
 
       function transformForScreen(beta, gamma) {
-        const angle = screenAngle();
+        const physicalAngle = screenAngle();
+        const forcedPortraitRotation = window.matchMedia('(orientation: portrait)').matches ? 90 : 0;
+        const angle = (physicalAngle + forcedPortraitRotation) % 360;
         if (angle === 90) return { x: beta, y: -gamma };
         if (angle === 180) return { x: -gamma, y: -beta };
         if (angle === 270) return { x: -beta, y: gamma };
@@ -659,10 +734,10 @@
 
       function resetGame() {
         lives = STARTING_LIVES;
-        lifeNumber.textContent = String(lives);
-        lifeNumber.classList.remove('is-danger');
-        lifeCounter.setAttribute('aria-label', '残り' + lives);
+        lifeCount.textContent = String(lives);
+        lifeCount.classList.remove('is-danger');
         timeCount.textContent = '0.00';
+        timeCount.classList.remove('is-final');
         playerAngle = 0;
         playerVelocity = 0;
         lastTargetAngle = 0;
@@ -683,19 +758,18 @@
         gamePaused = false;
         startButton.disabled = false;
         startButton.textContent = 'もういちど';
-        lifeNumber.textContent = '0';
-        lifeNumber.classList.add('is-danger');
-        lifeCounter.setAttribute('aria-label', '残り0');
-        status.textContent = 'ゲームオーバー。青が全部なくなった。';
+        lifeCount.textContent = '0';
+        lifeCount.classList.add('is-danger');
+        timeCount.classList.add('is-final');
+        status.textContent = '記録 ' + timeCount.textContent + ' 秒';
       }
 
       function registerHit(now) {
         if (!gameRunning || now - lastHitAt < HIT_COOLDOWN_MS) return;
         lastHitAt = now;
         lives = Math.max(0, lives - 1);
-        lifeNumber.textContent = String(lives);
-        lifeNumber.classList.toggle('is-danger', lives <= 2);
-        lifeCounter.setAttribute('aria-label', '残り' + lives);
+        lifeCount.textContent = String(lives);
+        lifeCount.classList.toggle('is-danger', lives <= 2);
         ring.classList.add('is-hit');
         setTimeout(() => ring.classList.remove('is-hit'), 180);
 
@@ -829,7 +903,6 @@
       settingsBackdrop.addEventListener('click', () => setSettingsOpen(false));
 
       startButton.addEventListener('click', async () => {
-        requestLandscapeLock();
         await ensureSensor();
         resetGame();
       });
@@ -854,8 +927,6 @@
         playerVelocity = 0;
         if (sensorStarted) status.textContent = '向きがかわったので、基準を取りなおします。';
       });
-
-      requestLandscapeLock();
 
       renderLeds();
       requestAnimationFrame(render);
