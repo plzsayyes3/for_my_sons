@@ -26,7 +26,7 @@ const SHELL = [
   './tilt-led/?v=21',
   './tilt-led/index.html',
   './tilt-led/manifest.webmanifest?v=1',
-  './slime/?v=2',
+  './slime/?v=3',
   './slime/index.html',
   './split-puzzle/?v=6',
   './split-puzzle/index.html',
