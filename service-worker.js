@@ -1,4 +1,4 @@
-const CACHE_NAME = 'for-my-sons-v117';
+const CACHE_NAME = 'for-my-sons-v118';
 const SHELL = [
   './',
   './index.html',
@@ -26,6 +26,8 @@ const SHELL = [
   './tilt-led/?v=20',
   './tilt-led/index.html',
   './tilt-led/manifest.webmanifest?v=1',
+  './slime/?v=1',
+  './slime/index.html',
   './split-puzzle/?v=6',
   './split-puzzle/index.html',
   './split-puzzle/styles.css?v=6',
@@ -89,6 +91,7 @@ const SHELL = [
   './assets/minecraft-english.svg',
   './assets/piano.svg',
   './assets/tilt-led.svg?v=1',
+  './assets/slime.svg?v=1',
   './assets/typing.svg',
   './assets/pressure.svg',
   './assets/roulette.svg',
