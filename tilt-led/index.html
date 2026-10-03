@@ -7,6 +7,7 @@
   <meta name="color-scheme" content="dark">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <link rel="manifest" href="./manifest.webmanifest?v=1">
   <title>ひかりリング | For My Sons</title>
   <style>
     * { box-sizing: border-box; }
@@ -372,6 +373,44 @@
       }
       .hint { display: none; }
     }
+    .rotate-gate {
+      position: fixed;
+      inset: 0;
+      z-index: 100;
+      display: none;
+      place-items: center;
+      padding:
+        calc(env(safe-area-inset-top) + 24px)
+        calc(env(safe-area-inset-right) + 24px)
+        calc(env(safe-area-inset-bottom) + 24px)
+        calc(env(safe-area-inset-left) + 24px);
+      background: #07110f;
+      text-align: center;
+    }
+    .rotate-gate.is-visible { display: grid; }
+    .rotate-card {
+      display: grid;
+      justify-items: center;
+      gap: 16px;
+      max-width: 320px;
+    }
+    .rotate-phone {
+      width: 92px;
+      height: 50px;
+      border: 4px solid #8bc8ff;
+      border-radius: 14px;
+      box-shadow: 0 0 24px rgba(91,171,255,.25);
+    }
+    .rotate-card strong {
+      font-size: 22px;
+      line-height: 1.2;
+    }
+    .rotate-card p {
+      margin: 0;
+      color: rgba(224,255,244,.64);
+      font-size: 13px;
+      line-height: 1.55;
+    }
     @media (prefers-reduced-motion: reduce) {
       .led { transition: none; }
     }
@@ -411,6 +450,14 @@
       <p class="hint">青のかたまりが自分。スマホを傾けて赤から逃げよう。</p>
     </section>
   </main>
+
+  <div class="rotate-gate" id="rotate-gate" aria-hidden="true">
+    <div class="rotate-card">
+      <div class="rotate-phone" aria-hidden="true"></div>
+      <strong>よこ向きにしてね</strong>
+      <p>このゲームは横向き専用です。スマホを横にするとスタートできます。</p>
+    </div>
+  </div>
 
   <div class="settings-modal" id="settings-modal" aria-hidden="true">
     <div class="settings-backdrop" id="settings-backdrop"></div>
@@ -454,6 +501,7 @@
       const STARTING_LIVES = 7;
 
       const app = document.querySelector('#app');
+      const rotateGate = document.querySelector('#rotate-gate');
       const ring = document.querySelector('#ring');
       const ledsRoot = document.querySelector('#leds');
       const startButton = document.querySelector('#start-button');
@@ -503,6 +551,36 @@
         led.style.setProperty('--a', (i * 360 / LED_COUNT) + 'deg');
         ledsRoot.appendChild(led);
         leds.push(led);
+      }
+
+      function isLandscape() {
+        return window.matchMedia('(orientation: landscape)').matches;
+      }
+
+      async function requestLandscapeLock() {
+        try {
+          if (screen.orientation && typeof screen.orientation.lock === 'function') {
+            await screen.orientation.lock('landscape');
+          }
+        } catch (error) {
+          // iPhone Safariなど、ブラウザ側で固定できない場合は
+          // rotate gateで実際の横向きを待つ。
+        }
+      }
+
+      function updateOrientationGate() {
+        const landscape = isLandscape();
+        rotateGate.classList.toggle('is-visible', !landscape);
+        rotateGate.setAttribute('aria-hidden', String(landscape));
+
+        if (!landscape && gameRunning && !gamePaused) {
+          gamePaused = true;
+          pausedAt = performance.now();
+        } else if (landscape && gameRunning && gamePaused && !settingsModal.classList.contains('is-open')) {
+          pausedTotal += performance.now() - pausedAt;
+          pausedAt = 0;
+          gamePaused = false;
+        }
       }
 
       function screenAngle() {
@@ -818,6 +896,10 @@
       settingsBackdrop.addEventListener('click', () => setSettingsOpen(false));
 
       startButton.addEventListener('click', async () => {
+        await requestLandscapeLock();
+        updateOrientationGate();
+        if (!isLandscape()) return;
+
         await ensureSensor();
         resetGame();
       });
@@ -834,6 +916,7 @@
       });
 
       window.addEventListener('orientationchange', () => {
+        updateOrientationGate();
         calibrated = false;
         targetX = 0;
         targetY = 0;
@@ -842,6 +925,10 @@
         playerVelocity = 0;
         if (sensorStarted) status.textContent = '向きがかわったので、基準を取りなおします。';
       });
+
+      window.addEventListener('resize', updateOrientationGate);
+      updateOrientationGate();
+      requestLandscapeLock();
 
       renderLeds();
       requestAnimationFrame(render);
