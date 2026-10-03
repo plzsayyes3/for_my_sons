@@ -193,6 +193,37 @@
       touch-action: manipulation;
     }
     .start:active { transform: translateY(1px); }
+    .speed-control {
+      display: grid;
+      grid-template-columns: auto 1fr auto;
+      align-items: center;
+      gap: 10px;
+      min-height: 48px;
+      padding: 8px 12px;
+      border: 1px solid rgba(198, 255, 235, .10);
+      border-radius: 16px;
+      background: rgba(12, 31, 26, .52);
+    }
+    .speed-label {
+      color: rgba(224, 255, 244, .76);
+      font-size: 12px;
+      font-weight: 850;
+      white-space: nowrap;
+    }
+    .speed-value {
+      min-width: 2.5em;
+      color: #b8ffe5;
+      font-size: 12px;
+      font-weight: 900;
+      text-align: right;
+      font-variant-numeric: tabular-nums;
+    }
+    .speed-slider {
+      width: 100%;
+      min-width: 0;
+      accent-color: #63f2be;
+      touch-action: pan-x;
+    }
     .status {
       margin: 0;
       min-height: 32px;
@@ -260,6 +291,11 @@
 
     <section class="controls">
       <button class="start" id="start-button" type="button">センサーをつかう</button>
+      <label class="speed-control" for="speed-slider">
+        <span class="speed-label">うごく速さ</span>
+        <input class="speed-slider" id="speed-slider" type="range" min="1" max="10" step="1" value="7">
+        <span class="speed-value" id="speed-value">7</span>
+      </label>
       <p class="status" id="status">スマホを手に持って、ボタンをおしてね。</p>
       <p class="hint">センサーが使えないときは、リングを指でドラッグして試せます。</p>
     </section>
@@ -272,10 +308,12 @@
       const DEAD_ZONE = 1.8;
       const SMOOTHING = 0.12;
       const SENSOR_GAIN = 0.50;
-      const WATER_SPRING = 0.007;
       const WATER_DAMPING = 0.943;
-      const MAX_WATER_SPEED = 0.016;
       const WATER_SPREAD = 11;
+      const SPEED_MIN = 0.007;
+      const SPEED_MAX = 0.035;
+      const SPRING_MIN = 0.0035;
+      const SPRING_MAX = 0.012;
 
       const app = document.querySelector('#app');
       const ring = document.querySelector('#ring');
@@ -285,6 +323,8 @@
       const centerDot = document.querySelector('#center-dot');
       const status = document.querySelector('#status');
       const readout = document.querySelector('#readout');
+      const speedSlider = document.querySelector('#speed-slider');
+      const speedValue = document.querySelector('#speed-value');
 
       const leds = [];
       let sensorStarted = false;
@@ -301,6 +341,7 @@
       let waterStrength = 0;
       let ripplePhase = 0;
       let lastTargetAngle = 0;
+      let speedSetting = Number(speedSlider.value);
 
       for (let i = 0; i < LED_COUNT; i += 1) {
         const led = document.createElement('div');
@@ -429,6 +470,22 @@
         return Math.min(raw, LED_COUNT - raw);
       }
 
+      function speedRatio() {
+        return (speedSetting - 1) / 9;
+      }
+
+      function currentMaxSpeed() {
+        return SPEED_MIN + (SPEED_MAX - SPEED_MIN) * speedRatio();
+      }
+
+      function currentSpring() {
+        return SPRING_MIN + (SPRING_MAX - SPRING_MIN) * speedRatio();
+      }
+
+      function currentImpulse() {
+        return 0.003 + 0.011 * speedRatio();
+      }
+
       function render() {
         smoothX += (targetX - smoothX) * SMOOTHING;
         smoothY += (targetY - smoothY) * SMOOTHING;
@@ -444,10 +501,11 @@
           const angleDelta = shortestAngle(waterAngle, targetAngle);
           const targetMotion = shortestAngle(lastTargetAngle, targetAngle);
 
-          waterVelocity += angleDelta * WATER_SPRING;
-          waterVelocity += targetMotion * 0.007;
+          waterVelocity += angleDelta * currentSpring();
+          waterVelocity += targetMotion * currentImpulse();
           waterVelocity *= WATER_DAMPING;
-          waterVelocity = Math.max(-MAX_WATER_SPEED, Math.min(MAX_WATER_SPEED, waterVelocity));
+          const maxSpeed = currentMaxSpeed();
+          waterVelocity = Math.max(-maxSpeed, Math.min(maxSpeed, waterVelocity));
           waterAngle += waterVelocity;
           waterStrength += (strength - waterStrength) * 0.08;
           lastTargetAngle = targetAngle;
@@ -486,6 +544,11 @@
 
         requestAnimationFrame(render);
       }
+
+      speedSlider.addEventListener('input', () => {
+        speedSetting = Number(speedSlider.value);
+        speedValue.textContent = String(speedSetting);
+      });
 
       startButton.addEventListener('click', startSensor);
       centerButton.addEventListener('click', setCenter);
