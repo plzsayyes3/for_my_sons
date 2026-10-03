@@ -418,8 +418,12 @@ const state = {
 
   grabBase: new THREE.Vector3(),
   grabTarget: new THREE.Vector3(),
+  grabTargetSoft: new THREE.Vector3(),
   grabTargetVelocity: new THREE.Vector3(),
   lastGrabTarget: new THREE.Vector3(),
+
+  // Touching makes the jelly feel lighter for a moment.
+  touchFloat: 0,
 
   // shape weight for each vertex around the touched area
   grabWeights: new Float32Array(positionAttribute.count)
@@ -451,6 +455,8 @@ function resetJelly() {
   state.wobbleZ = 0;
   state.wobbleZVelocity = 0;
   state.dragging = false;
+  state.touchFloat = 0;
+  state.grabTargetSoft.copy(state.position);
   state.grabWeights.fill(0);
 }
 
@@ -517,19 +523,35 @@ function keepJellyInView() {
 }
 
 function physicsStep(dt) {
-  if (state.gravityOn && !state.dragging) {
-    state.velocity.y -= 7.7 * dt;
+  // While touched, gravity almost disappears. After release it returns gradually,
+  // so the jelly floats for a short moment instead of snapping downward.
+  if (state.dragging) {
+    state.touchFloat = 1;
+  } else {
+    state.touchFloat = Math.max(0, state.touchFloat - dt * 1.65);
+  }
+
+  if (state.gravityOn) {
+    const gravityScale = state.dragging
+      ? 0.04
+      : THREE.MathUtils.lerp(1.0, 0.22, state.touchFloat);
+    state.velocity.y -= 7.7 * gravityScale * dt;
   }
 
   if (state.dragging) {
-    const toTarget = new THREE.Vector3().subVectors(state.grabTarget, state.position);
+    // Smooth the finger target itself. This removes tiny pointer jitter and gives
+    // the surface a syrupy, pleasant follow rather than a rigid mouse-drag feel.
+    const follow = 1 - Math.exp(-18 * dt);
+    state.grabTargetSoft.lerp(state.grabTarget, follow);
+
+    const toTarget = new THREE.Vector3().subVectors(state.grabTargetSoft, state.position);
 
     // Clamp the pull so accidental swipes remain stable.
     if (toTarget.length() > 2.15) toTarget.setLength(2.15);
 
-    // Pudding-like body: skin moves first while the heavy mass catches up slowly.
-    state.velocity.addScaledVector(toTarget, 17 * dt);
-    state.velocity.multiplyScalar(Math.pow(0.10, dt));
+    // Light-touch pudding: responsive near the finger, but the body still lags.
+    state.velocity.addScaledVector(toTarget, 20 * dt);
+    state.velocity.multiplyScalar(Math.pow(0.13, dt));
 
     // A grabbed point leads; the rest of the jelly lags behind.
     state.squashVelocity +=
@@ -801,9 +823,14 @@ canvas.addEventListener("pointerdown", event => {
   hitPoint.copy(hit.point);
 
   state.dragging = true;
+  state.touchFloat = 1;
   state.grabTarget.copy(hit.point);
+  state.grabTargetSoft.copy(hit.point);
   state.lastGrabTarget.copy(hit.point);
   state.grabTargetVelocity.set(0, 0, 0);
+
+  // A tiny compression on contact gives a subtle tactile "ぷるっ" response.
+  state.squashVelocity += 0.045;
 
   state.grabBase.copy(hit.point).sub(state.position);
   updateGrabWeights(state.grabBase);
@@ -843,9 +870,11 @@ canvas.addEventListener("pointermove", event => {
 function releasePointer() {
   if (!state.dragging) return;
 
-  // Add the finger's release velocity to the jelly so it can be thrown.
-  state.velocity.addScaledVector(state.grabTargetVelocity, 0.34);
-  if (state.velocity.length() > 8) state.velocity.setLength(8);
+  // Release keeps some momentum, but less than before; this feels soft instead
+  // of launching like a rubber ball.
+  state.velocity.addScaledVector(state.grabTargetVelocity, 0.25);
+  if (state.velocity.length() > 6.2) state.velocity.setLength(6.2);
+  state.touchFloat = 1;
 
   state.wobbleXVelocity += -state.grabTargetVelocity.x * 0.08;
   state.wobbleZVelocity += -state.grabTargetVelocity.z * 0.08;
