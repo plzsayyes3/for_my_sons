@@ -1,5 +1,29 @@
-const grid = document.querySelector('#app-grid');
+const sectionsRoot = document.querySelector('#app-sections');
+const recentSection = document.querySelector('#recent-apps-section');
+const recentGrid = document.querySelector('#recent-app-grid');
 const template = document.querySelector('#app-template');
+
+const RECENT_KEY = 'for-my-sons-recent-apps-v1';
+const MAX_RECENT = 4;
+
+const CATEGORY_ORDER = ['game', 'create', 'tool'];
+const CATEGORY_META = {
+  game: {
+    kicker: 'PLAY',
+    title: 'ゲーム',
+    note: 'あそぶ'
+  },
+  create: {
+    kicker: 'CREATE & LEARN',
+    title: 'つくる・まなぶ',
+    note: 'つくる・れんしゅう'
+  },
+  tool: {
+    kicker: 'TOOLS',
+    title: 'ツール',
+    note: 'べんり'
+  }
+};
 
 const fallbackApps = [
   {
@@ -7,18 +31,38 @@ const fallbackApps = [
     name: '3Dこうさく',
     url: './kids-3d-playgrand/?v=5',
     icon: './assets/kids-3d.svg',
-    description: 'かたちをつくって、くっつけて、3Dにしよう'
+    description: 'かたちをつくって、くっつけて、3Dにしよう',
+    category: 'create'
   },
   {
     id: 'minecraft-english',
     name: 'Minecraft English',
     url: 'https://plzsayyes3.github.io/English-for-Minecraft/',
     icon: './assets/minecraft-english.svg',
-    description: 'Minecraftにつながる英語をたのしく学ぼう'
+    description: 'Minecraftにつながる英語をたのしく学ぼう',
+    category: 'create'
   }
 ];
 
-function createAppTile(app) {
+function readRecentIds() {
+  try {
+    const raw = localStorage.getItem(RECENT_KEY);
+    const parsed = JSON.parse(raw || '[]');
+    return Array.isArray(parsed) ? parsed.filter(Boolean).slice(0, MAX_RECENT) : [];
+  } catch (_) {
+    return [];
+  }
+}
+
+function rememberRecent(appId) {
+  if (!appId) return;
+  const next = [appId, ...readRecentIds().filter((id) => id !== appId)].slice(0, MAX_RECENT);
+  try {
+    localStorage.setItem(RECENT_KEY, JSON.stringify(next));
+  } catch (_) {}
+}
+
+function createAppTile(app, options = {}) {
   const fragment = template.content.cloneNode(true);
   const link = fragment.querySelector('.app-tile');
   const icon = fragment.querySelector('.app-icon');
@@ -26,7 +70,9 @@ function createAppTile(app) {
 
   link.href = app.url;
   link.dataset.appId = app.id;
+  if (options.recent) link.classList.add('app-tile-recent');
   link.setAttribute('aria-label', `${app.name}をひらく。${app.description ?? ''}`);
+  link.addEventListener('click', () => rememberRecent(app.id));
   icon.src = app.icon;
   icon.alt = '';
   label.textContent = app.name;
@@ -34,9 +80,59 @@ function createAppTile(app) {
   return fragment;
 }
 
-function renderApps(apps) {
-  grid.replaceChildren();
+function renderRecentApps(apps) {
+  if (!recentSection || !recentGrid) return;
+  const byId = new Map(apps.map((app) => [app.id, app]));
+  const recentApps = readRecentIds().map((id) => byId.get(id)).filter(Boolean);
+  recentGrid.replaceChildren();
+
+  if (!recentApps.length) {
+    recentSection.hidden = true;
+    return;
+  }
+
+  recentApps.forEach((app) => recentGrid.appendChild(createAppTile(app, { recent: true })));
+  recentSection.hidden = false;
+}
+
+function createCategorySection(category, apps) {
+  const meta = CATEGORY_META[category] || CATEGORY_META.game;
+  const section = document.createElement('section');
+  section.className = `app-category app-category-${category}`;
+  section.setAttribute('aria-labelledby', `category-${category}-title`);
+
+  const heading = document.createElement('div');
+  heading.className = 'category-heading';
+  heading.innerHTML = `
+    <div>
+      <p class="category-kicker">${meta.kicker}</p>
+      <h2 id="category-${category}-title">${meta.title}</h2>
+    </div>
+    <span class="category-note">${meta.note}</span>
+  `;
+
+  const grid = document.createElement('div');
+  grid.className = 'app-grid';
   apps.forEach((app) => grid.appendChild(createAppTile(app)));
+
+  section.append(heading, grid);
+  return section;
+}
+
+function renderApps(apps) {
+  if (!sectionsRoot) return;
+  sectionsRoot.replaceChildren();
+
+  CATEGORY_ORDER.forEach((category) => {
+    const categoryApps = apps.filter((app) => (app.category || 'game') === category);
+    if (categoryApps.length) sectionsRoot.appendChild(createCategorySection(category, categoryApps));
+  });
+
+  const known = new Set(CATEGORY_ORDER);
+  const otherApps = apps.filter((app) => !known.has(app.category || 'game'));
+  if (otherApps.length) sectionsRoot.appendChild(createCategorySection('game', otherApps));
+
+  renderRecentApps(apps);
 }
 
 async function loadApps() {
