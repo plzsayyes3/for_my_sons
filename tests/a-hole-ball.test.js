@@ -10,6 +10,9 @@ test('あ game ships five tilt-controlled scoring stages', () => {
   assert.match(source, /function transformForScreen\(beta, gamma\)/);
   assert.match(source, /function applyOperation\(hole\)/);
   assert.match(source, /function solveBallCollisions\(\)/);
+  assert.match(source, /rollPhase/);
+  assert.match(source, /moveDistance \/ Math\.max\(ball\.radius, \.001\)/);
+  assert.match(source, /Math\.pow\(\.30, dt\)/);
   assert.match(source, /センサーなしで試す/);
 });
 
@@ -18,11 +21,11 @@ test('あ game is linked from launcher and offline shell', () => {
   const entry = apps.find(app => app.id === 'a-hole-ball');
   assert.ok(entry);
   assert.equal(entry.name, 'あ');
-  assert.equal(entry.url, './a-hole-ball/?v=1');
+  assert.equal(entry.url, './a-hole-ball/?v=2');
   assert.equal(entry.icon, './assets/a-hole-ball.svg?v=1');
 
   const sw = fs.readFileSync('service-worker.js', 'utf8');
-  assert.match(sw, /\.\/a-hole-ball\/\?v=1/);
+  assert.match(sw, /\.\/a-hole-ball\/\?v=2/);
   assert.match(sw, /\.\/a-hole-ball\/index\.html/);
   assert.match(sw, /\.\/assets\/a-hole-ball\.svg\?v=1/);
 });
