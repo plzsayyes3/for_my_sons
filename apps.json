@@ -4,132 +4,151 @@
     "name": "3Dこうさく",
     "url": "./kids-3d-playgrand/?v=5",
     "icon": "./assets/kids-3d.svg",
-    "description": "かたちをつくって、くっつけて、3Dにしよう"
+    "description": "かたちをつくって、くっつけて、3Dにしよう",
+    "category": "create"
   },
   {
     "id": "sky-dash",
     "name": "Sky Dash",
     "url": "./sky-dash-sample/?v=7",
     "icon": "./assets/sky-dash.svg?v=1",
-    "description": "空の道を走って、左右とジャンプでどんどん加速"
+    "description": "空の道を走って、左右とジャンプでどんどん加速",
+    "category": "game"
   },
   {
     "id": "yukkuri-danmaku",
     "name": "ゆっくり弾幕",
     "url": "./yukkuri-danmaku/?v=2",
     "icon": "./assets/yukkuri-danmaku.svg?v=1",
-    "description": "ゆっくり霊夢を動かして、魔理沙の弾幕をよけよう"
+    "description": "ゆっくり霊夢を動かして、魔理沙の弾幕をよけよう",
+    "category": "game"
   },
   {
     "id": "minecraft-english",
     "name": "Minecraft English",
     "url": "https://plzsayyes3.github.io/English-for-Minecraft/",
     "icon": "./assets/minecraft-english.svg",
-    "description": "Minecraftにつながる英語をたのしく学ぼう"
+    "description": "Minecraftにつながる英語をたのしく学ぼう",
+    "category": "create"
   },
   {
     "id": "piano",
     "name": "ピアノ",
     "url": "./piano/?v=14",
     "icon": "./assets/piano.svg",
-    "description": "けんばんをおして、音をならそう"
+    "description": "けんばんをおして、音をならそう",
+    "category": "create"
   },
   {
     "id": "tilt-led",
     "name": "ひかりリング",
     "url": "./tilt-led/?v=30",
     "icon": "./assets/tilt-led.svg?v=1",
-    "description": "赤はぶつかってもそのまま。青は1秒無敵で生存タイムを競う"
+    "description": "赤はぶつかってもそのまま。青は1秒無敵で生存タイムを競う",
+    "category": "game"
   },
   {
     "id": "slime",
     "name": "スライム",
     "url": "./slime/?v=5",
     "icon": "./assets/slime.svg?v=1",
-    "description": "透明なぷるぷるスライムをつかんで、のばして、投げてあそぼう"
+    "description": "透明なぷるぷるスライムをつかんで、のばして、投げてあそぼう",
+    "category": "game"
   },
   {
     "id": "a-hole-ball",
     "name": "あ",
     "url": "./a-hole-ball/?v=3",
     "icon": "./assets/a-hole-ball.svg?v=1",
-    "description": "端末を傾けて球を3つの穴へ。5ステージの計算スコアを競う"
+    "description": "端末を傾けて球を3つの穴へ。5ステージの計算スコアを競う",
+    "category": "game"
   },
   {
     "id": "typing",
     "name": "たいぴんぐ",
     "url": "https://arafo-aragai.com/learning/typegame/typegame.html",
     "icon": "./assets/typing.svg",
-    "description": "Typing"
+    "description": "Typing",
+    "category": "create"
   },
   {
     "id": "pressure",
     "name": "気圧",
     "url": "https://arafo-aragai.com/learning/kiatsuline.html",
     "icon": "./assets/pressure.svg",
-    "description": "Pressure"
+    "description": "Pressure",
+    "category": "tool"
   },
   {
     "id": "roulette",
     "name": "ルーレット",
     "url": "https://arafo-aragai.com/learning/%E3%83%AB%E3%83%BC%E3%83%AC%E3%83%83%E3%83%88.html",
     "icon": "./assets/roulette.svg",
-    "description": "Roulette"
+    "description": "Roulette",
+    "category": "tool"
   },
   {
     "id": "step-up",
     "name": "step up",
     "url": "https://arafo-aragai.com/learning/stepup/stepup.html",
     "icon": "./assets/step-up.svg",
-    "description": "Steps"
+    "description": "Steps",
+    "category": "create"
   },
   {
     "id": "escape-match3",
     "name": "脱出マッチ3",
     "url": "https://arafo-aragai.com/learning/games/escape-match3/index.html",
     "icon": "./assets/match3.svg",
-    "description": "Match-3"
+    "description": "Match-3",
+    "category": "game"
   },
   {
     "id": "space-survival",
     "name": "宇宙サバイバル",
     "url": "https://arafo-aragai.com/learning/games/space-survival/index.html",
     "icon": "./assets/space-survival.svg",
-    "description": "Space"
+    "description": "Space",
+    "category": "game"
   },
   {
     "id": "split-puzzle",
     "name": "Split Puzzle",
     "url": "./split-puzzle/?v=6",
     "icon": "./assets/split-puzzle.svg",
-    "description": "えもじの半分どうしをつなげる絵あわせパズル"
+    "description": "えもじの半分どうしをつなげる絵あわせパズル",
+    "category": "game"
   },
   {
     "id": "merge-block",
     "name": "Merge Block",
     "url": "./merge-block/?v=11",
     "icon": "./assets/merge-block.svg?v=2",
-    "description": "2〜3個の色ブロックを落とし、中心重力でつなげるマージパズル"
+    "description": "2〜3個の色ブロックを落とし、中心重力でつなげるマージパズル",
+    "category": "game"
   },
   {
     "id": "wanko",
     "name": "わんこ",
     "url": "./wanko/?v=13",
     "icon": "./assets/wanko-war.svg?v=1",
-    "description": "プロフィール・ゲーム・ガチャ・図鑑をまとめたわんこのトップ"
+    "description": "プロフィール・ゲーム・ガチャ・図鑑をまとめたわんこのトップ",
+    "category": "game"
   },
   {
     "id": "paint",
     "name": "ペイント",
     "url": "./paint/?v=10",
     "icon": "./assets/paint.svg",
-    "description": "キャンバスのかたちをえらんで、ゆびでおえかきしよう"
+    "description": "キャンバスのかたちをえらんで、ゆびでおえかきしよう",
+    "category": "create"
   },
   {
     "id": "company-town",
     "name": "Company Town",
     "url": "./company-town/?v=12",
     "icon": "./assets/company-town.svg?v=1",
-    "description": "会社を育てて、土地を買い、町を大きくしよう"
+    "description": "会社を育てて、土地を買い、町を大きくしよう",
+    "category": "game"
   }
 ]
