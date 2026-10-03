@@ -23,7 +23,7 @@ const SHELL = [
   './kids-3d-playgrand/manual.html?v=5',
   './piano/?v=14',
   './piano/index.html?v=14',
-  './tilt-led/?v=1',
+  './tilt-led/?v=2',
   './tilt-led/index.html',
   './split-puzzle/?v=6',
   './split-puzzle/index.html',
