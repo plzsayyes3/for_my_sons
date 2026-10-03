@@ -525,14 +525,14 @@
       }
       .hud { position: absolute; left: 74px; top: calc(env(safe-area-inset-top) + 8px); }
       .stage { padding: 0; }
-      .ring-shell { width: min(88svh, 640px); }
+      .ring-shell { width: min(calc(100svh - 74px), 640px); }
       .led {
         width: 40px;
         height: 40px;
         margin: -20px 0 0 -20px;
         transform:
           rotate(var(--a))
-          translateY(calc(min(44svh, 320px) * -1))
+          translateY(calc((min(calc(50svh - 37px), 320px) - 25px) * -1))
           scale(var(--s));
       }
       .controls {
@@ -564,7 +564,7 @@
     }
     .landscape-stage .stage { padding: 0; }
     .landscape-stage .ring-shell {
-      width: min(90cqh, 72cqw, 660px);
+      width: min(calc(100cqh - 74px), 72cqw, 660px);
     }
     .landscape-stage .led {
       width: 40px;
@@ -572,7 +572,7 @@
       margin: -20px 0 0 -20px;
       transform:
         rotate(var(--a))
-        translateY(calc(min(45cqh, 36cqw, 330px) * -1))
+        translateY(calc((min(calc(50cqh - 37px), 36cqw, 330px) - 25px) * -1))
         scale(var(--s));
     }
     .landscape-stage .hud {
