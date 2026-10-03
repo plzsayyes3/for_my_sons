@@ -128,7 +128,7 @@
       box-shadow:
         inset 0 1px 2px rgba(255,255,255,.08),
         0 0 calc(var(--b) * 28px) rgba(67, 255, 190, calc(var(--b) * .85));
-      transition: background 70ms linear, opacity 70ms linear, box-shadow 70ms linear, transform 70ms linear;
+      transition: background 160ms linear, opacity 160ms linear, box-shadow 160ms linear, transform 160ms linear;
       will-change: transform, opacity, box-shadow;
     }
     .led.is-lit {
@@ -268,13 +268,13 @@
   <script>
     (() => {
       const LED_COUNT = 100;
-      const MAX_TILT = 42;
-      const DEAD_ZONE = 4.5;
-      const SMOOTHING = 0.11;
-      const SENSOR_GAIN = 0.58;
-      const WATER_SPRING = 0.018;
-      const WATER_DAMPING = 0.91;
-      const WATER_SPREAD = 11;
+      const MAX_TILT = 55;
+      const DEAD_ZONE = 7;
+      const SMOOTHING = 0.045;
+      const SENSOR_GAIN = 0.30;
+      const WATER_PULL = 0.0032;
+      const WATER_COUPLING = 0.038;
+      const WATER_DAMPING = 0.965;
 
       const app = document.querySelector('#app');
       const ring = document.querySelector('#ring');
@@ -295,11 +295,9 @@
       let smoothX = 0;
       let smoothY = 0;
       let dragging = false;
-      let waterAngle = 0;
-      let waterVelocity = 0;
       let waterStrength = 0;
-      let ripplePhase = 0;
-      let lastTargetAngle = 0;
+      const water = new Float32Array(LED_COUNT);
+      const waterVelocity = new Float32Array(LED_COUNT);
 
       for (let i = 0; i < LED_COUNT; i += 1) {
         const led = document.createElement('div');
@@ -348,7 +346,8 @@
         targetY = 0;
         smoothX = 0;
         smoothY = 0;
-        waterVelocity = 0;
+        water.fill(0);
+        waterVelocity.fill(0);
         waterStrength = 0;
         calibrated = sensorStarted;
         status.textContent = sensorStarted ? 'ここを まんなかにしました。' : 'まんなかに もどしました。';
@@ -417,15 +416,10 @@
       ring.addEventListener('pointercancel', endDrag);
       ring.addEventListener('lostpointercapture', endDrag);
 
-      function shortestAngle(from, to) {
-        let diff = (to - from + Math.PI) % (Math.PI * 2) - Math.PI;
-        if (diff < -Math.PI) diff += Math.PI * 2;
+      function angleDistance(a, b) {
+        let diff = Math.abs(a - b) % (Math.PI * 2);
+        if (diff > Math.PI) diff = Math.PI * 2 - diff;
         return diff;
-      }
-
-      function circularLedDistance(index, center) {
-        const raw = Math.abs(index - center) % LED_COUNT;
-        return Math.min(raw, LED_COUNT - raw);
       }
 
       function render() {
@@ -433,47 +427,47 @@
         smoothY += (targetY - smoothY) * SMOOTHING;
 
         const magnitude = Math.hypot(smoothX, smoothY);
-        const strength = Math.min(1, magnitude / MAX_TILT);
-        const level = magnitude <= DEAD_ZONE;
+        const rawStrength = Math.max(0, Math.min(1, (magnitude - DEAD_ZONE) / (MAX_TILT - DEAD_ZONE)));
+        const strength = Math.pow(rawStrength, 1.65);
+        const level = rawStrength <= 0;
 
         let targetAngle = Math.atan2(smoothX, -smoothY);
         if (targetAngle < 0) targetAngle += Math.PI * 2;
 
-        if (!level) {
-          const angleDelta = shortestAngle(waterAngle, targetAngle);
-          const targetMotion = shortestAngle(lastTargetAngle, targetAngle);
+        waterStrength += (strength - waterStrength) * 0.025;
 
-          waterVelocity += angleDelta * WATER_SPRING;
-          waterVelocity += targetMotion * 0.025;
-          waterVelocity *= WATER_DAMPING;
-          waterAngle += waterVelocity;
-          waterStrength += (strength - waterStrength) * 0.08;
-          lastTargetAngle = targetAngle;
-        } else {
-          waterVelocity *= 0.94;
-          waterAngle += waterVelocity;
-          waterStrength *= 0.95;
+        for (let i = 0; i < LED_COUNT; i += 1) {
+          const prev = water[(i - 1 + LED_COUNT) % LED_COUNT];
+          const next = water[(i + 1) % LED_COUNT];
+          const laplacian = prev + next - 2 * water[i];
+
+          const ledAngle = (i / LED_COUNT) * Math.PI * 2;
+          const diff = angleDistance(ledAngle, targetAngle);
+          const gravityShape = Math.max(0, Math.cos(diff));
+          const broadTarget = waterStrength * Math.pow(gravityShape, 0.48);
+
+          const acceleration =
+            (broadTarget - water[i]) * WATER_PULL +
+            laplacian * WATER_COUPLING;
+
+          waterVelocity[i] = (waterVelocity[i] + acceleration) * WATER_DAMPING;
         }
 
-        ripplePhase += 0.06 + Math.min(0.18, Math.abs(waterVelocity) * 2.6);
+        for (let i = 0; i < LED_COUNT; i += 1) {
+          water[i] += waterVelocity[i];
+          if (water[i] < 0) water[i] = 0;
+          if (water[i] > 1.15) water[i] = 1.15;
 
-        const waterCenter = ((waterAngle % (Math.PI * 2)) + Math.PI * 2) % (Math.PI * 2);
-        const centerLed = (waterCenter / (Math.PI * 2)) * LED_COUNT;
-        const motion = Math.min(1, Math.abs(waterVelocity) * 10);
-        const spread = WATER_SPREAD + motion * 7 + waterStrength * 5;
+          const prev = water[(i - 1 + LED_COUNT) % LED_COUNT];
+          const next = water[(i + 1) % LED_COUNT];
+          const localWave = Math.abs(next - prev);
+          const brightness = Math.min(1, water[i] * 0.88 + localWave * 1.9);
 
-        leds.forEach((led, index) => {
-          const distance = circularLedDistance(index, centerLed);
-          const body = Math.exp(-Math.pow(distance / spread, 2) * 2.25);
-          const crest = Math.exp(-Math.pow(distance / Math.max(3.5, spread * 0.42), 2) * 2.8);
-          const wave = Math.sin(distance * 0.9 - ripplePhase) * Math.exp(-distance / Math.max(8, spread * 1.25));
-          const ripple = Math.max(0, wave) * (0.08 + motion * 0.22);
-          const brightness = Math.min(1, (body * 0.55 + crest * 0.55 + ripple) * Math.max(0.18, waterStrength));
-
-          led.classList.toggle('is-lit', brightness > .12);
+          const led = leds[i];
+          led.classList.toggle('is-lit', brightness > .11);
           led.style.setProperty('--b', brightness.toFixed(3));
-          led.style.setProperty('--s', (1 + brightness * .34 + motion * body * .08).toFixed(3));
-        });
+          led.style.setProperty('--s', (1 + brightness * .20).toFixed(3));
+        }
 
         const centerLevel = level ? Math.max(.3, 1 - magnitude / DEAD_ZONE) : 0;
         centerDot.classList.toggle('is-level', level);
@@ -493,7 +487,8 @@
         targetY = 0;
         smoothX = 0;
         smoothY = 0;
-        waterVelocity = 0;
+        water.fill(0);
+        waterVelocity.fill(0);
         waterStrength = 0;
         if (sensorStarted) status.textContent = '向きがかわったので、まんなかを取りなおします。';
       });
