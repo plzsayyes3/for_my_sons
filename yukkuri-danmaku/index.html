@@ -1,0 +1,69 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
+<meta name="theme-color" content="#160d2a">
+<title>ゆっくり弾幕 v1</title>
+<style>
+*{box-sizing:border-box}html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#080610;color:#fff8ef;font-family:-apple-system,BlinkMacSystemFont,"Hiragino Sans","Yu Gothic",sans-serif}
+body{display:grid;place-items:center;background:radial-gradient(circle at 50% 20%,#3a1648,#140c24 42%,#080610 85%)}
+#game{position:relative;width:min(100vw,calc(100vh*.5625));height:min(100vh,calc(100vw*1.77778));max-width:480px;max-height:854px;overflow:hidden;background:#0b0914;touch-action:none}
+canvas{display:block;width:100%;height:100%;touch-action:none}
+#home{position:absolute;z-index:9;left:10px;top:max(38px,env(safe-area-inset-top));padding:6px 9px;border-radius:999px;background:#0007;color:#fff;text-decoration:none;font-size:10px;font-weight:700}
+#hud{position:absolute;inset:0;pointer-events:none;text-shadow:0 2px 5px #000}.top{position:absolute;left:12px;right:12px;top:max(10px,env(safe-area-inset-top));display:flex;justify-content:space-between;font-size:12px}.top b{font-size:15px}
+#bossbar{position:absolute;left:14px;right:14px;top:57px;height:7px;border:1px solid #ffffff59;background:#0006;border-radius:20px;overflow:hidden}#bossfill{height:100%;background:linear-gradient(90deg,#ff4f68,#ff9c6f)}
+#spell{position:absolute;top:72px;left:0;right:0;text-align:center;font-weight:700;font-size:13px}
+#overlay{position:absolute;inset:0;z-index:5;display:grid;place-items:center;padding:24px;background:linear-gradient(#05040c57,#05040cc7)}
+.panel{width:min(360px,100%);padding:22px 20px 18px;border:1px solid #ffffff2b;border-radius:20px;background:#0d0a19c7;backdrop-filter:blur(12px);text-align:center}h1{font-size:26px;margin:0 0 6px}.sub{font-size:12px;opacity:.76;line-height:1.6;margin-bottom:18px}
+button{border:0;border-radius:999px;padding:13px 26px;font-weight:700;font-size:15px;background:linear-gradient(135deg,#fff2be,#ff8e83);color:#21101b}.help{font-size:11px;opacity:.68;line-height:1.6;margin-top:14px}
+#credit{position:absolute;left:0;right:0;bottom:max(7px,env(safe-area-inset-bottom));text-align:center;font-size:9px;opacity:.5;pointer-events:none}
+</style>
+</head>
+<body>
+<div id="game">
+<a id="home" href="../">← HOME</a>
+<canvas id="c" width="480" height="854"></canvas>
+<div id="hud"><div class="top"><div><b id="score">000000</b><br>SCORE</div><div style="text-align:right"><b id="life">♥♥♥</b><br>REIMU</div></div><div id="bossbar"><div id="bossfill"></div></div><div id="spell">魔符「ぐるぐるスターダスト」</div></div>
+<div id="overlay"><div class="panel"><h1>ゆっくり弾幕 v1</h1><div class="sub">フリー配布「たぬき式ゆっくり」の実素材を使った、東方Project二次創作の1ボス試作版。</div><button id="start">START</button><div class="help">スマホ：ドラッグ移動<br>PC：矢印 / WASD　Shift：低速<br>ショットは自動</div></div></div>
+<div id="credit">たぬき式ゆっくり / 東方Project二次創作 / Dark Shrine Loop (CC0)</div>
+</div>
+<audio id="bgm" loop preload="none" src="https://lpc.opengameart.org/sites/default/files/qubodup-yd-DarkShrineLoop-OpenGameArt.mp3"></audio>
+<script>
+(()=>{'use strict';
+const W=480,H=854,c=document.getElementById('c'),x=c.getContext('2d'),overlay=document.getElementById('overlay'),start=document.getElementById('start'),scoreEl=document.getElementById('score'),lifeEl=document.getElementById('life'),bossFill=document.getElementById('bossfill'),spell=document.getElementById('spell'),bgm=document.getElementById('bgm');bgm.volume=.27;
+const imgs={};for(const [k,s] of Object.entries({reimu:'./assets/reimu.png?v=1',marisa:'./assets/marisa.png?v=1'})){imgs[k]=new Image;imgs[k].src=s}
+let run=false,last=0,t=0,score=0,lives=3,flash=0,shake=0,drag=false,bullets=[],shots=[],parts=[];const keys=new Set;
+const p={x:W/2,y:H-118,r:4,cd:0,inv:0},b={x:W/2,y:125,hp:1000,max:1000,phase:0,pt:0,vx:55};
+const clamp=(v,a,z)=>Math.max(a,Math.min(z,v)),rnd=(a,z)=>a+Math.random()*(z-a);
+function hud(){scoreEl.textContent=String(score).padStart(6,'0');lifeEl.textContent='♥'.repeat(Math.max(0,lives));bossFill.style.width=100*b.hp/b.max+'%'}
+function reset(){run=true;t=score=flash=shake=0;lives=3;bullets=[];shots=[];parts=[];Object.assign(p,{x:W/2,y:H-118,cd:0,inv:0});Object.assign(b,{x:W/2,y:125,hp:1000,phase:0,pt:0,vx:55});hud();overlay.style.display='none';bgm.currentTime=0;bgm.play().catch(()=>{})}
+start.onclick=reset;
+addEventListener('keydown',e=>{keys.add(e.key.toLowerCase());if(['arrowup','arrowdown','arrowleft','arrowright',' '].includes(e.key.toLowerCase()))e.preventDefault()});addEventListener('keyup',e=>keys.delete(e.key.toLowerCase()));
+function pos(e){const r=c.getBoundingClientRect();return{x:(e.clientX-r.left)*W/r.width,y:(e.clientY-r.top)*H/r.height}}
+c.onpointerdown=e=>{drag=true;const q=pos(e);p.x=q.x;p.y=q.y};c.onpointermove=e=>{if(!drag)return;const q=pos(e);p.x=clamp(q.x,20,W-20);p.y=clamp(q.y,110,H-25)};addEventListener('pointerup',()=>drag=false);
+function fire(X,Y,a,s,type='orb',r=7){bullets.push({x:X,y:Y,vx:Math.cos(a)*s,vy:Math.sin(a)*s,r,type,a:rnd(0,6.28),spin:rnd(-2,2)})}
+function ring(n,s,o=0,type='orb'){for(let i=0;i<n;i++)fire(b.x,b.y+18,o+i*Math.PI*2/n,s,type,type==='needle'?5:7)}
+function fan(n,sp,s){const a=Math.atan2(p.y-b.y,p.x-b.x);for(let i=0;i<n;i++)fire(b.x,b.y+14,a+(i/(n-1)-.5)*sp,s,'rice',6)}
+function pattern(dt){b.pt+=dt;const sec=b.pt,ph=Math.floor(t/9)%3;if(ph!==b.phase){b.phase=ph;b.pt=0}
+if(ph===0){spell.textContent='魔符「ぐるぐるスターダスト」';if(Math.floor(sec*3)!==Math.floor((sec-dt)*3))ring(18,105,t*.55)}
+else if(ph===1){spell.textContent='恋符「ねらいうちミルキーウェイ」';if(Math.floor(sec*2)!==Math.floor((sec-dt)*2))fan(9,1.05,145);if(Math.floor(sec*1.3)!==Math.floor((sec-dt)*1.3))ring(12,82,-t*.35,'rice')}
+else{spell.textContent='星符「カラフル・スパイラル」';if(Math.floor(sec*7)!==Math.floor((sec-dt)*7))for(let k=0;k<4;k++)fire(b.x,b.y+12,t*1.55+k*Math.PI/2,128,'needle',5)}}
+function hit(){if(p.inv>0)return;lives--;p.inv=2.2;shake=10;flash=.22;bullets=bullets.filter(q=>Math.hypot(q.x-p.x,q.y-p.y)>90);for(let i=0;i<22;i++)parts.push({x:p.x,y:p.y,vx:rnd(-140,140),vy:rnd(-140,140),life:rnd(.35,.8)});hud();if(lives<=0)end(false)}
+function end(win){run=false;bgm.pause();overlay.style.display='grid';overlay.querySelector('h1').textContent=win?'CLEAR!':'GAME OVER';overlay.querySelector('.sub').textContent='SCORE '+String(score).padStart(6,'0')+(win?' — 魔理沙を撃破！':' — もう一度ゆっくり挑戦。');start.textContent='RETRY'}
+function update(dt){if(!run)return;t+=dt;if(p.inv>0)p.inv-=dt;if(flash>0)flash-=dt;if(shake>0)shake=Math.max(0,shake-dt*28);
+const sp=keys.has('shift')?135:255;let dx=0,dy=0;if(keys.has('arrowleft')||keys.has('a'))dx--;if(keys.has('arrowright')||keys.has('d'))dx++;if(keys.has('arrowup')||keys.has('w'))dy--;if(keys.has('arrowdown')||keys.has('s'))dy++;if(dx||dy){const l=Math.hypot(dx,dy);p.x+=dx/l*sp*dt;p.y+=dy/l*sp*dt}p.x=clamp(p.x,18,W-18);p.y=clamp(p.y,105,H-24);
+p.cd-=dt;if(p.cd<=0){p.cd=.085;shots.push({x:p.x-11,y:p.y-18,vy:-470},{x:p.x+11,y:p.y-18,vy:-470})}
+b.x+=b.vx*dt;if(b.x<110||b.x>W-110)b.vx*=-1;pattern(dt);
+for(const s of shots){s.y+=s.vy*dt;if(Math.hypot(s.x-b.x,s.y-b.y)<44){s.dead=true;b.hp-=3;score+=7}}shots=shots.filter(s=>!s.dead&&s.y>-20);
+for(const q of bullets){q.x+=q.vx*dt;q.y+=q.vy*dt;q.a+=q.spin*dt;if(Math.hypot(q.x-p.x,q.y-p.y)<q.r+p.r){q.dead=true;hit()}}bullets=bullets.filter(q=>!q.dead&&q.x>-50&&q.x<W+50&&q.y>-60&&q.y<H+60);
+for(const q of parts){q.x+=q.vx*dt;q.y+=q.vy*dt;q.vx*=.96;q.vy*=.96;q.life-=dt}parts=parts.filter(q=>q.life>0);if(b.hp<=0){b.hp=0;score+=5000;hud();end(true)}hud()}
+function bg(){const g=x.createLinearGradient(0,0,0,H);g.addColorStop(0,'#160d2a');g.addColorStop(.45,'#251039');g.addColorStop(1,'#090813');x.fillStyle=g;x.fillRect(0,0,W,H);x.globalAlpha=.14;x.fillStyle='#ffecc7';x.beginPath();x.arc(375,145,88,0,Math.PI*2);x.fill();x.globalAlpha=1;x.fillStyle='#07050dd1';x.fillRect(68,256,22,410);x.fillRect(W-90,256,22,410);x.fillRect(42,250,W-84,23);x.fillRect(24,221,W-48,17)}
+function char(im,X,Y,w,h,a=1){x.save();x.globalAlpha=a;if(im.complete&&im.naturalWidth)x.drawImage(im,X-w/2,Y-h/2,w,h);x.restore()}
+function drawBullet(q){x.save();x.translate(q.x,q.y);x.rotate(q.a);if(q.type==='needle'){x.fillStyle='#68dfff';x.beginPath();x.ellipse(0,0,4,13,0,0,Math.PI*2);x.fill()}else if(q.type==='rice'){x.fillStyle='#ffe763';x.beginPath();x.ellipse(0,0,5,9,0,0,Math.PI*2);x.fill()}else{x.fillStyle='hsl('+((q.x+q.y+q.a*50)%360)+' 90% 60%)';x.strokeStyle='#fff';x.beginPath();x.arc(0,0,q.r,0,Math.PI*2);x.fill();x.stroke()}x.restore()}
+function render(){x.save();if(shake)x.translate(rnd(-shake,shake),rnd(-shake,shake));bg();char(imgs.marisa,b.x,b.y,145,97);for(const s of shots){x.fillStyle='#fff7c7';x.fillRect(s.x-2,s.y-10,4,18)}for(const q of bullets)drawBullet(q);char(imgs.reimu,p.x,p.y,112,75,p.inv>0&&Math.floor(p.inv*12)%2===0?.28:1);if(keys.has('shift')||drag){x.fillStyle='#ff3f62';x.beginPath();x.arc(p.x,p.y,4,0,Math.PI*2);x.fill();x.strokeStyle='#fff';x.stroke()}if(flash){x.globalAlpha=flash*2.8;x.fillStyle='#fff';x.fillRect(0,0,W,H)}x.restore()}
+function loop(ts){const dt=Math.min(.033,(ts-last)/1000||0);last=ts;update(dt);render();requestAnimationFrame(loop)}requestAnimationFrame(loop);
+})();
+</script>
+</body>
+</html>
