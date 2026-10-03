@@ -28,6 +28,13 @@
     "description": "けんばんをおして、音をならそう"
   },
   {
+    "id": "tilt-led",
+    "name": "ひかりリング",
+    "url": "./tilt-led/?v=1",
+    "icon": "./assets/tilt-led.svg?v=1",
+    "description": "スマホをかたむけて、円形のLEDを動かそう"
+  },
+  {
     "id": "typing",
     "name": "たいぴんぐ",
     "url": "https://arafo-aragai.com/learning/typegame/typegame.html",
