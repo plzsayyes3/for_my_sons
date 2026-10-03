@@ -30,7 +30,7 @@
   {
     "id": "tilt-led",
     "name": "ひかりリング",
-    "url": "./tilt-led/?v=12",
+    "url": "./tilt-led/?v=13",
     "icon": "./assets/tilt-led.svg?v=1",
     "description": "青のLEDを傾きで動かして、追いかけてくる赤から逃げよう"
   },
