@@ -428,12 +428,12 @@ const state = {
 const NATURAL_RADIUS_Y = 0.60;
 
 function currentShapeScale() {
-  const sy = THREE.MathUtils.clamp(1 - state.squash, 0.48, 1.60);
-  const lateral = 1 / Math.sqrt(sy);
+  const sy = THREE.MathUtils.clamp(1 - state.squash, 0.40, 1.72);
+  const lateral = 1 / Math.sqrt(Math.max(0.36, sy));
   return {
-    sx: THREE.MathUtils.clamp(lateral, 0.72, 1.58),
+    sx: THREE.MathUtils.clamp(lateral, 0.66, 1.74),
     sy,
-    sz: THREE.MathUtils.clamp(lateral, 0.72, 1.58)
+    sz: THREE.MathUtils.clamp(lateral, 0.66, 1.74)
   };
 }
 
@@ -527,13 +527,13 @@ function physicsStep(dt) {
     // Clamp the pull so accidental swipes remain stable.
     if (toTarget.length() > 2.15) toTarget.setLength(2.15);
 
-    // Softer body: the grabbed skin leads while the mass catches up more slowly.
-    state.velocity.addScaledVector(toTarget, 24 * dt);
-    state.velocity.multiplyScalar(Math.pow(0.16, dt));
+    // Pudding-like body: skin moves first while the heavy mass catches up slowly.
+    state.velocity.addScaledVector(toTarget, 17 * dt);
+    state.velocity.multiplyScalar(Math.pow(0.10, dt));
 
     // A grabbed point leads; the rest of the jelly lags behind.
     state.squashVelocity +=
-      THREE.MathUtils.clamp(Math.abs(toTarget.y) * -0.22 + Math.abs(toTarget.x) * 0.045, -0.8, 0.5) * dt;
+      THREE.MathUtils.clamp(Math.abs(toTarget.y) * -0.34 + Math.abs(toTarget.x) * 0.06, -1.2, 0.6) * dt;
 
     state.wobbleXVelocity += -toTarget.x * 0.75 * dt;
     state.wobbleZVelocity += -toTarget.z * 0.75 * dt;
@@ -552,15 +552,15 @@ function physicsStep(dt) {
 
     if (state.velocity.y < 0) {
       const impact = -state.velocity.y;
-      state.velocity.y = impact * 0.08;
+      state.velocity.y = impact * 0.03;
 
-      state.squashVelocity += impact * 0.23;
-      state.wobbleXVelocity += -state.velocity.x * 0.19;
-      state.wobbleZVelocity += -state.velocity.z * 0.19;
+      state.squashVelocity += impact * 0.30;
+      state.wobbleXVelocity += -state.velocity.x * 0.24;
+      state.wobbleZVelocity += -state.velocity.z * 0.24;
 
-      // sticky contact
-      state.velocity.x *= 0.94;
-      state.velocity.z *= 0.94;
+      // Soft pudding contact: absorb vertical impact but keep a little slide.
+      state.velocity.x *= 0.96;
+      state.velocity.z *= 0.96;
     }
 
     if (Math.abs(state.velocity.y) < 0.08) state.velocity.y = 0;
@@ -580,17 +580,17 @@ function physicsStep(dt) {
   keepJellyInView();
 
   [state.squash, state.squashVelocity] =
-    updateSpring(state.squash, state.squashVelocity, 16, 2.9, dt);
+    updateSpring(state.squash, state.squashVelocity, 6.8, 1.7, dt);
 
   [state.wobbleX, state.wobbleXVelocity] =
-    updateSpring(state.wobbleX, state.wobbleXVelocity, 13.5, 2.7, dt);
+    updateSpring(state.wobbleX, state.wobbleXVelocity, 5.2, 1.55, dt);
 
   [state.wobbleZ, state.wobbleZVelocity] =
-    updateSpring(state.wobbleZ, state.wobbleZVelocity, 13.5, 2.7, dt);
+    updateSpring(state.wobbleZ, state.wobbleZVelocity, 5.2, 1.55, dt);
 
-  state.squash = THREE.MathUtils.clamp(state.squash, -0.42, 0.52);
-  state.wobbleX = THREE.MathUtils.clamp(state.wobbleX, -0.52, 0.52);
-  state.wobbleZ = THREE.MathUtils.clamp(state.wobbleZ, -0.52, 0.52);
+  state.squash = THREE.MathUtils.clamp(state.squash, -0.55, 0.72);
+  state.wobbleX = THREE.MathUtils.clamp(state.wobbleX, -0.72, 0.72);
+  state.wobbleZ = THREE.MathUtils.clamp(state.wobbleZ, -0.72, 0.72);
 }
 
 const localTarget = new THREE.Vector3();
@@ -632,16 +632,16 @@ function deformJelly(time) {
 
     // Flatten the contact patch against the desk without making the whole body flat.
     const localTableY = TABLE_Y - state.position.y;
-    const flattenBand = 0.13;
+    const flattenBand = 0.20;
     if (y < localTableY + flattenBand) {
       const t = THREE.MathUtils.clamp(
         (localTableY + flattenBand - y) / flattenBand,
         0,
         1
       );
-      y = THREE.MathUtils.lerp(y, localTableY + 0.008, t * 0.78);
-      x *= 1 + t * 0.045;
-      z *= 1 + t * 0.045;
+      y = THREE.MathUtils.lerp(y, localTableY + 0.004, t * 0.88);
+      x *= 1 + t * 0.095;
+      z *= 1 + t * 0.095;
     }
 
     // Whole-body lag while travelling.
@@ -652,9 +652,9 @@ function deformJelly(time) {
     const radial = Math.sqrt(bx * bx + bz * bz);
     const rippleWeight = Math.sin(Math.PI * height01) * THREE.MathUtils.clamp(radial / 0.62, 0, 1);
     const ripple =
-      Math.sin(time * 8.0 + by * 5.2 + Math.atan2(bz, bx) * 1.7) *
-      (Math.abs(state.squashVelocity) + speed * 0.05) *
-      0.0082 *
+      Math.sin(time * 4.4 + by * 3.8 + Math.atan2(bz, bx) * 1.25) *
+      (Math.abs(state.squashVelocity) + speed * 0.035) *
+      0.0048 *
       rippleWeight;
 
     const radialLen = Math.hypot(bx, bz) || 1;
@@ -666,8 +666,8 @@ function deformJelly(time) {
     const theta = Math.atan2(bz, bx);
     const flowWeight = Math.sin(Math.PI * height01) * Math.min(1, radial / 0.62);
     const flow =
-      Math.sin(time * 3.0 + theta * 2.15 + by * 5.2) *
-      (0.005 + Math.min(speed, 5) * 0.0022) *
+      Math.sin(time * 2.1 + theta * 1.8 + by * 3.6) *
+      (0.010 + Math.min(speed, 5) * 0.0032) *
       flowWeight;
     x += Math.cos(theta) * flow;
     z += Math.sin(theta) * flow;
