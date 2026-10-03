@@ -30,7 +30,7 @@
   {
     "id": "tilt-led",
     "name": "ひかりリング",
-    "url": "./tilt-led/?v=29",
+    "url": "./tilt-led/?v=30",
     "icon": "./assets/tilt-led.svg?v=1",
     "description": "赤はぶつかってもそのまま。青は1秒無敵で生存タイムを競う"
   },
