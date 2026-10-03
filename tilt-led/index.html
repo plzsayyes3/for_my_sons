@@ -17,13 +17,14 @@
       font-family: -apple-system, BlinkMacSystemFont, "SF Pro Rounded", "Hiragino Sans", "Yu Gothic", sans-serif;
       color: #eefbf6;
       background:
-        radial-gradient(circle at 50% 42%, rgba(42, 255, 184, .08), transparent 35%),
+        radial-gradient(circle at 50% 42%, rgba(42,255,184,.07), transparent 36%),
         linear-gradient(180deg, #0a1714 0%, #050a09 100%);
       -webkit-font-smoothing: antialiased;
       user-select: none;
       -webkit-user-select: none;
     }
     button, a { -webkit-tap-highlight-color: transparent; }
+    button:disabled { opacity: .62; }
     .app {
       min-height: 100svh;
       display: flex;
@@ -43,11 +44,11 @@
     .back, .mini-button {
       width: 44px;
       height: 44px;
-      border: 1px solid rgba(198, 255, 235, .13);
+      border: 1px solid rgba(198,255,235,.13);
       border-radius: 15px;
       display: grid;
       place-items: center;
-      background: rgba(12, 31, 26, .72);
+      background: rgba(12,31,26,.72);
       color: #eafff7;
       text-decoration: none;
       font: inherit;
@@ -60,8 +61,7 @@
       width: auto;
       min-width: 44px;
       padding: 0 12px;
-      font-size: 12px;
-      letter-spacing: .04em;
+      font-size: 17px;
     }
     .title { min-width: 0; flex: 1; }
     .eyebrow {
@@ -77,16 +77,39 @@
       line-height: 1.05;
       letter-spacing: -.02em;
     }
+    .hud {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      min-height: 38px;
+      flex: 0 0 auto;
+      color: rgba(229,255,247,.78);
+      font-size: 12px;
+      font-weight: 900;
+      letter-spacing: .03em;
+    }
+    .hud-pill {
+      min-width: 90px;
+      padding: 8px 11px;
+      border: 1px solid rgba(255,255,255,.08);
+      border-radius: 999px;
+      background: rgba(255,255,255,.035);
+      text-align: center;
+      font-variant-numeric: tabular-nums;
+    }
+    .hit-count { color: #ff9b9b; }
+    .time-count { color: #99c8ff; }
     .stage {
       flex: 1 1 auto;
       min-height: 0;
       display: grid;
       place-items: center;
-      padding: 8px 0;
+      padding: 4px 0 8px;
     }
     .ring-shell {
       position: relative;
-      width: min(78vw, 58svh, 390px);
+      width: min(78vw, 57svh, 390px);
       aspect-ratio: 1;
       border-radius: 50%;
       touch-action: none;
@@ -95,22 +118,20 @@
       position: absolute;
       inset: 8%;
       border-radius: 50%;
-      border: 1px solid rgba(140, 255, 218, .09);
+      border: 1px solid rgba(140,255,218,.08);
       background:
-        radial-gradient(circle at 50% 44%, rgba(38, 103, 82, .12), rgba(0,0,0,.2) 63%, rgba(0,0,0,.48) 100%);
-      box-shadow:
-        inset 0 0 35px rgba(0,0,0,.8),
-        0 0 70px rgba(0,0,0,.42);
+        radial-gradient(circle at 50% 44%, rgba(38,103,82,.10), rgba(0,0,0,.22) 63%, rgba(0,0,0,.50) 100%);
+      box-shadow: inset 0 0 35px rgba(0,0,0,.8), 0 0 70px rgba(0,0,0,.42);
     }
     .ring-guide {
       position: absolute;
       inset: 15%;
-      border: 1px solid rgba(145, 255, 218, .07);
+      border: 1px solid rgba(145,255,218,.06);
       border-radius: 50%;
     }
     .led {
       --a: 0deg;
-      --b: .06;
+      --b: .04;
       --s: 1;
       position: absolute;
       left: 50%;
@@ -121,61 +142,78 @@
       border-radius: 50%;
       transform:
         rotate(var(--a))
-        translateY(calc(min(39vw, 29svh, 195px) * -1))
+        translateY(calc(min(39vw, 28.5svh, 195px) * -1))
         scale(var(--s));
-      background: rgb(52 83 72);
-      opacity: calc(.28 + var(--b) * .72);
+      background: rgb(38 68 59);
+      opacity: calc(.34 + var(--b) * .66);
       box-shadow:
-        inset 0 1px 2px rgba(255,255,255,.08),
-        0 0 calc(var(--b) * 28px) rgba(67, 255, 190, calc(var(--b) * .85));
+        inset 0 1px 2px rgba(255,255,255,.06),
+        0 0 calc(var(--b) * 20px) rgba(67,255,190,calc(var(--b) * .42));
       transition: background 70ms linear, opacity 70ms linear, box-shadow 70ms linear, transform 70ms linear;
       will-change: transform, opacity, box-shadow;
     }
-    .led.is-lit {
-      background: rgb(104 255 201);
+    .led.is-player {
+      background: rgb(91 171 255);
+      opacity: 1;
+      box-shadow:
+        0 0 8px rgba(75,161,255,.95),
+        0 0 22px rgba(75,161,255,.72);
+    }
+    .led.is-player-near {
+      background: rgb(72 122 168);
+      opacity: .92;
+      box-shadow: 0 0 8px rgba(75,161,255,.32);
+    }
+    .led.is-enemy {
+      background: rgb(255 72 72);
+      opacity: 1;
+      box-shadow:
+        0 0 8px rgba(255,67,67,.96),
+        0 0 24px rgba(255,67,67,.78);
+    }
+    .led.is-enemy-near {
+      background: rgb(168 63 63);
+      opacity: .94;
+      box-shadow: 0 0 9px rgba(255,67,67,.38);
+    }
+    .ring-shell.is-hit .led.is-player {
+      background: #fff;
+      box-shadow: 0 0 14px #fff, 0 0 32px rgba(255,255,255,.8);
     }
     .center {
       position: absolute;
       left: 50%;
       top: 50%;
-      width: 17%;
+      width: 27%;
       aspect-ratio: 1;
       transform: translate(-50%, -50%);
       border-radius: 50%;
-      border: 1px solid rgba(115, 255, 207, .12);
-      background: rgba(9, 23, 19, .76);
+      border: 1px solid rgba(115,255,207,.10);
+      background: rgba(9,23,19,.78);
       display: grid;
       place-items: center;
-      box-shadow: inset 0 0 16px rgba(0,0,0,.65);
-    }
-    .center-dot {
-      --level: 0;
-      width: 22%;
-      aspect-ratio: 1;
-      border-radius: 50%;
-      background: #5b7c70;
-      box-shadow: 0 0 calc(var(--level) * 24px) rgba(104, 255, 201, calc(var(--level) * .7));
-      transform: scale(calc(.78 + var(--level) * .55));
-      transition: 90ms ease;
-    }
-    .center-dot.is-level { background: #68ffc9; }
-    .readout {
-      position: absolute;
-      left: 50%;
-      bottom: 2%;
-      transform: translateX(-50%);
-      color: rgba(213, 255, 240, .55);
-      font-size: 11px;
-      font-weight: 800;
-      letter-spacing: .08em;
-      font-variant-numeric: tabular-nums;
-      white-space: nowrap;
+      text-align: center;
+      box-shadow: inset 0 0 20px rgba(0,0,0,.72);
       pointer-events: none;
+    }
+    .center-copy {
+      padding: 8px;
+      color: rgba(228,255,246,.72);
+      font-size: 11px;
+      font-weight: 900;
+      line-height: 1.25;
+      letter-spacing: .04em;
+    }
+    .center-copy strong {
+      display: block;
+      margin-bottom: 2px;
+      color: #fff;
+      font-size: 15px;
     }
     .controls {
       flex: 0 0 auto;
       display: grid;
-      gap: 9px;
+      gap: 8px;
       width: min(100%, 440px);
       margin: 0 auto;
     }
@@ -189,10 +227,26 @@
       font-size: 16px;
       font-weight: 950;
       letter-spacing: .02em;
-      box-shadow: 0 8px 26px rgba(56, 255, 184, .14);
+      box-shadow: 0 8px 26px rgba(56,255,184,.14);
       touch-action: manipulation;
     }
-    .start:active { transform: translateY(1px); }
+    .status {
+      margin: 0;
+      min-height: 34px;
+      display: grid;
+      place-items: center;
+      color: rgba(224,255,244,.65);
+      font-size: 12px;
+      font-weight: 750;
+      text-align: center;
+      line-height: 1.35;
+    }
+    .hint {
+      margin: 0;
+      color: rgba(200,241,226,.39);
+      font-size: 10px;
+      text-align: center;
+    }
     .speed-control {
       display: grid;
       grid-template-columns: auto 1fr auto;
@@ -200,12 +254,12 @@
       gap: 10px;
       min-height: 48px;
       padding: 8px 12px;
-      border: 1px solid rgba(198, 255, 235, .10);
+      border: 1px solid rgba(198,255,235,.10);
       border-radius: 16px;
-      background: rgba(12, 31, 26, .52);
+      background: rgba(12,31,26,.52);
     }
     .speed-label {
-      color: rgba(224, 255, 244, .76);
+      color: rgba(224,255,244,.76);
       font-size: 12px;
       font-weight: 850;
       white-space: nowrap;
@@ -231,16 +285,13 @@
       display: none;
       align-items: flex-end;
       justify-content: center;
-      padding:
-        16px
-        16px
-        calc(env(safe-area-inset-bottom) + 16px);
+      padding: 16px 16px calc(env(safe-area-inset-bottom) + 16px);
     }
     .settings-modal.is-open { display: flex; }
     .settings-backdrop {
       position: absolute;
       inset: 0;
-      background: rgba(0, 0, 0, .58);
+      background: rgba(0,0,0,.58);
       backdrop-filter: blur(5px);
       -webkit-backdrop-filter: blur(5px);
     }
@@ -249,7 +300,7 @@
       z-index: 1;
       width: min(100%, 440px);
       padding: 18px;
-      border: 1px solid rgba(198, 255, 235, .12);
+      border: 1px solid rgba(198,255,235,.12);
       border-radius: 24px;
       background: #0b1815;
       box-shadow: 0 18px 70px rgba(0,0,0,.42);
@@ -261,14 +312,11 @@
       gap: 12px;
       margin-bottom: 14px;
     }
-    .settings-head h2 {
-      margin: 0;
-      font-size: 20px;
-    }
+    .settings-head h2 { margin: 0; font-size: 20px; }
     .settings-close {
       width: 44px;
       height: 44px;
-      border: 1px solid rgba(198, 255, 235, .12);
+      border: 1px solid rgba(198,255,235,.12);
       border-radius: 14px;
       background: rgba(255,255,255,.04);
       color: #eafff7;
@@ -280,7 +328,7 @@
       width: 100%;
       min-height: 48px;
       margin-top: 12px;
-      border: 1px solid rgba(198, 255, 235, .12);
+      border: 1px solid rgba(198,255,235,.12);
       border-radius: 15px;
       background: rgba(255,255,255,.05);
       color: #d9fff1;
@@ -288,26 +336,12 @@
       font-size: 14px;
       font-weight: 850;
     }
-    .status {
-      margin: 0;
-      min-height: 32px;
-      display: grid;
-      place-items: center;
-      color: rgba(224, 255, 244, .65);
-      font-size: 12px;
-      font-weight: 750;
-      text-align: center;
-      line-height: 1.35;
-    }
-    .hint {
-      margin: 0;
-      color: rgba(200, 241, 226, .39);
-      font-size: 10px;
-      text-align: center;
-    }
-    .is-running .start { background: #173b30; color: #b8ffe5; }
     @media (orientation: landscape) and (max-height: 540px) {
-      .app { padding-left: calc(env(safe-area-inset-left) + 12px); padding-right: calc(env(safe-area-inset-right) + 12px); }
+      .app {
+        padding-left: calc(env(safe-area-inset-left) + 12px);
+        padding-right: calc(env(safe-area-inset-right) + 12px);
+      }
+      .hud { position: absolute; left: 74px; top: calc(env(safe-area-inset-top) + 8px); }
       .stage { padding: 0; }
       .ring-shell { width: min(62svh, 350px); }
       .led {
@@ -328,7 +362,7 @@
       .hint { display: none; }
     }
     @media (prefers-reduced-motion: reduce) {
-      .led, .center-dot { transition: none; }
+      .led { transition: none; }
     }
   </style>
 </head>
@@ -337,26 +371,35 @@
     <header class="topbar">
       <a class="back" href="../" aria-label="For My Sonsにもどる">‹</a>
       <div class="title">
-        <p class="eyebrow">FOR MY SONS · SENSOR PLAY</p>
+        <p class="eyebrow">ESCAPE RING · SENSOR GAME</p>
         <h1>ひかりリング</h1>
       </div>
       <button class="mini-button" id="settings-button" type="button" aria-label="設定をひらく">⚙️</button>
     </header>
 
-    <section class="stage" aria-label="傾きで動くLEDリング">
-      <div class="ring-shell" id="ring" role="img" aria-label="100個のLEDが円形にならんでいます">
+    <section class="hud" aria-label="ゲーム状況">
+      <div class="hud-pill">HIT <span class="hit-count" id="hit-count">0 / 7</span></div>
+      <div class="hud-pill">TIME <span class="time-count" id="time-count">0.0</span>s</div>
+    </section>
+
+    <section class="stage" aria-label="赤いLEDから逃げるゲーム">
+      <div class="ring-shell" id="ring" role="img" aria-label="100個のLEDリング。青が自分、赤が追いかけてきます">
         <div class="ring-face"></div>
         <div class="ring-guide"></div>
         <div id="leds"></div>
-        <div class="center" aria-hidden="true"><div class="center-dot" id="center-dot"></div></div>
-        <div class="readout" id="readout">TILT 0°</div>
+        <div class="center">
+          <div class="center-copy" id="center-copy">
+            <strong>BLUE = YOU</strong>
+            RED から にげろ
+          </div>
+        </div>
       </div>
     </section>
 
     <section class="controls">
-      <button class="start" id="start-button" type="button">センサーをつかう</button>
-      <p class="status" id="status">スマホを手に持って、ボタンをおしてね。</p>
-      <p class="hint">センサーが使えないときは、リングを指でドラッグして試せます。</p>
+      <button class="start" id="start-button" type="button">ゲームスタート</button>
+      <p class="status" id="status">6回まではセーフ。7回目でゲームオーバー。</p>
+      <p class="hint">青が自分。スマホを傾けて赤から逃げよう。</p>
     </section>
   </main>
 
@@ -372,7 +415,7 @@
       </div>
 
       <label class="speed-control" for="speed-slider">
-        <span class="speed-label">うごく速さ</span>
+        <span class="speed-label">青の速さ</span>
         <input class="speed-slider" id="speed-slider" type="range" min="1" max="10" step="1" value="10">
         <span class="speed-value" id="speed-value">10</span>
       </label>
@@ -389,11 +432,14 @@
       const SMOOTHING = 0.12;
       const SENSOR_GAIN = 0.50;
       const WATER_DAMPING = 0.943;
-      const WATER_SPREAD = 11;
       const SPEED_MIN = 0.007;
       const SPEED_MAX = 0.035;
       const SPRING_MIN = 0.0035;
       const SPRING_MAX = 0.012;
+      const ENEMY_SPEED = 0.0135;
+      const HIT_DISTANCE = 2.1;
+      const HIT_COOLDOWN_MS = 950;
+      const GAME_OVER_HITS = 7;
 
       const app = document.querySelector('#app');
       const ring = document.querySelector('#ring');
@@ -404,9 +450,10 @@
       const settingsBackdrop = document.querySelector('#settings-backdrop');
       const settingsClose = document.querySelector('#settings-close');
       const centerButton = document.querySelector('#center-button');
-      const centerDot = document.querySelector('#center-dot');
       const status = document.querySelector('#status');
-      const readout = document.querySelector('#readout');
+      const centerCopy = document.querySelector('#center-copy');
+      const hitCount = document.querySelector('#hit-count');
+      const timeCount = document.querySelector('#time-count');
       const speedSlider = document.querySelector('#speed-slider');
       const speedValue = document.querySelector('#speed-value');
 
@@ -420,11 +467,19 @@
       let smoothX = 0;
       let smoothY = 0;
       let dragging = false;
-      let waterAngle = 0;
-      let waterVelocity = 0;
-      let waterStrength = 0;
-      let ripplePhase = 0;
+
+      let playerAngle = 0;
+      let playerVelocity = 0;
       let lastTargetAngle = 0;
+      let enemyAngle = Math.PI;
+      let gameRunning = false;
+      let gamePaused = false;
+      let hits = 0;
+      let lastHitAt = -Infinity;
+      let gameStartedAt = 0;
+      let pausedAt = 0;
+      let pausedTotal = 0;
+
       const savedSpeed = Number(localStorage.getItem('tilt-led-speed'));
       let speedSetting = Number.isFinite(savedSpeed) && savedSpeed >= 1 && savedSpeed <= 10 ? savedSpeed : 10;
       speedSlider.value = String(speedSetting);
@@ -461,58 +516,52 @@
           zeroX = value.x;
           zeroY = value.y;
           calibrated = true;
-          status.textContent = 'OK！ スマホをかたむけてみよう。';
+          if (!gameRunning) status.textContent = 'センサーOK。スタートできます。';
         }
 
         targetX = (value.x - zeroX) * SENSOR_GAIN;
         targetY = (value.y - zeroY) * SENSOR_GAIN;
       }
 
-      function setCenter() {
-        if (sensorStarted) {
-          zeroX += targetX;
-          zeroY += targetY;
-        }
-        targetX = 0;
-        targetY = 0;
-        smoothX = 0;
-        smoothY = 0;
-        waterVelocity = 0;
-        waterStrength = 0;
-        calibrated = sensorStarted;
-        status.textContent = sensorStarted ? 'ここを まんなかにしました。' : 'まんなかに もどしました。';
-      }
-
-      async function startSensor() {
-        if (sensorStarted) {
-          setCenter();
-          return;
-        }
-
+      async function ensureSensor() {
+        if (sensorStarted) return true;
         if (!('DeviceOrientationEvent' in window)) {
-          status.textContent = 'この端末ではセンサーが見つかりません。指でドラッグして遊べます。';
-          return;
+          status.textContent = 'センサーなし：リングを指でドラッグして遊べます。';
+          return true;
         }
 
         try {
           if (typeof DeviceOrientationEvent.requestPermission === 'function') {
             const permission = await DeviceOrientationEvent.requestPermission();
             if (permission !== 'granted') {
-              status.textContent = 'センサーの許可が必要です。設定を確認してね。';
-              return;
+              status.textContent = 'センサーが許可されていません。指ドラッグでも遊べます。';
+              return true;
             }
           }
-
           calibrated = false;
           window.addEventListener('deviceorientation', onOrientation, true);
           sensorStarted = true;
           app.classList.add('is-running');
-          startButton.textContent = 'この位置を まんなかにする';
-          status.textContent = 'センサーをよみこみ中…';
+          return true;
         } catch (error) {
           console.warn('Device orientation permission failed.', error);
-          status.textContent = 'センサーを開始できませんでした。指でドラッグして遊べます。';
+          status.textContent = 'センサーを開始できません。指ドラッグでも遊べます。';
+          return true;
         }
+      }
+
+      function setCenter() {
+        if (sensorStarted) {
+          zeroX += targetX / SENSOR_GAIN;
+          zeroY += targetY / SENSOR_GAIN;
+        }
+        targetX = 0;
+        targetY = 0;
+        smoothX = 0;
+        smoothY = 0;
+        playerVelocity = 0;
+        calibrated = sensorStarted;
+        status.textContent = 'ここを まんなかにしました。';
       }
 
       function pointerTilt(event) {
@@ -552,9 +601,13 @@
         return diff;
       }
 
-      function circularLedDistance(index, center) {
-        const raw = Math.abs(index - center) % LED_COUNT;
-        return Math.min(raw, LED_COUNT - raw);
+      function normalizedAngle(value) {
+        return ((value % (Math.PI * 2)) + Math.PI * 2) % (Math.PI * 2);
+      }
+
+      function circularLedDistance(a, b) {
+        const diff = Math.abs(a - b) % LED_COUNT;
+        return Math.min(diff, LED_COUNT - diff);
       }
 
       function speedRatio() {
@@ -573,61 +626,131 @@
         return 0.003 + 0.011 * speedRatio();
       }
 
-      function render() {
+      function playerLedPosition() {
+        return (normalizedAngle(playerAngle) / (Math.PI * 2)) * LED_COUNT;
+      }
+
+      function enemyLedPosition() {
+        return (normalizedAngle(enemyAngle) / (Math.PI * 2)) * LED_COUNT;
+      }
+
+      function resetGame() {
+        hits = 0;
+        hitCount.textContent = '0 / 7';
+        timeCount.textContent = '0.0';
+        playerAngle = 0;
+        playerVelocity = 0;
+        lastTargetAngle = 0;
+        enemyAngle = Math.PI;
+        lastHitAt = -Infinity;
+        gameStartedAt = performance.now();
+        pausedTotal = 0;
+        pausedAt = 0;
+        gameRunning = true;
+        gamePaused = false;
+        startButton.disabled = true;
+        startButton.textContent = 'にげろ！';
+        centerCopy.innerHTML = '<strong>BLUE = YOU</strong>RED から にげろ';
+        status.textContent = '6回まではセーフ。7回目でアウト。';
+      }
+
+      function gameOver() {
+        gameRunning = false;
+        gamePaused = false;
+        startButton.disabled = false;
+        startButton.textContent = 'もういちど';
+        centerCopy.innerHTML = '<strong>GAME OVER</strong>7回 つかまった';
+        status.textContent = 'ゲームオーバー。もう一度やってみよう。';
+      }
+
+      function registerHit(now) {
+        if (!gameRunning || now - lastHitAt < HIT_COOLDOWN_MS) return;
+        lastHitAt = now;
+        hits += 1;
+        hitCount.textContent = hits + ' / 7';
+        ring.classList.add('is-hit');
+        setTimeout(() => ring.classList.remove('is-hit'), 180);
+
+        if (hits >= GAME_OVER_HITS) {
+          gameOver();
+          return;
+        }
+
+        enemyAngle = normalizedAngle(playerAngle + Math.PI);
+        status.textContent = hits <= 6
+          ? 'HIT ' + hits + '。あと ' + (7 - hits) + ' 回でアウト。'
+          : '';
+      }
+
+      function updatePlayer() {
         smoothX += (targetX - smoothX) * SMOOTHING;
         smoothY += (targetY - smoothY) * SMOOTHING;
 
         const magnitude = Math.hypot(smoothX, smoothY);
-        const strength = Math.min(1, magnitude / MAX_TILT);
         const level = magnitude <= DEAD_ZONE;
-
         let targetAngle = Math.atan2(smoothX, -smoothY);
         if (targetAngle < 0) targetAngle += Math.PI * 2;
 
         if (!level) {
-          const angleDelta = shortestAngle(waterAngle, targetAngle);
+          const angleDelta = shortestAngle(playerAngle, targetAngle);
           const targetMotion = shortestAngle(lastTargetAngle, targetAngle);
-
-          waterVelocity += angleDelta * currentSpring();
-          waterVelocity += targetMotion * currentImpulse();
-          waterVelocity *= WATER_DAMPING;
+          playerVelocity += angleDelta * currentSpring();
+          playerVelocity += targetMotion * currentImpulse();
+          playerVelocity *= WATER_DAMPING;
           const maxSpeed = currentMaxSpeed();
-          waterVelocity = Math.max(-maxSpeed, Math.min(maxSpeed, waterVelocity));
-          waterAngle += waterVelocity;
-          waterStrength += (strength - waterStrength) * 0.08;
+          playerVelocity = Math.max(-maxSpeed, Math.min(maxSpeed, playerVelocity));
+          playerAngle += playerVelocity;
           lastTargetAngle = targetAngle;
         } else {
-          waterVelocity *= 0.94;
-          waterAngle += waterVelocity;
-          waterStrength *= 0.95;
+          playerVelocity *= 0.94;
+          playerAngle += playerVelocity;
         }
+        playerAngle = normalizedAngle(playerAngle);
+      }
 
-        ripplePhase += 0.06 + Math.min(0.18, Math.abs(waterVelocity) * 2.6);
+      function updateEnemy() {
+        const chase = shortestAngle(enemyAngle, playerAngle);
+        const step = Math.max(-ENEMY_SPEED, Math.min(ENEMY_SPEED, chase));
+        enemyAngle = normalizedAngle(enemyAngle + step);
+      }
 
-        const waterCenter = ((waterAngle % (Math.PI * 2)) + Math.PI * 2) % (Math.PI * 2);
-        const centerLed = (waterCenter / (Math.PI * 2)) * LED_COUNT;
-        const motion = Math.min(1, Math.abs(waterVelocity) * 10);
-        const spread = WATER_SPREAD + motion * 7 + waterStrength * 5;
+      function renderLeds() {
+        const playerPos = playerLedPosition();
+        const enemyPos = enemyLedPosition();
 
         leds.forEach((led, index) => {
-          const distance = circularLedDistance(index, centerLed);
-          const body = Math.exp(-Math.pow(distance / spread, 2) * 2.25);
-          const crest = Math.exp(-Math.pow(distance / Math.max(3.5, spread * 0.42), 2) * 2.8);
-          const wave = Math.sin(distance * 0.9 - ripplePhase) * Math.exp(-distance / Math.max(8, spread * 1.25));
-          const ripple = Math.max(0, wave) * (0.08 + motion * 0.22);
-          const brightness = Math.min(1, (body * 0.55 + crest * 0.55 + ripple) * Math.max(0.18, waterStrength));
-
-          led.classList.toggle('is-lit', brightness > .12);
-          led.style.setProperty('--b', brightness.toFixed(3));
-          led.style.setProperty('--s', (1 + brightness * .34 + motion * body * .08).toFixed(3));
+          const pd = circularLedDistance(index, playerPos);
+          const ed = circularLedDistance(index, enemyPos);
+          led.classList.toggle('is-player', pd < .62);
+          led.classList.toggle('is-player-near', pd >= .62 && pd < 2.15);
+          led.classList.toggle('is-enemy', ed < .62);
+          led.classList.toggle('is-enemy-near', ed >= .62 && ed < 2.15);
+          const glow = Math.max(
+            pd < 2.2 ? (2.2 - pd) / 2.2 : 0,
+            ed < 2.2 ? (2.2 - ed) / 2.2 : 0
+          );
+          led.style.setProperty('--b', (0.04 + glow * .24).toFixed(3));
+          led.style.setProperty('--s', (1 + glow * .18).toFixed(3));
         });
 
-        const centerLevel = level ? Math.max(.3, 1 - magnitude / DEAD_ZONE) : 0;
-        centerDot.classList.toggle('is-level', level);
-        centerDot.style.setProperty('--level', centerLevel.toFixed(3));
-        readout.textContent = level
-          ? 'LEVEL'
-          : 'FLOW ' + Math.round(waterStrength * 100) + '%';
+        return { playerPos, enemyPos };
+      }
+
+      function render(now) {
+        updatePlayer();
+
+        if (gameRunning && !gamePaused) {
+          updateEnemy();
+          const elapsed = Math.max(0, now - gameStartedAt - pausedTotal);
+          timeCount.textContent = (elapsed / 1000).toFixed(1);
+        }
+
+        const positions = renderLeds();
+
+        if (gameRunning && !gamePaused) {
+          const distance = circularLedDistance(positions.playerPos, positions.enemyPos);
+          if (distance <= HIT_DISTANCE) registerHit(now);
+        }
 
         requestAnimationFrame(render);
       }
@@ -641,17 +764,33 @@
       function setSettingsOpen(open) {
         settingsModal.classList.toggle('is-open', open);
         settingsModal.setAttribute('aria-hidden', String(!open));
+
+        if (gameRunning) {
+          if (open && !gamePaused) {
+            gamePaused = true;
+            pausedAt = performance.now();
+          } else if (!open && gamePaused) {
+            pausedTotal += performance.now() - pausedAt;
+            pausedAt = 0;
+            gamePaused = false;
+          }
+        }
       }
 
       settingsButton.addEventListener('click', () => setSettingsOpen(true));
       settingsClose.addEventListener('click', () => setSettingsOpen(false));
       settingsBackdrop.addEventListener('click', () => setSettingsOpen(false));
 
-      startButton.addEventListener('click', startSensor);
+      startButton.addEventListener('click', async () => {
+        await ensureSensor();
+        resetGame();
+      });
+
       centerButton.addEventListener('click', () => {
         setCenter();
         setSettingsOpen(false);
       });
+
       window.addEventListener('keydown', (event) => {
         if (event.key === 'Escape' && settingsModal.classList.contains('is-open')) {
           setSettingsOpen(false);
@@ -664,12 +803,12 @@
         targetY = 0;
         smoothX = 0;
         smoothY = 0;
-        waterVelocity = 0;
-        waterStrength = 0;
-        if (sensorStarted) status.textContent = '向きがかわったので、まんなかを取りなおします。';
+        playerVelocity = 0;
+        if (sensorStarted) status.textContent = '向きがかわったので、基準を取りなおします。';
       });
 
-      render();
+      renderLeds();
+      requestAnimationFrame(render);
     })();
   </script>
 </body>
