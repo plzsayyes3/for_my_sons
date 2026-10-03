@@ -1,0 +1,1099 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#f2eadb">
+  <meta name="color-scheme" content="light">
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+  <meta http-equiv="Pragma" content="no-cache">
+  <meta http-equiv="Expires" content="0">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <title>あ | For My Sons</title>
+  <style>
+    * { box-sizing: border-box; }
+    html, body { margin: 0; min-height: 100%; background: #eee6d6; }
+    body {
+      min-height: 100svh;
+      overflow: hidden;
+      font-family: -apple-system, BlinkMacSystemFont, "SF Pro Rounded", "Hiragino Sans", "Yu Gothic", sans-serif;
+      color: #302b26;
+      background:
+        radial-gradient(circle at 50% 0%, rgba(255,255,255,.82), transparent 42%),
+        linear-gradient(180deg, #f5efe4 0%, #e9dfce 100%);
+      user-select: none;
+      -webkit-user-select: none;
+      -webkit-font-smoothing: antialiased;
+    }
+    button, a { -webkit-tap-highlight-color: transparent; }
+    button { font: inherit; }
+    [hidden] { display: none !important; }
+
+    .app {
+      height: 100svh;
+      display: grid;
+      grid-template-rows: auto auto minmax(0, 1fr) auto;
+      gap: 8px;
+      padding:
+        calc(env(safe-area-inset-top) + 8px)
+        max(10px, env(safe-area-inset-right))
+        calc(env(safe-area-inset-bottom) + 10px)
+        max(10px, env(safe-area-inset-left));
+    }
+
+    .topbar {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      min-height: 44px;
+    }
+    .back, .icon-button {
+      width: 42px;
+      height: 42px;
+      border: 1px solid rgba(72,58,41,.12);
+      border-radius: 14px;
+      display: grid;
+      place-items: center;
+      background: rgba(255,255,255,.62);
+      color: #3b352f;
+      text-decoration: none;
+      font-size: 24px;
+      font-weight: 900;
+      box-shadow: 0 3px 12px rgba(67,49,27,.06), inset 0 1px rgba(255,255,255,.8);
+    }
+    .icon-button { font-size: 18px; }
+    .title {
+      min-width: 0;
+      flex: 1;
+    }
+    .eyebrow {
+      margin: 0 0 1px;
+      color: #9b7c55;
+      font-size: 9px;
+      font-weight: 900;
+      letter-spacing: .15em;
+    }
+    h1 {
+      margin: 0;
+      font-size: 22px;
+      line-height: 1;
+      letter-spacing: -.02em;
+    }
+
+    .hud {
+      display: grid;
+      grid-template-columns: 1fr minmax(120px, 1.3fr) 1fr;
+      gap: 7px;
+      width: min(100%, 680px);
+      margin: 0 auto;
+    }
+    .hud-card {
+      min-width: 0;
+      padding: 7px 9px;
+      border: 1px solid rgba(72,58,41,.10);
+      border-radius: 14px;
+      background: rgba(255,255,255,.54);
+      text-align: center;
+      box-shadow: inset 0 1px rgba(255,255,255,.7);
+    }
+    .hud-label {
+      display: block;
+      color: #9b8a77;
+      font-size: 8px;
+      font-weight: 900;
+      letter-spacing: .12em;
+    }
+    .hud-value {
+      display: block;
+      margin-top: 2px;
+      color: #39312b;
+      font-size: 16px;
+      font-weight: 950;
+      line-height: 1;
+      font-variant-numeric: tabular-nums;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    .score-card .hud-value {
+      color: #c0643c;
+      font-size: clamp(20px, 5.2vw, 30px);
+      letter-spacing: -.04em;
+    }
+
+    .game-area {
+      min-height: 0;
+      display: grid;
+      place-items: center;
+      position: relative;
+    }
+    .board-shell {
+      position: relative;
+      width: min(94vw, 68svh, 680px);
+      aspect-ratio: 1;
+      border-radius: 28px;
+      padding: clamp(10px, 2vw, 18px);
+      background:
+        linear-gradient(145deg, #d9c5a9, #bda483);
+      box-shadow:
+        0 15px 35px rgba(84,62,34,.18),
+        inset 0 2px 2px rgba(255,255,255,.7),
+        inset 0 -5px 11px rgba(88,57,25,.12);
+      touch-action: none;
+    }
+    .board-frame {
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      border-radius: 20px;
+      border: 1px solid rgba(80,56,29,.20);
+      background:
+        radial-gradient(circle at 32% 24%, rgba(255,255,255,.58), transparent 25%),
+        linear-gradient(145deg, #e9d8bc, #d6bd97);
+      box-shadow:
+        inset 0 0 25px rgba(97,66,28,.16),
+        inset 0 2px rgba(255,255,255,.72);
+    }
+    canvas {
+      display: block;
+      width: 100%;
+      height: 100%;
+    }
+    .tilt-dot {
+      position: absolute;
+      right: 12px;
+      bottom: 12px;
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: #c0643c;
+      box-shadow: 0 0 0 5px rgba(192,100,60,.12);
+      transform: translate(var(--tx, 0px), var(--ty, 0px));
+      transition: transform 50ms linear;
+      pointer-events: none;
+    }
+
+    .footer {
+      width: min(100%, 680px);
+      margin: 0 auto;
+      display: grid;
+      gap: 6px;
+    }
+    .status {
+      min-height: 18px;
+      margin: 0;
+      color: #756758;
+      font-size: 11px;
+      font-weight: 750;
+      text-align: center;
+      line-height: 1.35;
+    }
+    .progress {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 5px;
+    }
+    .progress span {
+      height: 5px;
+      border-radius: 999px;
+      background: rgba(91,73,53,.12);
+      overflow: hidden;
+    }
+    .progress span::after {
+      content: "";
+      display: block;
+      width: 0;
+      height: 100%;
+      border-radius: inherit;
+      background: #c0643c;
+      transition: width .22s ease;
+    }
+    .progress span.is-done::after { width: 100%; }
+    .progress span.is-current::after { width: 45%; }
+
+    .overlay {
+      position: fixed;
+      inset: 0;
+      z-index: 20;
+      display: grid;
+      place-items: center;
+      padding:
+        calc(env(safe-area-inset-top) + 18px)
+        18px
+        calc(env(safe-area-inset-bottom) + 18px);
+      background: rgba(50,42,34,.26);
+      backdrop-filter: blur(6px);
+      -webkit-backdrop-filter: blur(6px);
+    }
+    .panel {
+      width: min(100%, 420px);
+      padding: 22px;
+      border: 1px solid rgba(75,57,37,.12);
+      border-radius: 26px;
+      background: rgba(250,246,238,.96);
+      box-shadow: 0 24px 70px rgba(63,47,30,.22);
+      text-align: center;
+    }
+    .game-mark {
+      width: 82px;
+      height: 82px;
+      margin: 0 auto 12px;
+      border-radius: 24px;
+      display: grid;
+      place-items: center;
+      background: #c0643c;
+      color: #fff9ed;
+      font-size: 54px;
+      font-weight: 950;
+      line-height: 1;
+      box-shadow: 0 10px 30px rgba(192,100,60,.25);
+    }
+    .panel h2 {
+      margin: 0;
+      font-size: 27px;
+      line-height: 1.15;
+    }
+    .panel-copy {
+      margin: 10px 0 0;
+      color: #6d6054;
+      font-size: 13px;
+      font-weight: 700;
+      line-height: 1.7;
+    }
+    .rules {
+      margin: 14px 0 0;
+      padding: 12px;
+      border-radius: 17px;
+      background: #f0e6d6;
+      color: #615344;
+      font-size: 12px;
+      font-weight: 800;
+      line-height: 1.7;
+      text-align: left;
+    }
+    .primary {
+      width: 100%;
+      min-height: 54px;
+      margin-top: 16px;
+      border: 0;
+      border-radius: 18px;
+      background: #c0643c;
+      color: white;
+      font-size: 16px;
+      font-weight: 950;
+      box-shadow: 0 9px 25px rgba(192,100,60,.20);
+    }
+    .secondary {
+      width: 100%;
+      min-height: 46px;
+      margin-top: 8px;
+      border: 1px solid rgba(75,57,37,.12);
+      border-radius: 16px;
+      background: rgba(255,255,255,.7);
+      color: #5d5146;
+      font-size: 13px;
+      font-weight: 900;
+    }
+    .stage-summary {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 7px;
+      margin-top: 14px;
+    }
+    .summary-cell {
+      padding: 10px 6px;
+      border-radius: 14px;
+      background: #efe5d5;
+    }
+    .summary-op {
+      display: block;
+      color: #4c4035;
+      font-size: 18px;
+      font-weight: 950;
+    }
+    .summary-count {
+      display: block;
+      margin-top: 3px;
+      color: #9b7c55;
+      font-size: 10px;
+      font-weight: 900;
+    }
+    .final-score {
+      margin: 12px 0 0;
+      color: #c0643c;
+      font-size: clamp(42px, 15vw, 72px);
+      font-weight: 1000;
+      line-height: 1;
+      letter-spacing: -.055em;
+      font-variant-numeric: tabular-nums;
+      overflow-wrap: anywhere;
+    }
+    .best {
+      margin-top: 8px;
+      color: #7e6b58;
+      font-size: 12px;
+      font-weight: 900;
+    }
+    .new-best {
+      display: inline-block;
+      margin-top: 8px;
+      padding: 5px 9px;
+      border-radius: 999px;
+      background: #f2c84b;
+      color: #4b3c17;
+      font-size: 10px;
+      font-weight: 1000;
+      letter-spacing: .08em;
+    }
+    .hit-flash {
+      position: fixed;
+      left: 50%;
+      top: 46%;
+      z-index: 10;
+      transform: translate(-50%, -50%) scale(.9);
+      padding: 8px 13px;
+      border-radius: 14px;
+      background: rgba(52,45,38,.82);
+      color: white;
+      font-size: 21px;
+      font-weight: 1000;
+      pointer-events: none;
+      opacity: 0;
+    }
+    .hit-flash.is-active {
+      animation: pop .55s ease-out;
+    }
+    @keyframes pop {
+      0% { opacity: 0; transform: translate(-50%, -50%) scale(.72); }
+      16% { opacity: 1; transform: translate(-50%, -50%) scale(1.08); }
+      65% { opacity: 1; }
+      100% { opacity: 0; transform: translate(-50%, -64%) scale(.96); }
+    }
+
+    @media (orientation: landscape) and (max-height: 560px) {
+      .app {
+        grid-template-rows: auto minmax(0, 1fr);
+        grid-template-columns: minmax(0, 1fr) minmax(190px, 30vw);
+        gap: 8px 14px;
+      }
+      .topbar { grid-column: 1 / -1; }
+      .hud {
+        position: absolute;
+        top: calc(env(safe-area-inset-top) + 11px);
+        left: 64px;
+        width: min(48vw, 430px);
+        z-index: 2;
+      }
+      .game-area { grid-column: 1; grid-row: 2; }
+      .board-shell { width: min(82cqh, 62cqw, 520px); }
+      .footer {
+        grid-column: 2;
+        grid-row: 2;
+        align-self: end;
+      }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      .hit-flash.is-active { animation-duration: .01ms; }
+    }
+  </style>
+</head>
+<body>
+  <main class="app">
+    <header class="topbar">
+      <a class="back" href="../" aria-label="For My Sonsにもどる">‹</a>
+      <div class="title">
+        <p class="eyebrow">TILT · BALL · SCORE</p>
+        <h1>あ</h1>
+      </div>
+      <button class="icon-button" id="center-button" type="button" aria-label="今の角度をまんなかにする">◎</button>
+    </header>
+
+    <section class="hud" aria-label="ゲーム状況">
+      <div class="hud-card">
+        <span class="hud-label">STAGE</span>
+        <span class="hud-value" id="stage-value">1 / 5</span>
+      </div>
+      <div class="hud-card score-card">
+        <span class="hud-label">SCORE</span>
+        <span class="hud-value" id="score-value">1</span>
+      </div>
+      <div class="hud-card">
+        <span class="hud-label">BALL</span>
+        <span class="hud-value" id="balls-value">6</span>
+      </div>
+    </section>
+
+    <section class="game-area">
+      <div class="board-shell" id="board-shell">
+        <div class="board-frame">
+          <canvas id="board" aria-label="3つの穴がある四角い皿。端末を傾けて球を穴へ落とします"></canvas>
+        </div>
+        <div class="tilt-dot" id="tilt-dot"></div>
+      </div>
+    </section>
+
+    <footer class="footer">
+      <p class="status" id="status">端末を傾けて球を転がします。</p>
+      <div class="progress" id="progress" aria-label="5ステージの進行状況"></div>
+    </footer>
+  </main>
+
+  <div class="hit-flash" id="hit-flash" aria-hidden="true"></div>
+
+  <section class="overlay" id="overlay">
+    <div class="panel" id="panel">
+      <div class="game-mark">あ</div>
+      <h2>穴に入れて、数を育てる。</h2>
+      <p class="panel-copy">四角い皿を傾けて、球を3つの穴へ。<br>どの穴に落ちるかでスコアが変わります。</p>
+      <div class="rules">
+        ・球が落ちるたびに、その穴の計算をする<br>
+        ・全部の球が落ちたら次のステージ<br>
+        ・全5ステージ終了時の数字がスコア
+      </div>
+      <button class="primary" id="start-button" type="button">ゲームスタート</button>
+      <button class="secondary" id="practice-button" type="button">センサーなしで試す</button>
+    </div>
+  </section>
+
+  <script src="../shared/for-my-sons-db.js?v=4"></script>
+  <script src="../shared/profile-manager.js?v=2"></script>
+  <script src="../shared/parent-lock.js?v=3"></script>
+  <script src="../shared/save-store.js?v=2"></script>
+  <script src="../shared/github-sync.js?v=9"></script>
+  <script src="../shared/character-requests.js?v=5"></script>
+  <script src="../shared/parent-requests.js?v=4"></script>
+  <script src="../shared/for-my-sons.js?v=13"></script>
+  <script>
+    (() => {
+      'use strict';
+
+      const BUILD_VERSION = '1';
+      const STAGES = [
+        {
+          balls: 6,
+          holes: [
+            { x: .24, y: .73, label: '+1', type: 'add', value: 1 },
+            { x: .76, y: .73, label: '+2', type: 'add', value: 2 },
+            { x: .50, y: .25, label: '×2', type: 'mul', value: 2 }
+          ]
+        },
+        {
+          balls: 7,
+          holes: [
+            { x: .23, y: .28, label: '+2', type: 'add', value: 2 },
+            { x: .76, y: .33, label: '×2', type: 'mul', value: 2 },
+            { x: .52, y: .76, label: '−2', type: 'add', value: -2 }
+          ]
+        },
+        {
+          balls: 8,
+          holes: [
+            { x: .25, y: .70, label: '×2', type: 'mul', value: 2 },
+            { x: .77, y: .64, label: '+5', type: 'add', value: 5 },
+            { x: .54, y: .25, label: '÷2', type: 'div', value: 2 }
+          ]
+        },
+        {
+          balls: 9,
+          holes: [
+            { x: .22, y: .42, label: '×3', type: 'mul', value: 3 },
+            { x: .78, y: .28, label: '−5', type: 'add', value: -5 },
+            { x: .67, y: .76, label: '+3', type: 'add', value: 3 }
+          ]
+        },
+        {
+          balls: 10,
+          holes: [
+            { x: .23, y: .24, label: '×2', type: 'mul', value: 2 },
+            { x: .78, y: .52, label: '×3', type: 'mul', value: 3 },
+            { x: .37, y: .76, label: '−10', type: 'add', value: -10 }
+          ]
+        }
+      ];
+
+      const canvas = document.querySelector('#board');
+      const ctx = canvas.getContext('2d');
+      const shell = document.querySelector('#board-shell');
+      const stageValue = document.querySelector('#stage-value');
+      const scoreValue = document.querySelector('#score-value');
+      const ballsValue = document.querySelector('#balls-value');
+      const status = document.querySelector('#status');
+      const progress = document.querySelector('#progress');
+      const overlay = document.querySelector('#overlay');
+      const panel = document.querySelector('#panel');
+      const startButton = document.querySelector('#start-button');
+      const practiceButton = document.querySelector('#practice-button');
+      const centerButton = document.querySelector('#center-button');
+      const hitFlash = document.querySelector('#hit-flash');
+      const tiltDot = document.querySelector('#tilt-dot');
+
+      let viewSize = 1;
+      let dpr = 1;
+      let running = false;
+      let stageIndex = 0;
+      let score = 1;
+      let balls = [];
+      let stageCounts = [0, 0, 0];
+      let stageCompleting = false;
+      let sensorStarted = false;
+      let sensorEnabled = true;
+      let calibrated = false;
+      let zeroX = 0;
+      let zeroY = 0;
+      let rawX = 0;
+      let rawY = 0;
+      let targetTiltX = 0;
+      let targetTiltY = 0;
+      let tiltX = 0;
+      let tiltY = 0;
+      let pointerActive = false;
+      let lastTime = performance.now();
+      let currentProfile = { id: 'default', label: 'PLAYER' };
+
+      for (let i = 0; i < STAGES.length; i += 1) {
+        progress.appendChild(document.createElement('span'));
+      }
+
+      function clamp(value, min, max) {
+        return Math.max(min, Math.min(max, value));
+      }
+
+      function formatScore(value) {
+        if (!Number.isFinite(value)) return '0';
+        if (Math.abs(value) < 1000000000) return String(Math.trunc(value));
+        return Math.trunc(value).toLocaleString('ja-JP');
+      }
+
+      function screenAngle() {
+        const value = screen.orientation && Number.isFinite(screen.orientation.angle)
+          ? screen.orientation.angle
+          : (typeof window.orientation === 'number' ? window.orientation : 0);
+        return ((value % 360) + 360) % 360;
+      }
+
+      function transformForScreen(beta, gamma) {
+        const angle = screenAngle();
+        if (angle === 90) return { x: beta, y: -gamma };
+        if (angle === 180) return { x: -gamma, y: -beta };
+        if (angle === 270) return { x: -beta, y: gamma };
+        return { x: gamma, y: beta };
+      }
+
+      function onOrientation(event) {
+        if (!sensorEnabled) return;
+        if (typeof event.beta !== 'number' || typeof event.gamma !== 'number') return;
+        const value = transformForScreen(event.beta, event.gamma);
+        rawX = value.x;
+        rawY = value.y;
+        if (!calibrated) {
+          zeroX = rawX;
+          zeroY = rawY;
+          calibrated = true;
+          status.textContent = 'センサーOK。傾けて球を転がそう。';
+        }
+        targetTiltX = clamp((rawX - zeroX) / 24, -1, 1);
+        targetTiltY = clamp((rawY - zeroY) / 24, -1, 1);
+      }
+
+      async function ensureSensor() {
+        if (!sensorEnabled) return false;
+        if (sensorStarted) return true;
+        if (!('DeviceOrientationEvent' in window)) {
+          sensorEnabled = false;
+          status.textContent = 'センサーなし。指で皿を傾けて遊べます。';
+          return false;
+        }
+        try {
+          if (typeof DeviceOrientationEvent.requestPermission === 'function') {
+            const permission = await DeviceOrientationEvent.requestPermission();
+            if (permission !== 'granted') {
+              sensorEnabled = false;
+              status.textContent = 'センサー未許可。指で皿を傾けて遊べます。';
+              return false;
+            }
+          }
+          calibrated = false;
+          window.addEventListener('deviceorientation', onOrientation, true);
+          sensorStarted = true;
+          return true;
+        } catch (error) {
+          console.warn('Device orientation permission failed.', error);
+          sensorEnabled = false;
+          status.textContent = 'センサーを開始できません。指操作で遊べます。';
+          return false;
+        }
+      }
+
+      function recenter() {
+        if (sensorStarted && sensorEnabled) {
+          zeroX = rawX;
+          zeroY = rawY;
+          calibrated = true;
+        }
+        targetTiltX = 0;
+        targetTiltY = 0;
+        tiltX = 0;
+        tiltY = 0;
+        status.textContent = 'この角度をまんなかにしました。';
+      }
+
+      function resizeCanvas() {
+        const rect = canvas.getBoundingClientRect();
+        const next = Math.max(1, Math.min(rect.width, rect.height));
+        dpr = Math.min(window.devicePixelRatio || 1, 2);
+        viewSize = next;
+        const px = Math.round(next * dpr);
+        if (canvas.width !== px || canvas.height !== px) {
+          canvas.width = px;
+          canvas.height = px;
+          ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+        }
+      }
+
+      function seededRandom(seed) {
+        let value = seed >>> 0;
+        return function() {
+          value = (value * 1664525 + 1013904223) >>> 0;
+          return value / 4294967296;
+        };
+      }
+
+      function makeBalls(count, stage) {
+        const random = seededRandom(104729 + stage * 7919);
+        const result = [];
+        const holes = STAGES[stage].holes;
+        let attempts = 0;
+        while (result.length < count && attempts < 500) {
+          attempts += 1;
+          const x = .18 + random() * .64;
+          const y = .18 + random() * .64;
+          const awayFromHoles = holes.every(function(hole) {
+            return Math.hypot(x - hole.x, y - hole.y) > .16;
+          });
+          const awayFromBalls = result.every(function(ball) {
+            return Math.hypot(x - ball.x, y - ball.y) > .055;
+          });
+          if (awayFromHoles && awayFromBalls) {
+            result.push({
+              x: x,
+              y: y,
+              vx: (random() - .5) * .03,
+              vy: (random() - .5) * .03,
+              radius: .019,
+              falling: 0,
+              fallen: false,
+              holeIndex: -1
+            });
+          }
+        }
+        return result;
+      }
+
+      function updateHud() {
+        stageValue.textContent = String(stageIndex + 1) + ' / ' + String(STAGES.length);
+        scoreValue.textContent = formatScore(score);
+        const remaining = balls.filter(function(ball) { return !ball.fallen; }).length;
+        ballsValue.textContent = String(remaining);
+        Array.from(progress.children).forEach(function(node, index) {
+          node.className = index < stageIndex ? 'is-done' : (index === stageIndex ? 'is-current' : '');
+        });
+      }
+
+      function startStage(index) {
+        stageIndex = index;
+        stageCounts = [0, 0, 0];
+        stageCompleting = false;
+        balls = makeBalls(STAGES[index].balls, index);
+        running = true;
+        updateHud();
+        status.textContent = 'STAGE ' + String(index + 1) + '　球を3つの穴へ。';
+        lastTime = performance.now();
+      }
+
+      function applyOperation(hole) {
+        const before = score;
+        if (hole.type === 'add') score += hole.value;
+        if (hole.type === 'mul') score *= hole.value;
+        if (hole.type === 'div') score = Math.floor(score / hole.value);
+        score = Math.max(0, Math.min(Number.MAX_SAFE_INTEGER, Math.trunc(score)));
+        return { before: before, after: score };
+      }
+
+      function flashOperation(hole, result) {
+        hitFlash.textContent = hole.label + '　' + formatScore(result.before) + ' → ' + formatScore(result.after);
+        hitFlash.classList.remove('is-active');
+        void hitFlash.offsetWidth;
+        hitFlash.classList.add('is-active');
+        if (navigator.vibrate) navigator.vibrate(18);
+      }
+
+      function captureBall(ball, holeIndex) {
+        if (ball.falling || ball.fallen) return;
+        ball.falling = .001;
+        ball.holeIndex = holeIndex;
+        ball.vx *= .15;
+        ball.vy *= .15;
+        stageCounts[holeIndex] += 1;
+        const hole = STAGES[stageIndex].holes[holeIndex];
+        const result = applyOperation(hole);
+        flashOperation(hole, result);
+        updateHud();
+      }
+
+      function solveBallCollisions() {
+        const active = balls.filter(function(ball) { return !ball.fallen && !ball.falling; });
+        for (let i = 0; i < active.length; i += 1) {
+          for (let j = i + 1; j < active.length; j += 1) {
+            const a = active[i];
+            const b = active[j];
+            let dx = b.x - a.x;
+            let dy = b.y - a.y;
+            let dist = Math.hypot(dx, dy);
+            const minDist = a.radius + b.radius;
+            if (!dist || dist >= minDist) continue;
+            const nx = dx / dist;
+            const ny = dy / dist;
+            const overlap = minDist - dist;
+            a.x -= nx * overlap * .5;
+            a.y -= ny * overlap * .5;
+            b.x += nx * overlap * .5;
+            b.y += ny * overlap * .5;
+            const rel = (b.vx - a.vx) * nx + (b.vy - a.vy) * ny;
+            if (rel < 0) {
+              const impulse = -rel * .72;
+              a.vx -= impulse * nx;
+              a.vy -= impulse * ny;
+              b.vx += impulse * nx;
+              b.vy += impulse * ny;
+            }
+          }
+        }
+      }
+
+      function updatePhysics(dt) {
+        tiltX += (targetTiltX - tiltX) * Math.min(1, dt * 7.5);
+        tiltY += (targetTiltY - tiltY) * Math.min(1, dt * 7.5);
+        tiltDot.style.setProperty('--tx', String(tiltX * 12) + 'px');
+        tiltDot.style.setProperty('--ty', String(tiltY * 12) + 'px');
+
+        if (!running) return;
+
+        const accel = 1.05;
+        const damping = Math.pow(.17, dt);
+        const min = .045;
+        const max = .955;
+
+        balls.forEach(function(ball) {
+          if (ball.fallen) return;
+
+          if (ball.falling) {
+            ball.falling += dt;
+            if (ball.falling >= .28) {
+              ball.fallen = true;
+              ball.falling = 0;
+              updateHud();
+            }
+            return;
+          }
+
+          ball.vx += tiltX * accel * dt;
+          ball.vy += tiltY * accel * dt;
+          ball.vx *= damping;
+          ball.vy *= damping;
+
+          const speed = Math.hypot(ball.vx, ball.vy);
+          const maxSpeed = .75;
+          if (speed > maxSpeed) {
+            ball.vx = ball.vx / speed * maxSpeed;
+            ball.vy = ball.vy / speed * maxSpeed;
+          }
+
+          ball.x += ball.vx * dt;
+          ball.y += ball.vy * dt;
+
+          const r = ball.radius;
+          if (ball.x - r < min) {
+            ball.x = min + r;
+            ball.vx = Math.abs(ball.vx) * .62;
+          } else if (ball.x + r > max) {
+            ball.x = max - r;
+            ball.vx = -Math.abs(ball.vx) * .62;
+          }
+          if (ball.y - r < min) {
+            ball.y = min + r;
+            ball.vy = Math.abs(ball.vy) * .62;
+          } else if (ball.y + r > max) {
+            ball.y = max - r;
+            ball.vy = -Math.abs(ball.vy) * .62;
+          }
+
+          STAGES[stageIndex].holes.forEach(function(hole, holeIndex) {
+            if (ball.falling || ball.fallen) return;
+            const dist = Math.hypot(ball.x - hole.x, ball.y - hole.y);
+            if (dist < .056) captureBall(ball, holeIndex);
+          });
+        });
+
+        solveBallCollisions();
+
+        if (!stageCompleting && balls.length && balls.every(function(ball) { return ball.fallen; })) {
+          stageCompleting = true;
+          running = false;
+          setTimeout(showStageComplete, 360);
+        }
+      }
+
+      function drawRoundedRect(x, y, width, height, radius) {
+        ctx.beginPath();
+        ctx.roundRect(x, y, width, height, radius);
+      }
+
+      function drawBoard() {
+        resizeCanvas();
+        const size = viewSize;
+        ctx.clearRect(0, 0, size, size);
+
+        const pad = size * .035;
+        drawRoundedRect(pad, pad, size - pad * 2, size - pad * 2, size * .035);
+        const boardGrad = ctx.createLinearGradient(0, 0, size, size);
+        boardGrad.addColorStop(0, '#ead9bd');
+        boardGrad.addColorStop(1, '#d0b184');
+        ctx.fillStyle = boardGrad;
+        ctx.fill();
+        ctx.strokeStyle = 'rgba(88,61,31,.17)';
+        ctx.lineWidth = Math.max(1, size * .004);
+        ctx.stroke();
+
+        if (!STAGES[stageIndex]) return;
+        const holes = STAGES[stageIndex].holes;
+        holes.forEach(function(hole) {
+          const x = hole.x * size;
+          const y = hole.y * size;
+          const radius = size * .073;
+
+          const shadow = ctx.createRadialGradient(x - radius * .18, y - radius * .20, radius * .08, x, y, radius);
+          shadow.addColorStop(0, '#221d19');
+          shadow.addColorStop(.65, '#40342b');
+          shadow.addColorStop(1, '#76614a');
+          ctx.beginPath();
+          ctx.arc(x, y, radius, 0, Math.PI * 2);
+          ctx.fillStyle = shadow;
+          ctx.fill();
+
+          ctx.beginPath();
+          ctx.arc(x, y, radius * .78, 0, Math.PI * 2);
+          ctx.fillStyle = '#171412';
+          ctx.fill();
+
+          ctx.font = '950 ' + String(Math.max(14, size * .055)) + 'px -apple-system, BlinkMacSystemFont, "SF Pro Rounded", sans-serif';
+          ctx.textAlign = 'center';
+          ctx.textBaseline = 'middle';
+          ctx.fillStyle = '#fff9ec';
+          ctx.shadowColor = 'rgba(0,0,0,.35)';
+          ctx.shadowBlur = 4;
+          ctx.fillText(hole.label, x, y + size * .002);
+          ctx.shadowBlur = 0;
+        });
+
+        balls.forEach(function(ball, index) {
+          if (ball.fallen) return;
+          const hole = ball.falling ? holes[ball.holeIndex] : null;
+          const t = ball.falling ? clamp(ball.falling / .28, 0, 1) : 0;
+          const x = (hole ? ball.x + (hole.x - ball.x) * t : ball.x) * size;
+          const y = (hole ? ball.y + (hole.y - ball.y) * t : ball.y) * size;
+          const radius = ball.radius * size * (1 - t * .72);
+          const alpha = 1 - t * .75;
+
+          ctx.save();
+          ctx.globalAlpha = alpha;
+          const grad = ctx.createRadialGradient(
+            x - radius * .35,
+            y - radius * .38,
+            radius * .12,
+            x,
+            y,
+            radius
+          );
+          grad.addColorStop(0, '#ffffff');
+          grad.addColorStop(.28, '#f7f5ef');
+          grad.addColorStop(.72, '#c9c6bd');
+          grad.addColorStop(1, '#7b7770');
+          ctx.shadowColor = 'rgba(67,50,32,.28)';
+          ctx.shadowBlur = radius * .75;
+          ctx.shadowOffsetY = radius * .38;
+          ctx.beginPath();
+          ctx.arc(x, y, radius, 0, Math.PI * 2);
+          ctx.fillStyle = grad;
+          ctx.fill();
+          ctx.shadowColor = 'transparent';
+
+          ctx.beginPath();
+          ctx.arc(x - radius * .28, y - radius * .3, radius * .18, 0, Math.PI * 2);
+          ctx.fillStyle = 'rgba(255,255,255,.82)';
+          ctx.fill();
+
+          if (radius > 9) {
+            ctx.fillStyle = 'rgba(53,49,45,.58)';
+            ctx.font = '800 ' + String(Math.max(7, radius * .55)) + 'px -apple-system, sans-serif';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText(String(index + 1), x, y + radius * .06);
+          }
+          ctx.restore();
+        });
+      }
+
+      function frame(now) {
+        const dt = Math.min(.035, Math.max(.001, (now - lastTime) / 1000));
+        lastTime = now;
+        updatePhysics(dt);
+        drawBoard();
+        requestAnimationFrame(frame);
+      }
+
+      function pointerTilt(event) {
+        const rect = shell.getBoundingClientRect();
+        const cx = rect.left + rect.width / 2;
+        const cy = rect.top + rect.height / 2;
+        targetTiltX = clamp((event.clientX - cx) / (rect.width * .38), -1, 1);
+        targetTiltY = clamp((event.clientY - cy) / (rect.height * .38), -1, 1);
+      }
+
+      shell.addEventListener('pointerdown', function(event) {
+        pointerActive = true;
+        shell.setPointerCapture && shell.setPointerCapture(event.pointerId);
+        pointerTilt(event);
+      });
+      shell.addEventListener('pointermove', function(event) {
+        if (pointerActive) pointerTilt(event);
+      });
+      function endPointer() {
+        if (!pointerActive) return;
+        pointerActive = false;
+        if (!sensorStarted || !sensorEnabled) {
+          targetTiltX = 0;
+          targetTiltY = 0;
+        }
+      }
+      shell.addEventListener('pointerup', endPointer);
+      shell.addEventListener('pointercancel', endPointer);
+      shell.addEventListener('lostpointercapture', endPointer);
+
+      function bestKey() {
+        return 'a-hole-ball-best-v1:' + (currentProfile.id || 'default');
+      }
+
+      function getBest() {
+        const value = Number(localStorage.getItem(bestKey()));
+        return Number.isFinite(value) ? value : 0;
+      }
+
+      function saveBest(value) {
+        const before = getBest();
+        if (value > before) {
+          localStorage.setItem(bestKey(), String(value));
+          return true;
+        }
+        return false;
+      }
+
+      function stageSummaryHtml() {
+        const holes = STAGES[stageIndex].holes;
+        return '<div class="stage-summary">' + holes.map(function(hole, index) {
+          return '<div class="summary-cell"><span class="summary-op">' + hole.label +
+            '</span><span class="summary-count">' + String(stageCounts[index]) + 'こ</span></div>';
+        }).join('') + '</div>';
+      }
+
+      function showStageComplete() {
+        const isLast = stageIndex === STAGES.length - 1;
+        overlay.hidden = false;
+        if (isLast) {
+          const isNew = saveBest(score);
+          const best = Math.max(getBest(), score);
+          panel.innerHTML =
+            '<div class="game-mark">あ</div>' +
+            '<p class="eyebrow">FINISH</p>' +
+            '<h2>5ステージ クリア</h2>' +
+            stageSummaryHtml() +
+            '<div class="final-score">' + formatScore(score) + '</div>' +
+            '<div class="best">' + escapeHtml(currentProfile.label || 'PLAYER') + ' の BEST　' + formatScore(best) + '</div>' +
+            (isNew ? '<span class="new-best">NEW BEST</span>' : '') +
+            '<button class="primary" id="retry-button" type="button">もう一回</button>' +
+            '<button class="secondary" id="home-button" type="button">ホームにもどる</button>';
+          document.querySelector('#retry-button').addEventListener('click', restartGame);
+          document.querySelector('#home-button').addEventListener('click', function() { location.href = '../'; });
+        } else {
+          panel.innerHTML =
+            '<div class="game-mark">' + String(stageIndex + 1) + '</div>' +
+            '<p class="eyebrow">STAGE CLEAR</p>' +
+            '<h2>スコア ' + formatScore(score) + '</h2>' +
+            stageSummaryHtml() +
+            '<p class="panel-copy">球が入った順番でも結果が変わる。<br>次は穴の位置と計算が変わります。</p>' +
+            '<button class="primary" id="next-button" type="button">STAGE ' + String(stageIndex + 2) + ' へ</button>';
+          document.querySelector('#next-button').addEventListener('click', function() {
+            overlay.hidden = true;
+            startStage(stageIndex + 1);
+          });
+        }
+        updateHud();
+      }
+
+      function escapeHtml(value) {
+        return String(value)
+          .replace(/&/g, '&amp;')
+          .replace(/</g, '&lt;')
+          .replace(/>/g, '&gt;')
+          .replace(/"/g, '&quot;')
+          .replace(/'/g, '&#039;');
+      }
+
+      function restartGame() {
+        score = 1;
+        overlay.hidden = true;
+        recenter();
+        startStage(0);
+      }
+
+      async function startGame(useSensor) {
+        sensorEnabled = useSensor;
+        if (useSensor) await ensureSensor();
+        else {
+          status.textContent = '指で皿を押して、傾ける方向を決められます。';
+        }
+        score = 1;
+        overlay.hidden = true;
+        startStage(0);
+      }
+
+      startButton.addEventListener('click', function() { startGame(true); });
+      practiceButton.addEventListener('click', function() { startGame(false); });
+      centerButton.addEventListener('click', recenter);
+
+      async function initProfile() {
+        if (!window.ForMySonsShared || !window.ForMySonsShared.createForMySons) return;
+        try {
+          const api = await window.ForMySonsShared.createForMySons();
+          const profile = await api.profile.current();
+          if (profile) currentProfile = profile;
+        } catch (error) {
+          console.warn('Profile unavailable.', error);
+        }
+      }
+
+      window.addEventListener('resize', resizeCanvas);
+      if (window.visualViewport) window.visualViewport.addEventListener('resize', resizeCanvas);
+      document.addEventListener('visibilitychange', function() {
+        lastTime = performance.now();
+      });
+
+      initProfile();
+      updateHud();
+      requestAnimationFrame(frame);
+      console.info('あ v' + BUILD_VERSION);
+    })();
+  </script>
+</body>
+</html>
