@@ -2,7 +2,7 @@
   "name": "ひかりリング",
   "short_name": "ひかりリング",
   "description": "スマホを傾けて赤いLEDから逃げる横向き専用ゲーム",
-  "start_url": "./?v=27",
+  "start_url": "./?v=28",
   "scope": "./",
   "display": "standalone",
   "orientation": "landscape",
