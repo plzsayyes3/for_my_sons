@@ -469,7 +469,7 @@
     (() => {
       'use strict';
 
-      const BUILD_VERSION = '1';
+      const BUILD_VERSION = '2';
       const STAGES = [
         {
           balls: 6,
@@ -682,6 +682,8 @@
               vx: (random() - .5) * .03,
               vy: (random() - .5) * .03,
               radius: .019,
+              rollPhase: random() * Math.PI * 2,
+              rollHeading: random() * Math.PI * 2,
               falling: 0,
               fallen: false,
               holeIndex: -1
@@ -780,8 +782,8 @@
 
         if (!running) return;
 
-        const accel = 1.05;
-        const damping = Math.pow(.17, dt);
+        const accel = 1.00;
+        const damping = Math.pow(.30, dt);
         const min = .045;
         const max = .955;
 
@@ -810,23 +812,36 @@
             ball.vy = ball.vy / speed * maxSpeed;
           }
 
-          ball.x += ball.vx * dt;
-          ball.y += ball.vy * dt;
+          const moveX = ball.vx * dt;
+          const moveY = ball.vy * dt;
+          ball.x += moveX;
+          ball.y += moveY;
+
+          const moveDistance = Math.hypot(moveX, moveY);
+          if (moveDistance > .000001) {
+            const nextHeading = Math.atan2(moveY, moveX);
+            const headingDelta = Math.atan2(
+              Math.sin(nextHeading - ball.rollHeading),
+              Math.cos(nextHeading - ball.rollHeading)
+            );
+            ball.rollHeading += headingDelta * Math.min(1, dt * 14);
+            ball.rollPhase = (ball.rollPhase + moveDistance / Math.max(ball.radius, .001)) % (Math.PI * 2);
+          }
 
           const r = ball.radius;
           if (ball.x - r < min) {
             ball.x = min + r;
-            ball.vx = Math.abs(ball.vx) * .62;
+            ball.vx = Math.abs(ball.vx) * .66;
           } else if (ball.x + r > max) {
             ball.x = max - r;
-            ball.vx = -Math.abs(ball.vx) * .62;
+            ball.vx = -Math.abs(ball.vx) * .66;
           }
           if (ball.y - r < min) {
             ball.y = min + r;
-            ball.vy = Math.abs(ball.vy) * .62;
+            ball.vy = Math.abs(ball.vy) * .66;
           } else if (ball.y + r > max) {
             ball.y = max - r;
-            ball.vy = -Math.abs(ball.vy) * .62;
+            ball.vy = -Math.abs(ball.vy) * .66;
           }
 
           STAGES[stageIndex].holes.forEach(function(hole, holeIndex) {
@@ -934,12 +949,42 @@
           ctx.fillStyle = 'rgba(255,255,255,.82)';
           ctx.fill();
 
-          if (radius > 9) {
-            ctx.fillStyle = 'rgba(53,49,45,.58)';
-            ctx.font = '800 ' + String(Math.max(7, radius * .55)) + 'px -apple-system, sans-serif';
-            ctx.textAlign = 'center';
-            ctx.textBaseline = 'middle';
-            ctx.fillText(String(index + 1), x, y + radius * .06);
+          if (radius > 5) {
+            const phase = ball.rollPhase || 0;
+            const heading = Number.isFinite(ball.rollHeading) ? ball.rollHeading : 0;
+            const stripeX = Math.sin(phase) * radius * .50;
+            const bend = Math.cos(phase) * radius * .34;
+
+            ctx.save();
+            ctx.beginPath();
+            ctx.arc(x, y, radius * .93, 0, Math.PI * 2);
+            ctx.clip();
+            ctx.translate(x, y);
+            ctx.rotate(heading);
+
+            ctx.beginPath();
+            ctx.moveTo(stripeX, -radius * .92);
+            ctx.bezierCurveTo(
+              stripeX + bend,
+              -radius * .38,
+              stripeX + bend,
+              radius * .38,
+              stripeX,
+              radius * .92
+            );
+            ctx.strokeStyle = 'rgba(63,59,55,.24)';
+            ctx.lineWidth = Math.max(1, radius * .105);
+            ctx.lineCap = 'round';
+            ctx.stroke();
+
+            const markerPhase = phase + 1.15;
+            const markerX = Math.sin(markerPhase) * radius * .55;
+            const markerY = Math.cos(markerPhase) * radius * .18;
+            ctx.beginPath();
+            ctx.arc(markerX, markerY, Math.max(1.1, radius * .12), 0, Math.PI * 2);
+            ctx.fillStyle = 'rgba(63,59,55,.24)';
+            ctx.fill();
+            ctx.restore();
           }
           ctx.restore();
         });
