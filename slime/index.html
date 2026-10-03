@@ -1,0 +1,908 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
+<title>スライム | For My Sons</title>
+<style>
+  :root { color-scheme: light; }
+  * { box-sizing: border-box; }
+  html, body {
+    margin: 0;
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+    background: #ece9e2;
+    font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    touch-action: none;
+    overscroll-behavior: none;
+  }
+  canvas {
+    display: block;
+    width: 100vw;
+    height: 100vh;
+    touch-action: none;
+  }
+  .hud {
+    position: fixed;
+    top: max(12px, env(safe-area-inset-top));
+    left: 12px;
+    right: 12px;
+    z-index: 10;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    pointer-events: none;
+  }
+  .chip {
+    border: 1px solid rgba(30,34,40,.12);
+    background: rgba(255,255,255,.66);
+    color: #27313a;
+    border-radius: 999px;
+    padding: 9px 12px;
+    font-size: 12px;
+    line-height: 1;
+    box-shadow: 0 8px 26px rgba(34,38,44,.08);
+    backdrop-filter: blur(14px);
+    -webkit-backdrop-filter: blur(14px);
+  }
+  button.chip {
+    pointer-events: auto;
+    appearance: none;
+    -webkit-appearance: none;
+    cursor: pointer;
+  }
+  a.chip {
+    pointer-events: auto;
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .hint {
+    margin-left: auto;
+    opacity: .72;
+  }
+  .loading {
+    position: fixed;
+    inset: 0;
+    z-index: 20;
+    display: grid;
+    place-items: center;
+    color: #59636b;
+    font-size: 13px;
+    letter-spacing: .04em;
+    pointer-events: none;
+    transition: opacity .25s ease;
+  }
+  .loading.hide { opacity: 0; }
+</style>
+</head>
+<body>
+<canvas id="scene" aria-label="Rady translucent jelly 3D sample"></canvas>
+
+<div class="hud">
+  <a class="chip" href="../" aria-label="For My Sonsにもどる">‹ HOME</a>
+  <button class="chip" id="reset" type="button">RESET</button>
+  <button class="chip" id="gravity" type="button">GRAVITY ON</button>
+  <div class="chip hint">つかむ → 引っぱる → 離す</div>
+</div>
+
+<div class="loading" id="loading">3D JELLY LOADING…</div>
+
+<script type="module">
+import * as THREE from "https://cdn.jsdelivr.net/npm/three@0.180.0/build/three.module.js";
+
+const canvas = document.getElementById("scene");
+const loading = document.getElementById("loading");
+const resetButton = document.getElementById("reset");
+const gravityButton = document.getElementById("gravity");
+
+const renderer = new THREE.WebGLRenderer({
+  canvas,
+  antialias: true,
+  alpha: false,
+  powerPreference: "high-performance"
+});
+renderer.setPixelRatio(Math.min(devicePixelRatio || 1, 1.5));
+renderer.setSize(innerWidth, innerHeight, false);
+renderer.outputColorSpace = THREE.SRGBColorSpace;
+renderer.toneMapping = THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure = 1.08;
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0xeeeae3);
+
+const camera = new THREE.PerspectiveCamera(34, innerWidth / innerHeight, 0.05, 50);
+camera.position.set(0, 3.25, 7.2);
+camera.lookAt(0, 0.72, 0);
+
+const clock = new THREE.Clock();
+
+// -----------------------------------------------------------------------------
+// Studio lighting
+// -----------------------------------------------------------------------------
+
+scene.add(new THREE.HemisphereLight(0xffffff, 0x9b826a, 2.15));
+
+const keyLight = new THREE.DirectionalLight(0xffffff, 4.3);
+keyLight.position.set(-3.6, 6.8, 4.8);
+keyLight.castShadow = true;
+keyLight.shadow.mapSize.set(1024, 1024);
+keyLight.shadow.camera.left = -4;
+keyLight.shadow.camera.right = 4;
+keyLight.shadow.camera.top = 5;
+keyLight.shadow.camera.bottom = -2;
+keyLight.shadow.camera.near = 0.1;
+keyLight.shadow.camera.far = 16;
+keyLight.shadow.bias = -0.0006;
+scene.add(keyLight);
+
+const fillLight = new THREE.PointLight(0xd8efff, 7.0, 10, 2);
+fillLight.position.set(3.2, 3.4, 3.2);
+scene.add(fillLight);
+
+const rimLight = new THREE.PointLight(0xfff2d6, 6.0, 9, 2);
+rimLight.position.set(-2.4, 2.2, -2.8);
+scene.add(rimLight);
+
+// -----------------------------------------------------------------------------
+// Background / room
+// -----------------------------------------------------------------------------
+
+const backWall = new THREE.Mesh(
+  new THREE.PlaneGeometry(12, 8),
+  new THREE.MeshStandardMaterial({
+    color: 0xf0ede7,
+    roughness: 0.92,
+    metalness: 0
+  })
+);
+backWall.position.set(0, 2.5, -3.6);
+backWall.receiveShadow = true;
+scene.add(backWall);
+
+// Soft "window" light panel in the background, mainly visible through the jelly.
+const windowGlow = new THREE.Mesh(
+  new THREE.PlaneGeometry(1.5, 2.3),
+  new THREE.MeshBasicMaterial({
+    color: 0xffffff,
+    transparent: true,
+    opacity: 0.72,
+    depthWrite: false
+  })
+);
+windowGlow.position.set(2.25, 2.15, -3.54);
+scene.add(windowGlow);
+
+// -----------------------------------------------------------------------------
+// Desk: this is the physical ground at y = 0.
+// -----------------------------------------------------------------------------
+
+const TABLE_Y = 0;
+const TABLE_THICKNESS = 0.42;
+
+function makeWoodTexture() {
+  const size = 512;
+  const c = document.createElement("canvas");
+  c.width = c.height = size;
+  const x = c.getContext("2d");
+
+  const g = x.createLinearGradient(0, 0, size, 0);
+  g.addColorStop(0, "#d8b890");
+  g.addColorStop(.45, "#e4c7a3");
+  g.addColorStop(1, "#cfaa7f");
+  x.fillStyle = g;
+  x.fillRect(0, 0, size, size);
+
+  // deterministic grain, no animation/flicker.
+  for (let i = 0; i < 75; i++) {
+    const y = (i * 71) % size;
+    const width = 0.6 + ((i * 17) % 21) / 15;
+    const alpha = 0.025 + ((i * 13) % 11) / 500;
+
+    x.strokeStyle = `rgba(91,60,35,${alpha})`;
+    x.lineWidth = width;
+    x.beginPath();
+
+    for (let px = -20; px <= size + 20; px += 18) {
+      const wave =
+        Math.sin((px + i * 19) * 0.025) * 2.2 +
+        Math.sin((px + i * 7) * 0.071) * 0.9;
+      if (px === -20) x.moveTo(px, y + wave);
+      else x.lineTo(px, y + wave);
+    }
+    x.stroke();
+  }
+
+  for (let i = 0; i < 6; i++) {
+    const px = 55 + i * 83;
+    const py = 72 + ((i * 107) % 330);
+    x.strokeStyle = "rgba(100,64,38,.055)";
+    x.lineWidth = 2;
+    x.beginPath();
+    x.ellipse(px, py, 18 + i * 1.7, 5.5, -.12, 0, Math.PI * 2);
+    x.stroke();
+  }
+
+  const texture = new THREE.CanvasTexture(c);
+  texture.colorSpace = THREE.SRGBColorSpace;
+  texture.wrapS = texture.wrapT = THREE.RepeatWrapping;
+  texture.repeat.set(2.6, 1.65);
+  texture.anisotropy = Math.min(8, renderer.capabilities.getMaxAnisotropy());
+  return texture;
+}
+
+const woodTexture = makeWoodTexture();
+
+const desk = new THREE.Mesh(
+  new THREE.BoxGeometry(8.2, TABLE_THICKNESS, 5.0),
+  new THREE.MeshStandardMaterial({
+    map: woodTexture,
+    color: 0xffffff,
+    roughness: 0.58,
+    metalness: 0
+  })
+);
+desk.position.set(0, TABLE_Y - TABLE_THICKNESS / 2, 0);
+desk.receiveShadow = true;
+scene.add(desk);
+
+// A darker front edge makes the object read as an actual table rather than a plane.
+const deskFront = new THREE.Mesh(
+  new THREE.BoxGeometry(8.24, 0.16, 0.12),
+  new THREE.MeshStandardMaterial({
+    color: 0xb78d65,
+    roughness: 0.72
+  })
+);
+deskFront.position.set(0, -0.18, 2.49);
+scene.add(deskFront);
+
+// Two minimal legs, visible mainly on taller screens.
+const legMaterial = new THREE.MeshStandardMaterial({
+  color: 0x9f7958,
+  roughness: 0.78
+});
+for (const x of [-2.85, 2.85]) {
+  const leg = new THREE.Mesh(
+    new THREE.BoxGeometry(0.38, 2.8, 0.48),
+    legMaterial
+  );
+  leg.position.set(x, -1.56, 0.85);
+  leg.castShadow = true;
+  scene.add(leg);
+}
+
+// -----------------------------------------------------------------------------
+// Contact shadow texture
+// -----------------------------------------------------------------------------
+
+function makeShadowTexture() {
+  const c = document.createElement("canvas");
+  c.width = c.height = 256;
+  const x = c.getContext("2d");
+  const g = x.createRadialGradient(128, 128, 4, 128, 128, 124);
+  g.addColorStop(0, "rgba(20,18,16,.34)");
+  g.addColorStop(.4, "rgba(20,18,16,.18)");
+  g.addColorStop(1, "rgba(20,18,16,0)");
+  x.fillStyle = g;
+  x.fillRect(0, 0, 256, 256);
+  return new THREE.CanvasTexture(c);
+}
+
+const blobShadow = new THREE.Mesh(
+  new THREE.PlaneGeometry(1.65, 1.28),
+  new THREE.MeshBasicMaterial({
+    map: makeShadowTexture(),
+    transparent: true,
+    depthWrite: false,
+    opacity: .34
+  })
+);
+blobShadow.rotation.x = -Math.PI / 2;
+blobShadow.position.y = TABLE_Y + 0.004;
+scene.add(blobShadow);
+
+// -----------------------------------------------------------------------------
+// Rady jelly: true WebGL mesh with physical transmission.
+// -----------------------------------------------------------------------------
+
+const jellyGroup = new THREE.Group();
+scene.add(jellyGroup);
+
+const jellyGeometry = new THREE.SphereGeometry(0.62, 36, 28);
+const positionAttribute = jellyGeometry.attributes.position;
+const basePositions = new Float32Array(positionAttribute.array.length);
+basePositions.set(positionAttribute.array);
+
+const jellyMaterial = new THREE.MeshPhysicalMaterial({
+  color: 0xeaf6fb,
+  roughness: 0.08,
+  metalness: 0,
+  transmission: 0.93,
+  transparent: true,
+  opacity: 0.96,
+  thickness: 1.55,
+  ior: 1.36,
+  clearcoat: 1,
+  clearcoatRoughness: 0.075,
+  attenuationColor: new THREE.Color(0xc9e5ef),
+  attenuationDistance: 2.4,
+  specularIntensity: 1.0,
+  specularColor: new THREE.Color(0xffffff),
+  side: THREE.FrontSide
+});
+
+const jelly = new THREE.Mesh(jellyGeometry, jellyMaterial);
+jelly.castShadow = true;
+jelly.receiveShadow = false;
+jellyGroup.add(jelly);
+
+// A very faint inner mass makes the body feel denser like warabi-mochi.
+const core = new THREE.Mesh(
+  new THREE.SphereGeometry(0.47, 28, 20),
+  new THREE.MeshPhysicalMaterial({
+    color: 0xd6edf4,
+    roughness: 0.16,
+    transmission: 0.75,
+    transparent: true,
+    opacity: 0.11,
+    thickness: 0.7,
+    ior: 1.32,
+    depthWrite: false
+  })
+);
+core.scale.set(1.0, 0.92, 0.96);
+jellyGroup.add(core);
+
+// -----------------------------------------------------------------------------
+// Rady face, slightly embedded in the front of the translucent mesh.
+// -----------------------------------------------------------------------------
+
+const face = new THREE.Group();
+jellyGroup.add(face);
+
+const faceMaterial = new THREE.MeshBasicMaterial({
+  color: 0x3b4b57,
+  transparent: true,
+  opacity: 0.95,
+  depthTest: false,
+  depthWrite: false
+});
+
+const eyeGeometry = new THREE.SphereGeometry(0.038, 14, 10);
+
+const leftEye = new THREE.Mesh(eyeGeometry, faceMaterial);
+const rightEye = new THREE.Mesh(eyeGeometry, faceMaterial);
+leftEye.scale.set(1.0, 0.65, 0.55);
+rightEye.scale.copy(leftEye.scale);
+face.add(leftEye, rightEye);
+leftEye.renderOrder = 20;
+rightEye.renderOrder = 20;
+
+const mouthCurve = new THREE.CatmullRomCurve3([
+  new THREE.Vector3(-0.050, 0.013, 0),
+  new THREE.Vector3(-0.020, -0.010, 0.014),
+  new THREE.Vector3(0.020, -0.010, 0.014),
+  new THREE.Vector3(0.050, 0.013, 0)
+]);
+
+const mouth = new THREE.Mesh(
+  new THREE.TubeGeometry(mouthCurve, 14, 0.008, 6, false),
+  faceMaterial
+);
+face.add(mouth);
+mouth.renderOrder = 20;
+
+// -----------------------------------------------------------------------------
+// Body dynamics
+// -----------------------------------------------------------------------------
+
+const state = {
+  position: new THREE.Vector3(0, 2.65, 0),
+  velocity: new THREE.Vector3(0, 0, 0),
+
+  // springy shape variables
+  squash: 0,
+  squashVelocity: 0,
+  wobbleX: 0,
+  wobbleXVelocity: 0,
+  wobbleZ: 0,
+  wobbleZVelocity: 0,
+
+  gravityOn: true,
+  dragging: false,
+
+  grabBase: new THREE.Vector3(),
+  grabTarget: new THREE.Vector3(),
+  grabTargetVelocity: new THREE.Vector3(),
+  lastGrabTarget: new THREE.Vector3(),
+
+  // shape weight for each vertex around the touched area
+  grabWeights: new Float32Array(positionAttribute.count)
+};
+
+const NATURAL_RADIUS_Y = 0.60;
+
+function currentShapeScale() {
+  const sy = THREE.MathUtils.clamp(1 - state.squash, 0.48, 1.60);
+  const lateral = 1 / Math.sqrt(sy);
+  return {
+    sx: THREE.MathUtils.clamp(lateral, 0.72, 1.58),
+    sy,
+    sz: THREE.MathUtils.clamp(lateral, 0.72, 1.58)
+  };
+}
+
+function currentBottomRadius() {
+  return NATURAL_RADIUS_Y * currentShapeScale().sy;
+}
+
+function resetJelly() {
+  state.position.set(0, 1.95, 0);
+  state.velocity.set(0, 0, 0);
+  state.squash = 0;
+  state.squashVelocity = 0;
+  state.wobbleX = 0;
+  state.wobbleXVelocity = 0;
+  state.wobbleZ = 0;
+  state.wobbleZVelocity = 0;
+  state.dragging = false;
+  state.grabWeights.fill(0);
+}
+
+function updateSpring(value, velocity, stiffness, damping, dt) {
+  velocity += (-stiffness * value - damping * velocity) * dt;
+  value += velocity * dt;
+  return [value, velocity];
+}
+
+const cameraSpaceJelly = new THREE.Vector3();
+
+function keepJellyInView() {
+  const scales = currentShapeScale();
+  cameraSpaceJelly.copy(state.position);
+  camera.worldToLocal(cameraSpaceJelly);
+
+  const depth = Math.max(0.6, -cameraSpaceJelly.z);
+  const halfHeight =
+    Math.tan(THREE.MathUtils.degToRad(camera.fov * 0.5)) * depth;
+  const halfWidth = halfHeight * camera.aspect;
+
+  // Extra padding keeps the translucent rim and wobble inside the viewport.
+  const radiusX = 0.62 * scales.sx + 0.075;
+  const radiusY = 0.62 * Math.max(scales.sy, scales.sx * 0.82) + 0.075;
+
+  const xLimit = Math.max(0.02, halfWidth - radiusX);
+  const topLimit = Math.max(0.02, halfHeight - radiusY);
+
+  let changed = false;
+
+  if (cameraSpaceJelly.x < -xLimit) {
+    cameraSpaceJelly.x = -xLimit;
+    state.velocity.x = Math.abs(state.velocity.x) * 0.10;
+    state.wobbleXVelocity -= 0.55;
+    changed = true;
+  } else if (cameraSpaceJelly.x > xLimit) {
+    cameraSpaceJelly.x = xLimit;
+    state.velocity.x = -Math.abs(state.velocity.x) * 0.10;
+    state.wobbleXVelocity += 0.55;
+    changed = true;
+  }
+
+  // The desk already guards the lower edge. This guards only the top edge,
+  // allowing upward throws without ever losing the jelly outside the screen.
+  if (cameraSpaceJelly.y > topLimit) {
+    cameraSpaceJelly.y = topLimit;
+    state.velocity.y = Math.min(0, state.velocity.y) * 0.08;
+    state.velocity.z *= 0.88;
+    state.squashVelocity -= 0.12;
+    changed = true;
+  }
+
+  if (changed) {
+    camera.localToWorld(cameraSpaceJelly);
+    state.position.copy(cameraSpaceJelly);
+
+    // Re-resolve the desk after vertical frustum correction.
+    const bottom = state.position.y - currentBottomRadius();
+    if (bottom < TABLE_Y) {
+      state.position.y += TABLE_Y - bottom;
+      if (state.velocity.y < 0) state.velocity.y = 0;
+    }
+  }
+}
+
+function physicsStep(dt) {
+  if (state.gravityOn && !state.dragging) {
+    state.velocity.y -= 7.7 * dt;
+  }
+
+  if (state.dragging) {
+    const toTarget = new THREE.Vector3().subVectors(state.grabTarget, state.position);
+
+    // Clamp the pull so accidental swipes remain stable.
+    if (toTarget.length() > 2.15) toTarget.setLength(2.15);
+
+    // Softer body: the grabbed skin leads while the mass catches up more slowly.
+    state.velocity.addScaledVector(toTarget, 24 * dt);
+    state.velocity.multiplyScalar(Math.pow(0.16, dt));
+
+    // A grabbed point leads; the rest of the jelly lags behind.
+    state.squashVelocity +=
+      THREE.MathUtils.clamp(Math.abs(toTarget.y) * -0.22 + Math.abs(toTarget.x) * 0.045, -0.8, 0.5) * dt;
+
+    state.wobbleXVelocity += -toTarget.x * 0.75 * dt;
+    state.wobbleZVelocity += -toTarget.z * 0.75 * dt;
+  } else {
+    state.velocity.x *= Math.pow(0.91, dt);
+    state.velocity.z *= Math.pow(0.91, dt);
+  }
+
+  state.position.addScaledVector(state.velocity, dt);
+
+  // Desk collision. Most impact energy goes into squash instead of bounce.
+  const bottom = state.position.y - currentBottomRadius();
+
+  if (bottom < TABLE_Y) {
+    state.position.y += TABLE_Y - bottom;
+
+    if (state.velocity.y < 0) {
+      const impact = -state.velocity.y;
+      state.velocity.y = impact * 0.08;
+
+      state.squashVelocity += impact * 0.23;
+      state.wobbleXVelocity += -state.velocity.x * 0.19;
+      state.wobbleZVelocity += -state.velocity.z * 0.19;
+
+      // sticky contact
+      state.velocity.x *= 0.94;
+      state.velocity.z *= 0.94;
+    }
+
+    if (Math.abs(state.velocity.y) < 0.08) state.velocity.y = 0;
+  }
+
+  // Keep depth on the desk, then clamp the whole jelly to the visible
+  // camera frustum so a fast throw can never disappear off-screen.
+  const zEdge = 1.55;
+  if (state.position.z < -zEdge) {
+    state.position.z = -zEdge;
+    state.velocity.z = Math.abs(state.velocity.z) * 0.12;
+  } else if (state.position.z > zEdge) {
+    state.position.z = zEdge;
+    state.velocity.z = -Math.abs(state.velocity.z) * 0.12;
+  }
+
+  keepJellyInView();
+
+  [state.squash, state.squashVelocity] =
+    updateSpring(state.squash, state.squashVelocity, 16, 2.9, dt);
+
+  [state.wobbleX, state.wobbleXVelocity] =
+    updateSpring(state.wobbleX, state.wobbleXVelocity, 13.5, 2.7, dt);
+
+  [state.wobbleZ, state.wobbleZVelocity] =
+    updateSpring(state.wobbleZ, state.wobbleZVelocity, 13.5, 2.7, dt);
+
+  state.squash = THREE.MathUtils.clamp(state.squash, -0.42, 0.52);
+  state.wobbleX = THREE.MathUtils.clamp(state.wobbleX, -0.52, 0.52);
+  state.wobbleZ = THREE.MathUtils.clamp(state.wobbleZ, -0.52, 0.52);
+}
+
+const localTarget = new THREE.Vector3();
+const localGrab = new THREE.Vector3();
+const grabDelta = new THREE.Vector3();
+let normalUpdateFrame = 0;
+
+function deformJelly(time) {
+  const scales = currentShapeScale();
+  const array = positionAttribute.array;
+
+  // Convert the world-space drag point to the body's local translation frame.
+  localTarget.copy(state.grabTarget).sub(state.position);
+  localGrab.copy(state.grabBase);
+  grabDelta.subVectors(localTarget, localGrab);
+
+  const speed = state.velocity.length();
+  const travelShearX = THREE.MathUtils.clamp(-state.velocity.x * 0.038, -0.22, 0.22);
+  const travelShearZ = THREE.MathUtils.clamp(-state.velocity.z * 0.038, -0.22, 0.22);
+
+  for (let i = 0; i < positionAttribute.count; i++) {
+    const ix = i * 3;
+    const bx = basePositions[ix];
+    const by = basePositions[ix + 1];
+    const bz = basePositions[ix + 2];
+
+    const height01 = THREE.MathUtils.clamp((by + 0.62) / 1.24, 0, 1);
+
+    // Volume-preserving squash/stretch.
+    let x = bx * scales.sx;
+    let y = by * scales.sy;
+    let z = bz * scales.sz;
+
+    // Lower half widens a little more under compression, like soft food.
+    const lowWeight = Math.pow(1 - height01, 1.7);
+    const bulge = 1 + Math.max(state.squash, 0) * lowWeight * 0.34;
+    x *= bulge;
+    z *= bulge;
+
+    // Flatten the contact patch against the desk without making the whole body flat.
+    const localTableY = TABLE_Y - state.position.y;
+    const flattenBand = 0.13;
+    if (y < localTableY + flattenBand) {
+      const t = THREE.MathUtils.clamp(
+        (localTableY + flattenBand - y) / flattenBand,
+        0,
+        1
+      );
+      y = THREE.MathUtils.lerp(y, localTableY + 0.008, t * 0.78);
+      x *= 1 + t * 0.045;
+      z *= 1 + t * 0.045;
+    }
+
+    // Whole-body lag while travelling.
+    x += by * (travelShearX + state.wobbleX * 0.26);
+    z += by * (travelShearZ + state.wobbleZ * 0.26);
+
+    // Tiny damped ripples after impact, strongest around the middle skin.
+    const radial = Math.sqrt(bx * bx + bz * bz);
+    const rippleWeight = Math.sin(Math.PI * height01) * THREE.MathUtils.clamp(radial / 0.62, 0, 1);
+    const ripple =
+      Math.sin(time * 8.0 + by * 5.2 + Math.atan2(bz, bx) * 1.7) *
+      (Math.abs(state.squashVelocity) + speed * 0.05) *
+      0.0082 *
+      rippleWeight;
+
+    const radialLen = Math.hypot(bx, bz) || 1;
+    x += (bx / radialLen) * ripple;
+    z += (bz / radialLen) * ripple;
+
+    // Slow skin-flow layer: a low-frequency travelling deformation gives
+    // the surface a viscous "nurunuru" motion instead of rubber-only wobble.
+    const theta = Math.atan2(bz, bx);
+    const flowWeight = Math.sin(Math.PI * height01) * Math.min(1, radial / 0.62);
+    const flow =
+      Math.sin(time * 3.0 + theta * 2.15 + by * 5.2) *
+      (0.005 + Math.min(speed, 5) * 0.0022) *
+      flowWeight;
+    x += Math.cos(theta) * flow;
+    z += Math.sin(theta) * flow;
+
+    // True local grip deformation on the actual 3D mesh.
+    if (state.dragging) {
+      const weight = state.grabWeights[i];
+      if (weight > 0.001) {
+        const localFollow = 0.91 * weight;
+        x += grabDelta.x * localFollow;
+        y += grabDelta.y * localFollow;
+        z += grabDelta.z * localFollow;
+
+        // Nearby skin gets slightly pinched toward the grasp point.
+        const pinch = weight * 0.088;
+        x = THREE.MathUtils.lerp(x, localGrab.x + grabDelta.x, pinch);
+        y = THREE.MathUtils.lerp(y, localGrab.y + grabDelta.y, pinch);
+        z = THREE.MathUtils.lerp(z, localGrab.z + grabDelta.z, pinch);
+      }
+    }
+
+    array[ix] = x;
+    array[ix + 1] = y;
+    array[ix + 2] = z;
+  }
+
+  positionAttribute.needsUpdate = true;
+  // Recomputing normals on every frame was expensive on iPhone and made the
+  // face appear to trail. Half-rate normal updates keep the jelly smooth.
+  normalUpdateFrame++;
+  if ((normalUpdateFrame & 1) === 0) jellyGeometry.computeVertexNormals();
+
+  // The inner mass follows the big deformation but not the local skin pinch.
+  core.scale.set(
+    scales.sx * 0.98,
+    scales.sy * 0.92,
+    scales.sz * 0.96
+  );
+  core.position.set(
+    state.wobbleX * 0.055,
+    -0.015,
+    state.wobbleZ * 0.055
+  );
+
+  // Face is intentionally steadier than the skin.
+  // Face sits just outside the refractive shell and follows the same shear
+  // immediately, so transparency sorting/refraction cannot make it lag.
+  face.position.set(
+    state.wobbleX * 0.030 + travelShearX * 0.010,
+    0.004 - Math.max(state.squash, 0) * 0.038,
+    0.628 * scales.sz + 0.018
+  );
+  face.rotation.z = THREE.MathUtils.clamp(-state.velocity.x * 0.025, -0.16, 0.16);
+  face.scale.set(
+    scales.sx,
+    THREE.MathUtils.lerp(1, scales.sy, 0.62),
+    1
+  );
+
+  leftEye.position.set(-0.142, 0.052, 0);
+  rightEye.position.set(0.142, 0.052, 0);
+  mouth.position.set(0, -0.047, 0.006);
+
+  jellyGroup.position.copy(state.position);
+
+  const height = Math.max(0, state.position.y - currentBottomRadius());
+  blobShadow.position.x = state.position.x;
+  blobShadow.position.z = state.position.z;
+  blobShadow.scale.set(
+    1.0 + Math.max(state.squash, 0) * 0.75,
+    0.82 + Math.max(state.squash, 0) * 0.55,
+    1
+  );
+  blobShadow.material.opacity = THREE.MathUtils.clamp(0.34 - height * 0.10, 0.07, 0.34);
+}
+
+// -----------------------------------------------------------------------------
+// Pointer interaction with the actual 3D mesh.
+// -----------------------------------------------------------------------------
+
+const raycaster = new THREE.Raycaster();
+const pointerNDC = new THREE.Vector2();
+const dragPlane = new THREE.Plane();
+const dragPlaneNormal = new THREE.Vector3();
+const hitPoint = new THREE.Vector3();
+const tempRayPoint = new THREE.Vector3();
+
+function setPointerNDC(event) {
+  const rect = canvas.getBoundingClientRect();
+  pointerNDC.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
+  pointerNDC.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
+}
+
+function updateGrabWeights(localPoint) {
+  const sigma = 0.32;
+  let max = 0;
+
+  for (let i = 0; i < positionAttribute.count; i++) {
+    const ix = i * 3;
+    const bx = basePositions[ix];
+    const by = basePositions[ix + 1];
+    const bz = basePositions[ix + 2];
+    const d2 =
+      (bx - localPoint.x) * (bx - localPoint.x) +
+      (by - localPoint.y) * (by - localPoint.y) +
+      (bz - localPoint.z) * (bz - localPoint.z);
+
+    const w = Math.exp(-d2 / (2 * sigma * sigma));
+    state.grabWeights[i] = w;
+    if (w > max) max = w;
+  }
+
+  if (max > 0) {
+    for (let i = 0; i < state.grabWeights.length; i++) {
+      state.grabWeights[i] /= max;
+    }
+  }
+}
+
+canvas.addEventListener("pointerdown", event => {
+  setPointerNDC(event);
+  raycaster.setFromCamera(pointerNDC, camera);
+
+  const intersections = raycaster.intersectObject(jelly, false);
+  if (!intersections.length) return;
+
+  event.preventDefault();
+  canvas.setPointerCapture(event.pointerId);
+
+  const hit = intersections[0];
+  hitPoint.copy(hit.point);
+
+  state.dragging = true;
+  state.grabTarget.copy(hit.point);
+  state.lastGrabTarget.copy(hit.point);
+  state.grabTargetVelocity.set(0, 0, 0);
+
+  state.grabBase.copy(hit.point).sub(state.position);
+  updateGrabWeights(state.grabBase);
+
+  // Plane faces the camera and passes through the touched skin point.
+  camera.getWorldDirection(dragPlaneNormal);
+  dragPlane.setFromNormalAndCoplanarPoint(dragPlaneNormal, hit.point);
+
+  state.wobbleXVelocity += -state.velocity.x * 0.12;
+  state.wobbleZVelocity += -state.velocity.z * 0.12;
+});
+
+canvas.addEventListener("pointermove", event => {
+  if (!state.dragging) return;
+
+  setPointerNDC(event);
+  raycaster.setFromCamera(pointerNDC, camera);
+
+  if (!raycaster.ray.intersectPlane(dragPlane, tempRayPoint)) return;
+
+  // Don't allow the grab target to disappear deeply below the table.
+  tempRayPoint.y = Math.max(tempRayPoint.y, TABLE_Y + 0.06);
+
+  const dt = Math.max(clock.getDelta(), 1 / 240);
+  state.grabTargetVelocity
+    .subVectors(tempRayPoint, state.lastGrabTarget)
+    .divideScalar(dt);
+
+  if (state.grabTargetVelocity.length() > 9) {
+    state.grabTargetVelocity.setLength(9);
+  }
+
+  state.lastGrabTarget.copy(state.grabTarget);
+  state.grabTarget.copy(tempRayPoint);
+});
+
+function releasePointer() {
+  if (!state.dragging) return;
+
+  // Add the finger's release velocity to the jelly so it can be thrown.
+  state.velocity.addScaledVector(state.grabTargetVelocity, 0.34);
+  if (state.velocity.length() > 8) state.velocity.setLength(8);
+
+  state.wobbleXVelocity += -state.grabTargetVelocity.x * 0.08;
+  state.wobbleZVelocity += -state.grabTargetVelocity.z * 0.08;
+
+  state.dragging = false;
+  state.grabWeights.fill(0);
+  state.grabTargetVelocity.set(0, 0, 0);
+}
+
+canvas.addEventListener("pointerup", releasePointer);
+canvas.addEventListener("pointercancel", releasePointer);
+
+// -----------------------------------------------------------------------------
+// UI
+// -----------------------------------------------------------------------------
+
+resetButton.addEventListener("click", resetJelly);
+
+gravityButton.addEventListener("click", () => {
+  state.gravityOn = !state.gravityOn;
+  gravityButton.textContent = state.gravityOn ? "GRAVITY ON" : "GRAVITY OFF";
+});
+
+addEventListener("resize", () => {
+  camera.aspect = innerWidth / innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setPixelRatio(Math.min(devicePixelRatio || 1, 1.5));
+  renderer.setSize(innerWidth, innerHeight, false);
+});
+
+// -----------------------------------------------------------------------------
+// Main loop
+// -----------------------------------------------------------------------------
+
+let last = performance.now();
+
+function animate(now) {
+  const dt = Math.min((now - last) / 1000, 1 / 20);
+  last = now;
+
+  // Two substeps make table impacts and dragging less jittery.
+  const subDt = dt * 0.5;
+  physicsStep(subDt);
+  physicsStep(subDt);
+
+  deformJelly(now / 1000);
+
+  renderer.render(scene, camera);
+  requestAnimationFrame(animate);
+}
+
+resetJelly();
+deformJelly(0);
+renderer.render(scene, camera);
+loading.classList.add("hide");
+setTimeout(() => loading.remove(), 350);
+requestAnimationFrame(animate);
+</script>
+</body>
+</html>
