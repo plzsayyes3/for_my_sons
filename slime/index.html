@@ -110,8 +110,8 @@
     <a class="chip" href="../" aria-label="For My Sonsにもどる">‹ HOME</a>
     <button class="chip" id="reset" type="button">RESET</button>
     <button class="chip" id="gravity" type="button">GRAVITY ON</button>
-    <button class="chip" id="motion" type="button">MOTION OFF</button>
-    <div class="chip hint">かたむける・ゆらす・つかむ</div>
+    <button class="chip" id="motion" type="button">傾き OFF</button>
+    <div class="chip hint">傾ける・1本指で引っぱる・2本指でつまむ</div>
   </div>
 
   <div class="loading" id="loading">3D JELLY LOADING…</div>
@@ -314,6 +314,110 @@ for (const x of [-2.85, 2.85]) {
 }
 
 // -----------------------------------------------------------------------------
+// Clear container: no water. The jelly lives inside a transparent acrylic box.
+// -----------------------------------------------------------------------------
+
+const CONTAINER = {
+  halfX: 2.42,
+  halfZ: 1.38,
+  height: 2.35,
+  wall: 0.035
+};
+
+const containerGroup = new THREE.Group();
+scene.add(containerGroup);
+
+const glassMaterial = new THREE.MeshPhysicalMaterial({
+  color: 0xeaf8ff,
+  roughness: 0.055,
+  metalness: 0,
+  transmission: 0.88,
+  transparent: true,
+  opacity: 0.13,
+  thickness: 0.08,
+  ior: 1.45,
+  clearcoat: 1,
+  clearcoatRoughness: 0.05,
+  depthWrite: false,
+  side: THREE.DoubleSide
+});
+
+const rimMaterial = new THREE.MeshStandardMaterial({
+  color: 0xa8c5d1,
+  roughness: 0.32,
+  transparent: true,
+  opacity: 0.42,
+  depthWrite: false
+});
+
+function addGlassPanel(geometry, x, y, z) {
+  const panel = new THREE.Mesh(geometry, glassMaterial);
+  panel.position.set(x, y, z);
+  panel.renderOrder = 5;
+  containerGroup.add(panel);
+  return panel;
+}
+
+addGlassPanel(
+  new THREE.BoxGeometry(CONTAINER.wall, CONTAINER.height, CONTAINER.halfZ * 2),
+  -CONTAINER.halfX, CONTAINER.height * 0.5, 0
+);
+addGlassPanel(
+  new THREE.BoxGeometry(CONTAINER.wall, CONTAINER.height, CONTAINER.halfZ * 2),
+  CONTAINER.halfX, CONTAINER.height * 0.5, 0
+);
+addGlassPanel(
+  new THREE.BoxGeometry(CONTAINER.halfX * 2, CONTAINER.height, CONTAINER.wall),
+  0, CONTAINER.height * 0.5, -CONTAINER.halfZ
+);
+addGlassPanel(
+  new THREE.BoxGeometry(CONTAINER.halfX * 2, CONTAINER.height, CONTAINER.wall),
+  0, CONTAINER.height * 0.5, CONTAINER.halfZ
+);
+
+// Very faint clear lid: visually subtle, physically keeps thrown jelly inside.
+addGlassPanel(
+  new THREE.BoxGeometry(CONTAINER.halfX * 2, CONTAINER.wall, CONTAINER.halfZ * 2),
+  0, CONTAINER.height, 0
+);
+
+const rimH = CONTAINER.height;
+for (const x of [-CONTAINER.halfX, CONTAINER.halfX]) {
+  for (const z of [-CONTAINER.halfZ, CONTAINER.halfZ]) {
+    const post = new THREE.Mesh(
+      new THREE.BoxGeometry(0.025, rimH, 0.025),
+      rimMaterial
+    );
+    post.position.set(x, rimH * 0.5, z);
+    containerGroup.add(post);
+  }
+}
+
+for (const y of [0.015, CONTAINER.height]) {
+  const frontRim = new THREE.Mesh(
+    new THREE.BoxGeometry(CONTAINER.halfX * 2, 0.025, 0.025),
+    rimMaterial
+  );
+  frontRim.position.set(0, y, CONTAINER.halfZ);
+  containerGroup.add(frontRim);
+
+  const backRim = frontRim.clone();
+  backRim.position.z = -CONTAINER.halfZ;
+  containerGroup.add(backRim);
+
+  const leftRim = new THREE.Mesh(
+    new THREE.BoxGeometry(0.025, 0.025, CONTAINER.halfZ * 2),
+    rimMaterial
+  );
+  leftRim.position.set(-CONTAINER.halfX, y, 0);
+  containerGroup.add(leftRim);
+
+  const rightRim = leftRim.clone();
+  rightRim.position.x = CONTAINER.halfX;
+  containerGroup.add(rightRim);
+}
+
+// -----------------------------------------------------------------------------
 // Contact shadow texture
 // -----------------------------------------------------------------------------
 
@@ -452,6 +556,11 @@ const state = {
 
   gravityOn: true,
   dragging: false,
+  pinching: false,
+  pinchAmount: 0,
+  pinchVelocity: 0,
+  pinchTarget: 0,
+  pinchStartDistance: 0,
 
   grabBase: new THREE.Vector3(),
   grabTarget: new THREE.Vector3(),
@@ -502,6 +611,11 @@ function resetJelly() {
   state.wobbleZ = 0;
   state.wobbleZVelocity = 0;
   state.dragging = false;
+  state.pinching = false;
+  state.pinchAmount = 0;
+  state.pinchVelocity = 0;
+  state.pinchTarget = 0;
+  state.pinchStartDistance = 0;
   state.touchFloat = 0;
   state.grabTargetSoft.copy(state.position);
   state.motion.gravityX = 0;
@@ -658,26 +772,26 @@ async function enableMotion() {
       const permission = await DeviceMotionEvent.requestPermission();
       state.motion.permission = permission;
       if (permission !== "granted") {
-        motionButton.textContent = "MOTION DENIED";
+        motionButton.textContent = "傾き NG";
         return false;
       }
     }
 
     if (typeof DeviceMotionEvent === "undefined") {
       state.motion.permission = "unsupported";
-      motionButton.textContent = "NO SENSOR";
+      motionButton.textContent = "センサーなし";
       return false;
     }
 
     state.motion.enabled = true;
     state.motion.permission = "granted";
     addEventListener("devicemotion", onDeviceMotion, { passive: true });
-    motionButton.textContent = "MOTION ON";
+    motionButton.textContent = "傾き ON";
     return true;
   } catch (error) {
     console.warn("Motion sensor unavailable.", error);
     state.motion.permission = "error";
-    motionButton.textContent = "MOTION ERROR";
+    motionButton.textContent = "傾き ERROR";
     return false;
   }
 }
@@ -690,7 +804,61 @@ function disableMotion() {
   state.motion.linearX = 0;
   state.motion.linearY = 0;
   state.motion.linearZ = 0;
-  motionButton.textContent = "MOTION OFF";
+  motionButton.textContent = "傾き OFF";
+}
+
+function collideWithContainer() {
+  const scales = currentShapeScale();
+  const radiusX = 0.62 * scales.sx + Math.abs(state.wobbleX) * 0.08 + 0.035;
+  const radiusZ = 0.62 * scales.sz + Math.abs(state.wobbleZ) * 0.08 + 0.035;
+  const radiusY = currentBottomRadius() + 0.035;
+
+  const minX = -CONTAINER.halfX + radiusX;
+  const maxX = CONTAINER.halfX - radiusX;
+  const minZ = -CONTAINER.halfZ + radiusZ;
+  const maxZ = CONTAINER.halfZ - radiusZ;
+  const maxY = CONTAINER.height - radiusY;
+
+  if (state.position.x < minX) {
+    state.position.x = minX;
+    state.velocity.x = Math.abs(state.velocity.x) * 0.12;
+    state.wobbleXVelocity -= 0.75;
+  } else if (state.position.x > maxX) {
+    state.position.x = maxX;
+    state.velocity.x = -Math.abs(state.velocity.x) * 0.12;
+    state.wobbleXVelocity += 0.75;
+  }
+
+  if (state.position.z < minZ) {
+    state.position.z = minZ;
+    state.velocity.z = Math.abs(state.velocity.z) * 0.12;
+    state.wobbleZVelocity -= 0.65;
+  } else if (state.position.z > maxZ) {
+    state.position.z = maxZ;
+    state.velocity.z = -Math.abs(state.velocity.z) * 0.12;
+    state.wobbleZVelocity += 0.65;
+  }
+
+  if (state.position.y > maxY) {
+    state.position.y = maxY;
+    state.velocity.y = -Math.abs(state.velocity.y) * 0.08;
+    state.squashVelocity -= 0.22;
+  }
+
+  const bottom = state.position.y - currentBottomRadius();
+  if (bottom < TABLE_Y) {
+    state.position.y += TABLE_Y - bottom;
+    if (state.velocity.y < 0) {
+      const impact = -state.velocity.y;
+      state.velocity.y = impact * 0.03;
+      state.squashVelocity += impact * 0.30;
+      state.wobbleXVelocity += -state.velocity.x * 0.24;
+      state.wobbleZVelocity += -state.velocity.z * 0.24;
+      state.velocity.x *= 0.96;
+      state.velocity.z *= 0.96;
+    }
+    if (Math.abs(state.velocity.y) < 0.08) state.velocity.y = 0;
+  }
 }
 
 function physicsStep(dt) {
@@ -763,38 +931,15 @@ function physicsStep(dt) {
 
   state.position.addScaledVector(state.velocity, dt);
 
-  // Desk collision. Most impact energy goes into squash instead of bounce.
-  const bottom = state.position.y - currentBottomRadius();
+  collideWithContainer();
 
-  if (bottom < TABLE_Y) {
-    state.position.y += TABLE_Y - bottom;
-
-    if (state.velocity.y < 0) {
-      const impact = -state.velocity.y;
-      state.velocity.y = impact * 0.03;
-
-      state.squashVelocity += impact * 0.30;
-      state.wobbleXVelocity += -state.velocity.x * 0.24;
-      state.wobbleZVelocity += -state.velocity.z * 0.24;
-
-      // Soft pudding contact: absorb vertical impact but keep a little slide.
-      state.velocity.x *= 0.96;
-      state.velocity.z *= 0.96;
-    }
-
-    if (Math.abs(state.velocity.y) < 0.08) state.velocity.y = 0;
-  }
-
-  // Keep depth on the desk, then clamp the whole jelly to the visible
-  // camera frustum so a fast throw can never disappear off-screen.
-  const zEdge = 1.55;
-  if (state.position.z < -zEdge) {
-    state.position.z = -zEdge;
-    state.velocity.z = Math.abs(state.velocity.z) * 0.12;
-  } else if (state.position.z > zEdge) {
-    state.position.z = zEdge;
-    state.velocity.z = -Math.abs(state.velocity.z) * 0.12;
-  }
+  const pinchStiffness = state.pinching ? 28 : 11;
+  const pinchDamping = state.pinching ? 7.0 : 3.2;
+  const pinchDelta = state.pinchTarget - state.pinchAmount;
+  state.pinchVelocity +=
+    (pinchDelta * pinchStiffness - state.pinchVelocity * pinchDamping) * dt;
+  state.pinchAmount += state.pinchVelocity * dt;
+  state.pinchAmount = THREE.MathUtils.clamp(state.pinchAmount, -0.46, 0.58);
 
   keepJellyInView();
 
@@ -842,6 +987,15 @@ function deformJelly(time) {
     let x = bx * scales.sx;
     let y = by * scales.sy;
     let z = bz * scales.sz;
+
+    // Two-finger pinch: fingers closing squeeze the body radially and make it
+    // bulge upward; opening the fingers stretches it wider and flatter.
+    const pinch = state.pinchAmount;
+    const pinchRadial = THREE.MathUtils.clamp(1 - pinch * 0.34, 0.76, 1.22);
+    const pinchVertical = THREE.MathUtils.clamp(1 + pinch * 0.46, 0.76, 1.34);
+    x *= pinchRadial;
+    z *= pinchRadial;
+    y *= pinchVertical;
 
     // Lower half widens a little more under compression, like soft food.
     const lowWeight = Math.pow(1 - height01, 1.7);
@@ -1017,8 +1171,49 @@ function updateGrabWeights(localPoint) {
   }
 }
 
+const activePointers = new Map();
+
+function pointerDistance() {
+  const values = [...activePointers.values()];
+  if (values.length < 2) return 0;
+  const a = values[0];
+  const b = values[1];
+  return Math.hypot(a.x - b.x, a.y - b.y);
+}
+
+function beginPinchIfPossible() {
+  if (activePointers.size < 2) return false;
+
+  const distance = pointerDistance();
+  if (distance <= 0) return false;
+
+  state.pinching = true;
+  state.dragging = false;
+  state.grabWeights.fill(0);
+  state.pinchStartDistance = distance;
+  state.pinchTarget = 0;
+  state.pinchVelocity += 0.035;
+  return true;
+}
+
 canvas.addEventListener("pointerdown", event => {
   tryLandscapeLock();
+
+  if (!state.motion.enabled && state.motion.permission === "unknown") {
+    enableMotion();
+  }
+
+  activePointers.set(event.pointerId, {
+    x: event.clientX,
+    y: event.clientY
+  });
+
+  if (activePointers.size >= 2 && beginPinchIfPossible()) {
+    event.preventDefault();
+    canvas.setPointerCapture(event.pointerId);
+    return;
+  }
+
   setPointerNDC(event);
   raycaster.setFromCamera(pointerNDC, camera);
 
@@ -1053,6 +1248,22 @@ canvas.addEventListener("pointerdown", event => {
 });
 
 canvas.addEventListener("pointermove", event => {
+  if (activePointers.has(event.pointerId)) {
+    activePointers.set(event.pointerId, {
+      x: event.clientX,
+      y: event.clientY
+    });
+  }
+
+  if (state.pinching && activePointers.size >= 2) {
+    const distance = pointerDistance();
+    if (state.pinchStartDistance > 0 && distance > 0) {
+      const ratio = distance / state.pinchStartDistance;
+      state.pinchTarget = THREE.MathUtils.clamp((1 - ratio) * 1.55, -0.42, 0.55);
+    }
+    return;
+  }
+
   if (!state.dragging) return;
 
   setPointerNDC(event);
@@ -1060,7 +1271,7 @@ canvas.addEventListener("pointermove", event => {
 
   if (!raycaster.ray.intersectPlane(dragPlane, tempRayPoint)) return;
 
-  // Don't allow the grab target to disappear deeply below the table.
+  // Don't allow the grab target to disappear deeply below the container floor.
   tempRayPoint.y = Math.max(tempRayPoint.y, TABLE_Y + 0.06);
 
   const dt = Math.max(clock.getDelta(), 1 / 240);
@@ -1076,17 +1287,29 @@ canvas.addEventListener("pointermove", event => {
   state.grabTarget.copy(tempRayPoint);
 });
 
-function releasePointer() {
+function releasePointer(event) {
+  activePointers.delete(event.pointerId);
+
+  if (state.pinching) {
+    if (activePointers.size < 2) {
+      // Let the stored squeeze spring back into a broad "ぷるん".
+      state.pinching = false;
+      state.pinchTarget = 0;
+      state.squashVelocity += state.pinchAmount * 0.34;
+      state.wobbleXVelocity += state.pinchAmount * 0.08;
+    }
+    return;
+  }
+
   if (!state.dragging) return;
 
-  // Release keeps some momentum, but less than before; this feels soft instead
-  // of launching like a rubber ball.
-  state.velocity.addScaledVector(state.grabTargetVelocity, 0.25);
-  if (state.velocity.length() > 6.2) state.velocity.setLength(6.2);
+  // Release keeps enough finger velocity for an intentional throw.
+  state.velocity.addScaledVector(state.grabTargetVelocity, 0.31);
+  if (state.velocity.length() > 6.8) state.velocity.setLength(6.8);
   state.touchFloat = 1;
 
-  state.wobbleXVelocity += -state.grabTargetVelocity.x * 0.08;
-  state.wobbleZVelocity += -state.grabTargetVelocity.z * 0.08;
+  state.wobbleXVelocity += -state.grabTargetVelocity.x * 0.10;
+  state.wobbleZVelocity += -state.grabTargetVelocity.z * 0.10;
 
   state.dragging = false;
   state.grabWeights.fill(0);
