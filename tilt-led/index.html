@@ -123,11 +123,12 @@
         rotate(var(--a))
         translateY(calc(min(39vw, 29svh, 195px) * -1))
         scale(var(--s));
-      background: rgb(52 83 72);
-      opacity: calc(.28 + var(--b) * .72);
+      background: rgb(66 125 105);
+      opacity: calc(.58 + var(--b) * .42);
       box-shadow:
-        inset 0 1px 2px rgba(255,255,255,.08),
-        0 0 calc(var(--b) * 28px) rgba(67, 255, 190, calc(var(--b) * .85));
+        inset 0 1px 2px rgba(255,255,255,.10),
+        0 0 5px rgba(67, 255, 190, .18),
+        0 0 calc(5px + var(--b) * 28px) rgba(67, 255, 190, calc(.16 + var(--b) * .70));
       transition: background 160ms linear, opacity 160ms linear, box-shadow 160ms linear, transform 160ms linear;
       will-change: transform, opacity, box-shadow;
     }
@@ -461,10 +462,10 @@
           const prev = water[(i - 1 + LED_COUNT) % LED_COUNT];
           const next = water[(i + 1) % LED_COUNT];
           const localWave = Math.abs(next - prev);
-          const brightness = Math.min(1, water[i] * 0.88 + localWave * 1.9);
+          const brightness = Math.min(1, 0.16 + water[i] * 0.72 + localWave * 1.55);
 
           const led = leds[i];
-          led.classList.toggle('is-lit', brightness > .11);
+          led.classList.toggle('is-lit', brightness > .28);
           led.style.setProperty('--b', brightness.toFixed(3));
           led.style.setProperty('--s', (1 + brightness * .20).toFixed(3));
         }
