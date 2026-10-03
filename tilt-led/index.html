@@ -1,0 +1,463 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#07110f">
+  <meta name="color-scheme" content="dark">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <title>ひかりリング | For My Sons</title>
+  <style>
+    * { box-sizing: border-box; }
+    html, body { margin: 0; min-height: 100%; background: #07110f; }
+    body {
+      min-height: 100svh;
+      overflow: hidden;
+      font-family: -apple-system, BlinkMacSystemFont, "SF Pro Rounded", "Hiragino Sans", "Yu Gothic", sans-serif;
+      color: #eefbf6;
+      background:
+        radial-gradient(circle at 50% 42%, rgba(42, 255, 184, .08), transparent 35%),
+        linear-gradient(180deg, #0a1714 0%, #050a09 100%);
+      -webkit-font-smoothing: antialiased;
+      user-select: none;
+      -webkit-user-select: none;
+    }
+    button, a { -webkit-tap-highlight-color: transparent; }
+    .app {
+      min-height: 100svh;
+      display: flex;
+      flex-direction: column;
+      padding:
+        calc(env(safe-area-inset-top) + 10px)
+        14px
+        calc(env(safe-area-inset-bottom) + 14px);
+    }
+    .topbar {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      min-height: 48px;
+      flex: 0 0 auto;
+    }
+    .back, .mini-button {
+      width: 44px;
+      height: 44px;
+      border: 1px solid rgba(198, 255, 235, .13);
+      border-radius: 15px;
+      display: grid;
+      place-items: center;
+      background: rgba(12, 31, 26, .72);
+      color: #eafff7;
+      text-decoration: none;
+      font: inherit;
+      font-size: 24px;
+      font-weight: 800;
+      box-shadow: inset 0 1px rgba(255,255,255,.06);
+      touch-action: manipulation;
+    }
+    .mini-button {
+      width: auto;
+      min-width: 44px;
+      padding: 0 12px;
+      font-size: 12px;
+      letter-spacing: .04em;
+    }
+    .title { min-width: 0; flex: 1; }
+    .eyebrow {
+      margin: 0 0 2px;
+      color: #73d9b6;
+      font-size: 10px;
+      font-weight: 900;
+      letter-spacing: .14em;
+    }
+    h1 {
+      margin: 0;
+      font-size: 20px;
+      line-height: 1.05;
+      letter-spacing: -.02em;
+    }
+    .stage {
+      flex: 1 1 auto;
+      min-height: 0;
+      display: grid;
+      place-items: center;
+      padding: 8px 0;
+    }
+    .ring-shell {
+      position: relative;
+      width: min(78vw, 58svh, 390px);
+      aspect-ratio: 1;
+      border-radius: 50%;
+      touch-action: none;
+    }
+    .ring-face {
+      position: absolute;
+      inset: 8%;
+      border-radius: 50%;
+      border: 1px solid rgba(140, 255, 218, .09);
+      background:
+        radial-gradient(circle at 50% 44%, rgba(38, 103, 82, .12), rgba(0,0,0,.2) 63%, rgba(0,0,0,.48) 100%);
+      box-shadow:
+        inset 0 0 35px rgba(0,0,0,.8),
+        0 0 70px rgba(0,0,0,.42);
+    }
+    .ring-guide {
+      position: absolute;
+      inset: 15%;
+      border: 1px solid rgba(145, 255, 218, .07);
+      border-radius: 50%;
+    }
+    .led {
+      --a: 0deg;
+      --b: .06;
+      --s: 1;
+      position: absolute;
+      left: 50%;
+      top: 50%;
+      width: clamp(12px, 4.2vw, 20px);
+      aspect-ratio: 1;
+      margin: calc(clamp(12px, 4.2vw, 20px) / -2);
+      border-radius: 50%;
+      transform:
+        rotate(var(--a))
+        translateY(calc(min(39vw, 29svh, 195px) * -1))
+        rotate(calc(var(--a) * -1))
+        scale(var(--s));
+      background: rgb(52 83 72);
+      opacity: calc(.28 + var(--b) * .72);
+      box-shadow:
+        inset 0 1px 2px rgba(255,255,255,.08),
+        0 0 calc(var(--b) * 28px) rgba(67, 255, 190, calc(var(--b) * .85));
+      transition: background 70ms linear, opacity 70ms linear, box-shadow 70ms linear, transform 70ms linear;
+      will-change: transform, opacity, box-shadow;
+    }
+    .led.is-lit {
+      background: rgb(104 255 201);
+    }
+    .center {
+      position: absolute;
+      left: 50%;
+      top: 50%;
+      width: 17%;
+      aspect-ratio: 1;
+      transform: translate(-50%, -50%);
+      border-radius: 50%;
+      border: 1px solid rgba(115, 255, 207, .12);
+      background: rgba(9, 23, 19, .76);
+      display: grid;
+      place-items: center;
+      box-shadow: inset 0 0 16px rgba(0,0,0,.65);
+    }
+    .center-dot {
+      --level: 0;
+      width: 22%;
+      aspect-ratio: 1;
+      border-radius: 50%;
+      background: #5b7c70;
+      box-shadow: 0 0 calc(var(--level) * 24px) rgba(104, 255, 201, calc(var(--level) * .7));
+      transform: scale(calc(.78 + var(--level) * .55));
+      transition: 90ms ease;
+    }
+    .center-dot.is-level { background: #68ffc9; }
+    .readout {
+      position: absolute;
+      left: 50%;
+      bottom: 2%;
+      transform: translateX(-50%);
+      color: rgba(213, 255, 240, .55);
+      font-size: 11px;
+      font-weight: 800;
+      letter-spacing: .08em;
+      font-variant-numeric: tabular-nums;
+      white-space: nowrap;
+      pointer-events: none;
+    }
+    .controls {
+      flex: 0 0 auto;
+      display: grid;
+      gap: 9px;
+      width: min(100%, 440px);
+      margin: 0 auto;
+    }
+    .start {
+      min-height: 54px;
+      border: 0;
+      border-radius: 18px;
+      background: #63f2be;
+      color: #062119;
+      font: inherit;
+      font-size: 16px;
+      font-weight: 950;
+      letter-spacing: .02em;
+      box-shadow: 0 8px 26px rgba(56, 255, 184, .14);
+      touch-action: manipulation;
+    }
+    .start:active { transform: translateY(1px); }
+    .status {
+      margin: 0;
+      min-height: 32px;
+      display: grid;
+      place-items: center;
+      color: rgba(224, 255, 244, .65);
+      font-size: 12px;
+      font-weight: 750;
+      text-align: center;
+      line-height: 1.35;
+    }
+    .hint {
+      margin: 0;
+      color: rgba(200, 241, 226, .39);
+      font-size: 10px;
+      text-align: center;
+    }
+    .is-running .start { background: #173b30; color: #b8ffe5; }
+    @media (orientation: landscape) and (max-height: 540px) {
+      .app { padding-left: calc(env(safe-area-inset-left) + 12px); padding-right: calc(env(safe-area-inset-right) + 12px); }
+      .stage { padding: 0; }
+      .ring-shell { width: min(62svh, 350px); }
+      .led {
+        width: clamp(10px, 3.2svh, 18px);
+        margin: calc(clamp(10px, 3.2svh, 18px) / -2);
+        transform:
+          rotate(var(--a))
+          translateY(calc(min(31svh, 175px) * -1))
+          rotate(calc(var(--a) * -1))
+          scale(var(--s));
+      }
+      .controls {
+        position: absolute;
+        right: calc(env(safe-area-inset-right) + 16px);
+        bottom: calc(env(safe-area-inset-bottom) + 14px);
+        width: min(34vw, 280px);
+      }
+      .hint { display: none; }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      .led, .center-dot { transition: none; }
+    }
+  </style>
+</head>
+<body>
+  <main class="app" id="app">
+    <header class="topbar">
+      <a class="back" href="../" aria-label="For My Sonsにもどる">‹</a>
+      <div class="title">
+        <p class="eyebrow">FOR MY SONS · SENSOR PLAY</p>
+        <h1>ひかりリング</h1>
+      </div>
+      <button class="mini-button" id="center-button" type="button">まんなか</button>
+    </header>
+
+    <section class="stage" aria-label="傾きで動くLEDリング">
+      <div class="ring-shell" id="ring" role="img" aria-label="24個のLEDが円形にならんでいます">
+        <div class="ring-face"></div>
+        <div class="ring-guide"></div>
+        <div id="leds"></div>
+        <div class="center" aria-hidden="true"><div class="center-dot" id="center-dot"></div></div>
+        <div class="readout" id="readout">TILT 0°</div>
+      </div>
+    </section>
+
+    <section class="controls">
+      <button class="start" id="start-button" type="button">センサーをつかう</button>
+      <p class="status" id="status">スマホを手に持って、ボタンをおしてね。</p>
+      <p class="hint">センサーが使えないときは、リングを指でドラッグして試せます。</p>
+    </section>
+  </main>
+
+  <script>
+    (() => {
+      const LED_COUNT = 24;
+      const MAX_TILT = 28;
+      const DEAD_ZONE = 1.8;
+      const SMOOTHING = 0.17;
+
+      const app = document.querySelector('#app');
+      const ring = document.querySelector('#ring');
+      const ledsRoot = document.querySelector('#leds');
+      const startButton = document.querySelector('#start-button');
+      const centerButton = document.querySelector('#center-button');
+      const centerDot = document.querySelector('#center-dot');
+      const status = document.querySelector('#status');
+      const readout = document.querySelector('#readout');
+
+      const leds = [];
+      let sensorStarted = false;
+      let calibrated = false;
+      let zeroX = 0;
+      let zeroY = 0;
+      let targetX = 0;
+      let targetY = 0;
+      let smoothX = 0;
+      let smoothY = 0;
+      let dragging = false;
+
+      for (let i = 0; i < LED_COUNT; i += 1) {
+        const led = document.createElement('div');
+        led.className = 'led';
+        led.style.setProperty('--a', (i * 360 / LED_COUNT) + 'deg');
+        ledsRoot.appendChild(led);
+        leds.push(led);
+      }
+
+      function screenAngle() {
+        const value = screen.orientation && Number.isFinite(screen.orientation.angle)
+          ? screen.orientation.angle
+          : (typeof window.orientation === 'number' ? window.orientation : 0);
+        return ((value % 360) + 360) % 360;
+      }
+
+      function transformForScreen(beta, gamma) {
+        const angle = screenAngle();
+        if (angle === 90) return { x: beta, y: -gamma };
+        if (angle === 180) return { x: -gamma, y: -beta };
+        if (angle === 270) return { x: -beta, y: gamma };
+        return { x: gamma, y: beta };
+      }
+
+      function onOrientation(event) {
+        if (typeof event.beta !== 'number' || typeof event.gamma !== 'number') return;
+        const value = transformForScreen(event.beta, event.gamma);
+
+        if (!calibrated) {
+          zeroX = value.x;
+          zeroY = value.y;
+          calibrated = true;
+          status.textContent = 'OK！ スマホをかたむけてみよう。';
+        }
+
+        targetX = value.x - zeroX;
+        targetY = value.y - zeroY;
+      }
+
+      function setCenter() {
+        if (sensorStarted) {
+          zeroX += targetX;
+          zeroY += targetY;
+        }
+        targetX = 0;
+        targetY = 0;
+        smoothX = 0;
+        smoothY = 0;
+        calibrated = sensorStarted;
+        status.textContent = sensorStarted ? 'ここを まんなかにしました。' : 'まんなかに もどしました。';
+      }
+
+      async function startSensor() {
+        if (sensorStarted) {
+          setCenter();
+          return;
+        }
+
+        if (!('DeviceOrientationEvent' in window)) {
+          status.textContent = 'この端末ではセンサーが見つかりません。指でドラッグして遊べます。';
+          return;
+        }
+
+        try {
+          if (typeof DeviceOrientationEvent.requestPermission === 'function') {
+            const permission = await DeviceOrientationEvent.requestPermission();
+            if (permission !== 'granted') {
+              status.textContent = 'センサーの許可が必要です。設定を確認してね。';
+              return;
+            }
+          }
+
+          calibrated = false;
+          window.addEventListener('deviceorientation', onOrientation, true);
+          sensorStarted = true;
+          app.classList.add('is-running');
+          startButton.textContent = 'この位置を まんなかにする';
+          status.textContent = 'センサーをよみこみ中…';
+        } catch (error) {
+          console.warn('Device orientation permission failed.', error);
+          status.textContent = 'センサーを開始できませんでした。指でドラッグして遊べます。';
+        }
+      }
+
+      function pointerTilt(event) {
+        const rect = ring.getBoundingClientRect();
+        const cx = rect.left + rect.width / 2;
+        const cy = rect.top + rect.height / 2;
+        const radius = rect.width * 0.38;
+        const dx = (event.clientX - cx) / radius;
+        const dy = (event.clientY - cy) / radius;
+        targetX = Math.max(-1, Math.min(1, dx)) * MAX_TILT;
+        targetY = Math.max(-1, Math.min(1, dy)) * MAX_TILT;
+      }
+
+      ring.addEventListener('pointerdown', (event) => {
+        dragging = true;
+        ring.setPointerCapture?.(event.pointerId);
+        pointerTilt(event);
+      });
+      ring.addEventListener('pointermove', (event) => {
+        if (dragging) pointerTilt(event);
+      });
+      const endDrag = () => {
+        if (!dragging) return;
+        dragging = false;
+        if (!sensorStarted) {
+          targetX = 0;
+          targetY = 0;
+        }
+      };
+      ring.addEventListener('pointerup', endDrag);
+      ring.addEventListener('pointercancel', endDrag);
+      ring.addEventListener('lostpointercapture', endDrag);
+
+      function circularDistance(a, b) {
+        const diff = Math.abs(a - b) % LED_COUNT;
+        return Math.min(diff, LED_COUNT - diff);
+      }
+
+      function render() {
+        smoothX += (targetX - smoothX) * SMOOTHING;
+        smoothY += (targetY - smoothY) * SMOOTHING;
+
+        const magnitude = Math.hypot(smoothX, smoothY);
+        const strength = Math.min(1, magnitude / MAX_TILT);
+        const level = magnitude <= DEAD_ZONE;
+        let angle = Math.atan2(smoothX, -smoothY);
+        if (angle < 0) angle += Math.PI * 2;
+        const active = Math.round((angle / (Math.PI * 2)) * LED_COUNT) % LED_COUNT;
+
+        leds.forEach((led, index) => {
+          const distance = circularDistance(index, active);
+          let brightness = 0;
+          if (!level) {
+            if (distance === 0) brightness = .45 + .55 * strength;
+            else if (distance === 1) brightness = .16 + .36 * strength;
+            else if (distance === 2) brightness = .06 + .13 * strength;
+          }
+
+          led.classList.toggle('is-lit', brightness > .16);
+          led.style.setProperty('--b', brightness.toFixed(3));
+          led.style.setProperty('--s', (1 + brightness * .28).toFixed(3));
+        });
+
+        const centerLevel = level ? Math.max(.35, 1 - magnitude / DEAD_ZONE) : 0;
+        centerDot.classList.toggle('is-level', level);
+        centerDot.style.setProperty('--level', centerLevel.toFixed(3));
+        readout.textContent = 'TILT ' + Math.round(magnitude) + '°';
+
+        requestAnimationFrame(render);
+      }
+
+      startButton.addEventListener('click', startSensor);
+      centerButton.addEventListener('click', setCenter);
+      window.addEventListener('orientationchange', () => {
+        calibrated = false;
+        targetX = 0;
+        targetY = 0;
+        smoothX = 0;
+        smoothY = 0;
+        if (sensorStarted) status.textContent = '向きがかわったので、まんなかを取りなおします。';
+      });
+
+      render();
+    })();
+  </script>
+</body>
+</html>
