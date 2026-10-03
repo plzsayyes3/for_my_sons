@@ -35,6 +35,13 @@
     "description": "赤から逃げて生存タイムを競う。自分と家族のベスト記録に挑戦"
   },
   {
+    "id": "slime",
+    "name": "スライム",
+    "url": "./slime/?v=1",
+    "icon": "./assets/slime.svg?v=1",
+    "description": "透明なぷるぷるスライムをつかんで、のばして、投げてあそぼう"
+  },
+  {
     "id": "typing",
     "name": "たいぴんぐ",
     "url": "https://arafo-aragai.com/learning/typegame/typegame.html",
