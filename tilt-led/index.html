@@ -272,9 +272,9 @@
       const DEAD_ZONE = 1.8;
       const SMOOTHING = 0.12;
       const SENSOR_GAIN = 0.50;
-      const WATER_SPRING = 0.005;
-      const WATER_DAMPING = 0.945;
-      const MAX_WATER_SPEED = 0.010;
+      const WATER_SPRING = 0.007;
+      const WATER_DAMPING = 0.943;
+      const MAX_WATER_SPEED = 0.016;
       const WATER_SPREAD = 11;
 
       const app = document.querySelector('#app');
@@ -445,7 +445,7 @@
           const targetMotion = shortestAngle(lastTargetAngle, targetAngle);
 
           waterVelocity += angleDelta * WATER_SPRING;
-          waterVelocity += targetMotion * 0.004;
+          waterVelocity += targetMotion * 0.007;
           waterVelocity *= WATER_DAMPING;
           waterVelocity = Math.max(-MAX_WATER_SPEED, Math.min(MAX_WATER_SPEED, waterVelocity));
           waterAngle += waterVelocity;
