@@ -1381,7 +1381,10 @@
           gamePaused = true;
           pausedAt = performance.now();
         } else if (!modalOpen && gamePaused) {
-          pausedTotal += performance.now() - pausedAt;
+          const pauseDuration = performance.now() - pausedAt;
+          pausedTotal += pauseDuration;
+          enemyLastTurnAt += pauseDuration;
+          enemyTurnStartedAt += pauseDuration;
           pausedAt = 0;
           gamePaused = false;
         }
