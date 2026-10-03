@@ -17,14 +17,38 @@
     touch-action: none;
     overscroll-behavior: none;
   }
-  canvas {
-    display: block;
+  #landscape-root {
+    position: fixed;
+    left: 0;
+    top: 0;
     width: 100vw;
     height: 100vh;
+    overflow: hidden;
+    transform-origin: 50% 50%;
+    background: #ece9e2;
+  }
+
+  canvas {
+    display: block;
+    width: 100%;
+    height: 100%;
     touch-action: none;
   }
+
+  /* Portrait gets no portrait composition at all. Render one landscape stage
+     and rotate that stage as a whole. */
+  @media (orientation: portrait) {
+    #landscape-root {
+      left: 50%;
+      top: 50%;
+      width: 100vh;
+      height: 100vw;
+      transform: translate(-50%, -50%) rotate(90deg);
+    }
+  }
+
   .hud {
-    position: fixed;
+    position: absolute;
     top: max(12px, env(safe-area-inset-top));
     left: 12px;
     right: 12px;
@@ -64,7 +88,7 @@
     opacity: .72;
   }
   .loading {
-    position: fixed;
+    position: absolute;
     inset: 0;
     z-index: 20;
     display: grid;
@@ -79,24 +103,37 @@
 </style>
 </head>
 <body>
-<canvas id="scene" aria-label="Rady translucent jelly 3D sample"></canvas>
+<div id="landscape-root">
+  <canvas id="scene" aria-label="Rady translucent jelly 3D sample"></canvas>
 
-<div class="hud">
-  <a class="chip" href="../" aria-label="For My Sonsにもどる">‹ HOME</a>
-  <button class="chip" id="reset" type="button">RESET</button>
-  <button class="chip" id="gravity" type="button">GRAVITY ON</button>
-  <div class="chip hint">つかむ → 引っぱる → 離す</div>
+  <div class="hud">
+    <a class="chip" href="../" aria-label="For My Sonsにもどる">‹ HOME</a>
+    <button class="chip" id="reset" type="button">RESET</button>
+    <button class="chip" id="gravity" type="button">GRAVITY ON</button>
+    <button class="chip" id="motion" type="button">MOTION OFF</button>
+    <div class="chip hint">かたむける・ゆらす・つかむ</div>
+  </div>
+
+  <div class="loading" id="loading">3D JELLY LOADING…</div>
 </div>
-
-<div class="loading" id="loading">3D JELLY LOADING…</div>
 
 <script type="module">
 import * as THREE from "https://cdn.jsdelivr.net/npm/three@0.180.0/build/three.module.js";
 
+const root = document.getElementById("landscape-root");
 const canvas = document.getElementById("scene");
 const loading = document.getElementById("loading");
 const resetButton = document.getElementById("reset");
 const gravityButton = document.getElementById("gravity");
+const motionButton = document.getElementById("motion");
+
+function landscapeViewport() {
+  return innerWidth >= innerHeight
+    ? { width: innerWidth, height: innerHeight, rotated: false }
+    : { width: innerHeight, height: innerWidth, rotated: true };
+}
+
+let viewport = landscapeViewport();
 
 const renderer = new THREE.WebGLRenderer({
   canvas,
@@ -105,7 +142,7 @@ const renderer = new THREE.WebGLRenderer({
   powerPreference: "high-performance"
 });
 renderer.setPixelRatio(Math.min(devicePixelRatio || 1, 1.5));
-renderer.setSize(innerWidth, innerHeight, false);
+renderer.setSize(viewport.width, viewport.height, false);
 renderer.outputColorSpace = THREE.SRGBColorSpace;
 renderer.toneMapping = THREE.ACESFilmicToneMapping;
 renderer.toneMappingExposure = 1.08;
@@ -115,7 +152,7 @@ renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 const scene = new THREE.Scene();
 scene.background = new THREE.Color(0xeeeae3);
 
-const camera = new THREE.PerspectiveCamera(34, innerWidth / innerHeight, 0.05, 50);
+const camera = new THREE.PerspectiveCamera(34, viewport.width / viewport.height, 0.05, 50);
 camera.position.set(0, 3.25, 7.2);
 camera.lookAt(0, 0.72, 0);
 
@@ -425,6 +462,16 @@ const state = {
   // Touching makes the jelly feel lighter for a moment.
   touchFloat: 0,
 
+  motion: {
+    enabled: false,
+    permission: "unknown",
+    gravityX: 0,
+    gravityY: 0,
+    linearX: 0,
+    linearY: 0,
+    linearZ: 0
+  },
+
   // shape weight for each vertex around the touched area
   grabWeights: new Float32Array(positionAttribute.count)
 };
@@ -457,6 +504,11 @@ function resetJelly() {
   state.dragging = false;
   state.touchFloat = 0;
   state.grabTargetSoft.copy(state.position);
+  state.motion.gravityX = 0;
+  state.motion.gravityY = 0;
+  state.motion.linearX = 0;
+  state.motion.linearY = 0;
+  state.motion.linearZ = 0;
   state.grabWeights.fill(0);
 }
 
@@ -522,6 +574,125 @@ function keepJellyInView() {
   }
 }
 
+function screenAngle() {
+  if (screen.orientation && Number.isFinite(screen.orientation.angle)) {
+    return ((screen.orientation.angle % 360) + 360) % 360;
+  }
+  if (typeof window.orientation === "number") {
+    return ((window.orientation % 360) + 360) % 360;
+  }
+  return 0;
+}
+
+function deviceVectorToScreen(x, y) {
+  const angle = screenAngle();
+  let sx = x;
+  let sy = y;
+
+  if (angle === 90) {
+    sx = -y;
+    sy = x;
+  } else if (angle === 180) {
+    sx = -x;
+    sy = -y;
+  } else if (angle === 270) {
+    sx = y;
+    sy = -x;
+  }
+
+  // If iOS refuses physical orientation lock and we are drawing a rotated
+  // landscape stage over a portrait viewport, rotate sensor axes identically.
+  if (viewport.rotated) {
+    return { x: sy, y: -sx };
+  }
+
+  return { x: sx, y: sy };
+}
+
+function onDeviceMotion(event) {
+  if (!state.motion.enabled) return;
+
+  const g = event.accelerationIncludingGravity || {};
+  const linear = event.acceleration || {};
+
+  const screenG = deviceVectorToScreen(
+    Number.isFinite(g.x) ? g.x : 0,
+    Number.isFinite(g.y) ? g.y : 0
+  );
+  const screenLinear = deviceVectorToScreen(
+    Number.isFinite(linear.x) ? linear.x : 0,
+    Number.isFinite(linear.y) ? linear.y : 0
+  );
+
+  // Low-pass gravity for stable tilt. Linear acceleration remains faster so
+  // a little shake travels through the pudding as a satisfying wobble.
+  const gravityMix = 0.14;
+  state.motion.gravityX += (screenG.x - state.motion.gravityX) * gravityMix;
+  state.motion.gravityY += (screenG.y - state.motion.gravityY) * gravityMix;
+
+  const linearMix = 0.28;
+  state.motion.linearX += (screenLinear.x - state.motion.linearX) * linearMix;
+  state.motion.linearY += (screenLinear.y - state.motion.linearY) * linearMix;
+  state.motion.linearZ += (
+    (Number.isFinite(linear.z) ? linear.z : 0) - state.motion.linearZ
+  ) * linearMix;
+}
+
+async function tryLandscapeLock() {
+  try {
+    if (screen.orientation?.lock) await screen.orientation.lock("landscape");
+  } catch (_) {
+    // iPhone Safari may not expose/allow Orientation Lock. The CSS landscape
+    // stage above is the fallback and still avoids a portrait composition.
+  }
+}
+
+async function enableMotion() {
+  await tryLandscapeLock();
+
+  try {
+    if (
+      typeof DeviceMotionEvent !== "undefined" &&
+      typeof DeviceMotionEvent.requestPermission === "function"
+    ) {
+      const permission = await DeviceMotionEvent.requestPermission();
+      state.motion.permission = permission;
+      if (permission !== "granted") {
+        motionButton.textContent = "MOTION DENIED";
+        return false;
+      }
+    }
+
+    if (typeof DeviceMotionEvent === "undefined") {
+      state.motion.permission = "unsupported";
+      motionButton.textContent = "NO SENSOR";
+      return false;
+    }
+
+    state.motion.enabled = true;
+    state.motion.permission = "granted";
+    addEventListener("devicemotion", onDeviceMotion, { passive: true });
+    motionButton.textContent = "MOTION ON";
+    return true;
+  } catch (error) {
+    console.warn("Motion sensor unavailable.", error);
+    state.motion.permission = "error";
+    motionButton.textContent = "MOTION ERROR";
+    return false;
+  }
+}
+
+function disableMotion() {
+  state.motion.enabled = false;
+  removeEventListener("devicemotion", onDeviceMotion);
+  state.motion.gravityX = 0;
+  state.motion.gravityY = 0;
+  state.motion.linearX = 0;
+  state.motion.linearY = 0;
+  state.motion.linearZ = 0;
+  motionButton.textContent = "MOTION OFF";
+}
+
 function physicsStep(dt) {
   // While touched, gravity almost disappears. After release it returns gradually,
   // so the jelly floats for a short moment instead of snapping downward.
@@ -536,6 +707,32 @@ function physicsStep(dt) {
       ? 0.04
       : THREE.MathUtils.lerp(1.0, 0.22, state.touchFloat);
     state.velocity.y -= 7.7 * gravityScale * dt;
+  }
+
+  if (state.motion.enabled) {
+    // Gravity projected into the screen makes the jelly slide across the desk.
+    // Touch reduces sensor force so it never fights the finger.
+    const touchFactor = state.dragging ? 0.28 : 1.0;
+    const tiltX = THREE.MathUtils.clamp(state.motion.gravityX / 9.81, -1, 1);
+    const tiltY = THREE.MathUtils.clamp(state.motion.gravityY / 9.81, -1, 1);
+
+    state.velocity.x += tiltX * 4.1 * touchFactor * dt;
+    state.velocity.z += -tiltY * 2.9 * touchFactor * dt;
+
+    // Fast device movement is separate from tilt: it excites the soft-body
+    // springs rather than simply translating the whole jelly.
+    const shakeX = THREE.MathUtils.clamp(state.motion.linearX, -7, 7);
+    const shakeY = THREE.MathUtils.clamp(state.motion.linearY, -7, 7);
+    const shakeZ = THREE.MathUtils.clamp(state.motion.linearZ, -7, 7);
+
+    state.wobbleXVelocity += shakeX * 0.052 * touchFactor * dt * 60;
+    state.wobbleZVelocity += -shakeY * 0.042 * touchFactor * dt * 60;
+    state.squashVelocity += -shakeZ * 0.030 * touchFactor * dt * 60;
+
+    // A small face-normal shake can lift the pudding slightly, but never launch it.
+    if (!state.dragging && Math.abs(shakeZ) > 1.8) {
+      state.velocity.y += THREE.MathUtils.clamp(-shakeZ * 0.018, -0.08, 0.08);
+    }
   }
 
   if (state.dragging) {
@@ -778,9 +975,20 @@ const hitPoint = new THREE.Vector3();
 const tempRayPoint = new THREE.Vector3();
 
 function setPointerNDC(event) {
-  const rect = canvas.getBoundingClientRect();
-  pointerNDC.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
-  pointerNDC.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
+  let nx;
+  let ny;
+
+  if (viewport.rotated) {
+    // Same clockwise transform as #landscape-root.
+    nx = event.clientY / innerHeight;
+    ny = 1 - event.clientX / innerWidth;
+  } else {
+    nx = event.clientX / innerWidth;
+    ny = event.clientY / innerHeight;
+  }
+
+  pointerNDC.x = nx * 2 - 1;
+  pointerNDC.y = -(ny * 2 - 1);
 }
 
 function updateGrabWeights(localPoint) {
@@ -810,6 +1018,7 @@ function updateGrabWeights(localPoint) {
 }
 
 canvas.addEventListener("pointerdown", event => {
+  tryLandscapeLock();
   setPointerNDC(event);
   raycaster.setFromCamera(pointerNDC, camera);
 
@@ -898,12 +1107,21 @@ gravityButton.addEventListener("click", () => {
   gravityButton.textContent = state.gravityOn ? "GRAVITY ON" : "GRAVITY OFF";
 });
 
-addEventListener("resize", () => {
-  camera.aspect = innerWidth / innerHeight;
+motionButton.addEventListener("click", async () => {
+  if (state.motion.enabled) disableMotion();
+  else await enableMotion();
+});
+
+function resizeLandscapeStage() {
+  viewport = landscapeViewport();
+  camera.aspect = viewport.width / viewport.height;
   camera.updateProjectionMatrix();
   renderer.setPixelRatio(Math.min(devicePixelRatio || 1, 1.5));
-  renderer.setSize(innerWidth, innerHeight, false);
-});
+  renderer.setSize(viewport.width, viewport.height, false);
+}
+
+addEventListener("resize", resizeLandscapeStage);
+screen.orientation?.addEventListener?.("change", resizeLandscapeStage);
 
 // -----------------------------------------------------------------------------
 // Main loop
@@ -926,6 +1144,7 @@ function animate(now) {
   requestAnimationFrame(animate);
 }
 
+resizeLandscapeStage();
 resetJelly();
 deformJelly(0);
 renderer.render(scene, camera);
