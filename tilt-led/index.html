@@ -10,7 +10,7 @@
   <meta http-equiv="Expires" content="0">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-  <link rel="manifest" href="./manifest.webmanifest?v=3">
+  <link rel="manifest" href="./manifest.webmanifest?v=4">
   <title>ひかりリング | For My Sons</title>
   <style>
     * { box-sizing: border-box; }
@@ -740,20 +740,22 @@
       const SPEED_MAX = 0.035;
       const SPRING_MIN = 0.0035;
       const SPRING_MAX = 0.012;
-      const ENEMY_SPEED = 0.02025;
-      const ENEMY_SPEED_STEP = 0.0024;
-      const ENEMY_SPEED_INTERVAL_MS = 3000;
-      const ENEMY_SPEED_FAST_INTERVAL_MS = 2000;
+      const ENEMY_SPEED = 0.0165;
+      const ENEMY_SPEED_STEP = 0.0012;
+      const ENEMY_SPEED_INTERVAL_MS = 6000;
+      const ENEMY_SPEED_FAST_INTERVAL_MS = 4000;
       const ENEMY_SPEED_FAST_START_MS = 50000;
-      const ENEMY_SPEED_MAX = 0.0405;
-      const ENEMY_LOOKAHEAD_MIN = 7;
-      const ENEMY_LOOKAHEAD_MAX = 24;
-      const ENEMY_LOOKAHEAD_VELOCITY_BONUS = 8;
+      const ENEMY_SPEED_MAX = 0.032;
+      const ENEMY_TURN_INTERVAL_MS = 5000;
+      const ENEMY_TURN_BLEND_MS = 650;
+      const ENEMY_LOOKAHEAD_MIN = 5;
+      const ENEMY_LOOKAHEAD_MAX = 16;
+      const ENEMY_LOOKAHEAD_VELOCITY_BONUS = 5;
       const HIT_DISTANCE = 2.1;
       const HIT_COOLDOWN_MS = 950;
       const STARTING_LIVES = 5;
-      const BUILD_VERSION = '26';
-      const ACTIVE_CACHE_NAME = 'for-my-sons-v123';
+      const BUILD_VERSION = '27';
+      const ACTIVE_CACHE_NAME = 'for-my-sons-v124';
       const RECORD_APP_ID = 'tilt-led';
       const RECORD_SAVE_KEY = 'survival-record';
       const FALLBACK_RECORD_KEY = 'tilt-led-best-centiseconds';
@@ -798,6 +800,9 @@
       let playerVelocity = 0;
       let lastTargetAngle = 0;
       let enemyAngle = Math.PI;
+      let enemyTravelDirection = 1;
+      let enemyLastTurnAt = 0;
+      let enemyTurnStartedAt = 0;
       let gameRunning = false;
       let gamePaused = false;
       let lives = 5;
@@ -1181,6 +1186,9 @@
         enemyAngle = Math.PI;
         lastHitAt = -Infinity;
         gameStartedAt = performance.now();
+        enemyTravelDirection = 1;
+        enemyLastTurnAt = gameStartedAt;
+        enemyTurnStartedAt = gameStartedAt;
         pausedTotal = 0;
         pausedAt = 0;
         gameRunning = true;
@@ -1265,6 +1273,13 @@
 
       function updateEnemy(now) {
         const speed = currentEnemySpeed(now);
+
+        if (now - enemyLastTurnAt >= ENEMY_TURN_INTERVAL_MS) {
+          enemyTravelDirection *= -1;
+          enemyLastTurnAt = now;
+          enemyTurnStartedAt = now;
+        }
+
         const directDistance = Math.abs(shortestAngle(enemyAngle, playerAngle));
         const distanceRatio = Math.min(1, directDistance / Math.PI);
         const playerSpeedRatio = Math.min(1, Math.abs(playerVelocity) / Math.max(0.001, currentMaxSpeed()));
@@ -1278,15 +1293,22 @@
           playerAngle + playerVelocity * lookAheadFrames
         );
 
-        let chase = shortestAngle(enemyAngle, predictedPlayerAngle);
+        const shortest = shortestAngle(enemyAngle, predictedPlayerAngle);
+        const desiredDirection = shortest >= 0 ? 1 : -1;
 
-        // 青がほぼ止まっている時は先読みしすぎず、現在位置を直接狙う。
-        if (Math.abs(playerVelocity) < 0.0015) {
-          chase = shortestAngle(enemyAngle, playerAngle);
-        }
+        // 普段は選んだ周回方向を守る。5秒ごとにその方向を反転させる。
+        // 反転直後だけ少し減速して、瞬間的なワープ感をなくす。
+        const turnAge = now - enemyTurnStartedAt;
+        const turnBlend = Math.min(1, Math.max(0.28, turnAge / ENEMY_TURN_BLEND_MS));
 
-        const step = Math.max(-speed, Math.min(speed, chase));
-        enemyAngle = normalizedAngle(enemyAngle + step);
+        let direction = enemyTravelDirection;
+
+        // かなり近い時だけ、目の前の青を取り逃さないよう最短方向を優先。
+        if (directDistance < 0.22) direction = desiredDirection;
+
+        enemyAngle = normalizedAngle(
+          enemyAngle + direction * speed * turnBlend
+        );
       }
 
       function renderLeds() {
