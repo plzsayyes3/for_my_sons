@@ -449,6 +449,7 @@
       <p class="panel-copy">四角い皿を傾けて、球を3つの穴へ。<br>どの穴に落ちるかでスコアが変わります。</p>
       <div class="rules">
         ・球が落ちるたびに、その穴の計算をする<br>
+        ・盤面の「あ」は壁。ぶつかると跳ね返る<br>
         ・全部の球が落ちたら次のステージ<br>
         ・全5ステージ終了時の数字がスコア
       </div>
@@ -469,7 +470,7 @@
     (() => {
       'use strict';
 
-      const BUILD_VERSION = '2';
+      const BUILD_VERSION = '3';
       const STAGES = [
         {
           balls: 6,
@@ -515,6 +516,12 @@
 
       const canvas = document.querySelector('#board');
       const ctx = canvas.getContext('2d');
+      const OBSTACLE_RESOLUTION = 320;
+      const obstacleCanvas = document.createElement('canvas');
+      obstacleCanvas.width = OBSTACLE_RESOLUTION;
+      obstacleCanvas.height = OBSTACLE_RESOLUTION;
+      const obstacleCtx = obstacleCanvas.getContext('2d', { willReadFrequently: true });
+      let obstaclePixels = null;
       const shell = document.querySelector('#board-shell');
       const stageValue = document.querySelector('#stage-value');
       const scoreValue = document.querySelector('#score-value');
@@ -552,12 +559,142 @@
       let lastTime = performance.now();
       let currentProfile = { id: 'default', label: 'PLAYER' };
 
+      buildObstacleMask();
+
       for (let i = 0; i < STAGES.length; i += 1) {
         progress.appendChild(document.createElement('span'));
       }
 
       function clamp(value, min, max) {
         return Math.max(min, Math.min(max, value));
+      }
+
+      function obstacleFont(size) {
+        return '950 ' + String(Math.round(size * .50)) +
+          'px -apple-system, BlinkMacSystemFont, "SF Pro Rounded", "Hiragino Sans", "Yu Gothic", sans-serif';
+      }
+
+      function buildObstacleMask() {
+        if (!obstacleCtx) return;
+        const size = OBSTACLE_RESOLUTION;
+        obstacleCtx.clearRect(0, 0, size, size);
+        obstacleCtx.save();
+        obstacleCtx.font = obstacleFont(size);
+        obstacleCtx.textAlign = 'center';
+        obstacleCtx.textBaseline = 'middle';
+        obstacleCtx.lineJoin = 'round';
+        obstacleCtx.lineCap = 'round';
+        obstacleCtx.strokeStyle = '#fff';
+        obstacleCtx.fillStyle = '#fff';
+        obstacleCtx.lineWidth = size * .020;
+        obstacleCtx.strokeText('あ', size * .50, size * .535);
+        obstacleCtx.fillText('あ', size * .50, size * .535);
+        obstacleCtx.restore();
+        obstaclePixels = obstacleCtx.getImageData(0, 0, size, size).data;
+      }
+
+      function obstacleAt(x, y) {
+        if (!obstaclePixels || x < 0 || y < 0 || x > 1 || y > 1) return false;
+        const size = OBSTACLE_RESOLUTION;
+        const px = clamp(Math.round(x * (size - 1)), 0, size - 1);
+        const py = clamp(Math.round(y * (size - 1)), 0, size - 1);
+        return obstaclePixels[(py * size + px) * 4 + 3] > 60;
+      }
+
+      function circleTouchesObstacle(x, y, radius) {
+        if (obstacleAt(x, y)) return true;
+        const rings = [.55, 1.05];
+        const samples = 18;
+        for (let ringIndex = 0; ringIndex < rings.length; ringIndex += 1) {
+          const ring = radius * rings[ringIndex];
+          for (let i = 0; i < samples; i += 1) {
+            const angle = (Math.PI * 2 * i) / samples;
+            if (obstacleAt(x + Math.cos(angle) * ring, y + Math.sin(angle) * ring)) return true;
+          }
+        }
+        return false;
+      }
+
+      function resolveObstacleCollision(ball, previousX, previousY) {
+        if (!circleTouchesObstacle(ball.x, ball.y, ball.radius)) return false;
+
+        let normalX = 0;
+        let normalY = 0;
+        let hits = 0;
+        const samples = 20;
+        for (let i = 0; i < samples; i += 1) {
+          const angle = (Math.PI * 2 * i) / samples;
+          const sampleX = ball.x + Math.cos(angle) * ball.radius * 1.04;
+          const sampleY = ball.y + Math.sin(angle) * ball.radius * 1.04;
+          if (!obstacleAt(sampleX, sampleY)) continue;
+          normalX += ball.x - sampleX;
+          normalY += ball.y - sampleY;
+          hits += 1;
+        }
+
+        if (!hits || Math.hypot(normalX, normalY) < .0001) {
+          normalX = previousX - ball.x;
+          normalY = previousY - ball.y;
+        }
+
+        let length = Math.hypot(normalX, normalY);
+        if (length < .0001) {
+          normalX = -ball.vx;
+          normalY = -ball.vy;
+          length = Math.hypot(normalX, normalY);
+        }
+        if (length < .0001) {
+          normalX = 0;
+          normalY = -1;
+          length = 1;
+        }
+        normalX /= length;
+        normalY /= length;
+
+        ball.x = previousX;
+        ball.y = previousY;
+        for (let i = 0; i < 8 && circleTouchesObstacle(ball.x, ball.y, ball.radius); i += 1) {
+          ball.x += normalX * ball.radius * .22;
+          ball.y += normalY * ball.radius * .22;
+        }
+
+        const velocityAlongNormal = ball.vx * normalX + ball.vy * normalY;
+        if (velocityAlongNormal < 0) {
+          const restitution = .56;
+          ball.vx -= (1 + restitution) * velocityAlongNormal * normalX;
+          ball.vy -= (1 + restitution) * velocityAlongNormal * normalY;
+        }
+        ball.vx *= .92;
+        ball.vy *= .92;
+        return true;
+      }
+
+      function drawLetterObstacle(size) {
+        ctx.save();
+        ctx.font = obstacleFont(size);
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.lineJoin = 'round';
+        ctx.lineCap = 'round';
+
+        ctx.shadowColor = 'rgba(78,53,27,.30)';
+        ctx.shadowBlur = size * .014;
+        ctx.shadowOffsetY = size * .014;
+        ctx.strokeStyle = '#9d7a52';
+        ctx.lineWidth = size * .020;
+        ctx.strokeText('あ', size * .50, size * .535);
+
+        ctx.shadowColor = 'transparent';
+        const letterGrad = ctx.createLinearGradient(0, size * .30, 0, size * .72);
+        letterGrad.addColorStop(0, '#d8bd94');
+        letterGrad.addColorStop(1, '#b58d60');
+        ctx.fillStyle = letterGrad;
+        ctx.fillText('あ', size * .50, size * .535);
+
+        ctx.strokeStyle = 'rgba(255,250,237,.38)';
+        ctx.lineWidth = Math.max(1, size * .004);
+        ctx.strokeText('あ', size * .50, size * .528);
+        ctx.restore();
       }
 
       function formatScore(value) {
@@ -675,7 +812,8 @@
           const awayFromBalls = result.every(function(ball) {
             return Math.hypot(x - ball.x, y - ball.y) > .055;
           });
-          if (awayFromHoles && awayFromBalls) {
+          const awayFromObstacle = !circleTouchesObstacle(x, y, .034);
+          if (awayFromHoles && awayFromBalls && awayFromObstacle) {
             result.push({
               x: x,
               y: y,
@@ -814,12 +952,29 @@
 
           const moveX = ball.vx * dt;
           const moveY = ball.vy * dt;
-          ball.x += moveX;
-          ball.y += moveY;
+          const startX = ball.x;
+          const startY = ball.y;
+          const intendedDistance = Math.hypot(moveX, moveY);
+          const substeps = Math.min(6, Math.max(
+            1,
+            Math.ceil(intendedDistance / Math.max(ball.radius * .55, .004))
+          ));
+          const stepX = moveX / substeps;
+          const stepY = moveY / substeps;
 
-          const moveDistance = Math.hypot(moveX, moveY);
+          for (let step = 0; step < substeps; step += 1) {
+            const previousX = ball.x;
+            const previousY = ball.y;
+            ball.x += stepX;
+            ball.y += stepY;
+            if (resolveObstacleCollision(ball, previousX, previousY)) break;
+          }
+
+          const actualMoveX = ball.x - startX;
+          const actualMoveY = ball.y - startY;
+          const moveDistance = Math.hypot(actualMoveX, actualMoveY);
           if (moveDistance > .000001) {
-            const nextHeading = Math.atan2(moveY, moveX);
+            const nextHeading = Math.atan2(actualMoveY, actualMoveX);
             const headingDelta = Math.atan2(
               Math.sin(nextHeading - ball.rollHeading),
               Math.cos(nextHeading - ball.rollHeading)
@@ -883,6 +1038,9 @@
 
         if (!STAGES[stageIndex]) return;
         const holes = STAGES[stageIndex].holes;
+
+        drawLetterObstacle(size);
+
         holes.forEach(function(hole) {
           const x = hole.x * size;
           const y = hole.y * size;

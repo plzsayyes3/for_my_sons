@@ -51,7 +51,7 @@
   {
     "id": "a-hole-ball",
     "name": "あ",
-    "url": "./a-hole-ball/?v=2",
+    "url": "./a-hole-ball/?v=3",
     "icon": "./assets/a-hole-ball.svg?v=1",
     "description": "端末を傾けて球を3つの穴へ。5ステージの計算スコアを競う"
   },
