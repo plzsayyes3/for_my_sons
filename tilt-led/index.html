@@ -1003,7 +1003,7 @@
           profiles = [currentProfile, ...profiles];
         }
         const realProfiles = profiles.filter(profile => profile.id !== 'profile-1');
-        if (realProfiles.length) profiles = realProfiles;
+        if (realProfiles.length && currentProfile.id !== 'profile-1') profiles = realProfiles;
 
         familyRecords = await Promise.all(profiles.map(async profile => {
           try {
