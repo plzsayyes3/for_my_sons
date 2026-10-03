@@ -30,9 +30,9 @@
   {
     "id": "tilt-led",
     "name": "ひかりリング",
-    "url": "./tilt-led/?v=27",
+    "url": "./tilt-led/?v=28",
     "icon": "./assets/tilt-led.svg?v=1",
-    "description": "赤が数秒ごとに切り返す。速度だけでは逃げ切れない生存タイムゲーム"
+    "description": "赤は切り返しで迫り、60秒を超えてから青より速くなる生存タイムゲーム"
   },
   {
     "id": "slime",
