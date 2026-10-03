@@ -379,7 +379,7 @@
 
     <section class="hud" aria-label="ゲーム状況">
       <div class="hud-pill">HIT <span class="hit-count" id="hit-count">0 / 7</span></div>
-      <div class="hud-pill">TIME <span class="time-count" id="time-count">0.0</span>s</div>
+      <div class="hud-pill">TIME <span class="time-count" id="time-count">0.00</span>s</div>
     </section>
 
     <section class="stage" aria-label="赤いLEDから逃げるゲーム">
@@ -637,7 +637,7 @@
       function resetGame() {
         hits = 0;
         hitCount.textContent = '0 / 7';
-        timeCount.textContent = '0.0';
+        timeCount.textContent = '0.00';
         playerAngle = 0;
         playerVelocity = 0;
         lastTargetAngle = 0;
@@ -742,7 +742,7 @@
         if (gameRunning && !gamePaused) {
           updateEnemy();
           const elapsed = Math.max(0, now - gameStartedAt - pausedTotal);
-          timeCount.textContent = (elapsed / 1000).toFixed(1);
+          timeCount.textContent = (elapsed / 1000).toFixed(2);
         }
 
         const positions = renderLeds();
