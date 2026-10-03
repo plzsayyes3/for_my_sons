@@ -1,0 +1,19 @@
+{
+  "name": "ひかりリング",
+  "short_name": "ひかりリング",
+  "description": "スマホを傾けて赤いLEDから逃げる横向き専用ゲーム",
+  "start_url": "./?v=16",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "landscape",
+  "background_color": "#07110f",
+  "theme_color": "#07110f",
+  "icons": [
+    {
+      "src": "../assets/tilt-led.svg?v=1",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    }
+  ]
+}
