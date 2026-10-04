@@ -1,4 +1,4 @@
-const CACHE_NAME = 'for-my-sons-v130';
+const CACHE_NAME = 'for-my-sons-v131';
 const SHELL = [
   './',
   './index.html',
@@ -23,6 +23,8 @@ const SHELL = [
   './kids-3d-playgrand/manual.html?v=5',
   './piano/?v=14',
   './piano/index.html?v=14',
+  './sound-pad/?v=1',
+  './sound-pad/index.html',
   './tilt-led/?v=30',
   './tilt-led/index.html',
   './tilt-led/manifest.webmanifest?v=7',
@@ -96,6 +98,7 @@ const SHELL = [
   './assets/kids-3d.svg',
   './assets/minecraft-english.svg',
   './assets/piano.svg',
+  './assets/sound-pad.svg?v=1',
   './assets/tilt-led.svg?v=1',
   './assets/yukkuri-danmaku.svg?v=1',
   './assets/slime.svg?v=1',
