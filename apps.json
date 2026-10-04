@@ -40,6 +40,14 @@
     "category": "create"
   },
   {
+    "id": "sound-pad",
+    "name": "効果音",
+    "url": "./sound-pad/?v=1",
+    "icon": "./assets/sound-pad.svg?v=1",
+    "description": "8このボタンに5秒まで録音して、タップですぐ再生",
+    "category": "create"
+  },
+  {
     "id": "tilt-led",
     "name": "ひかりリング",
     "url": "./tilt-led/?v=30",
