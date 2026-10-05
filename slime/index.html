@@ -466,10 +466,44 @@ scene.add(blobShadow);
 const jellyGroup = new THREE.Group();
 scene.add(jellyGroup);
 
+function gravityRestShape2D(x, y) {
+  const normalizedY = THREE.MathUtils.clamp(y / 0.62, -1, 1);
+  const lower = Math.max(0, -normalizedY);
+  const upper = Math.max(0, normalizedY);
+  const middle = 1 - Math.abs(normalizedY);
+
+  // A remembered "resting under gravity" form: vertically compressed, with a
+  // wider belly at the bottom. It is still recognisably the same creature.
+  const xScale = 1.075 + lower * 0.115 + middle * 0.025 - upper * 0.018;
+  const yScale = 0.78;
+
+  return {
+    x: x * xScale,
+    y: y * yScale
+  };
+}
+
 const jellyGeometry = new THREE.SphereGeometry(0.62, 36, 28);
 const positionAttribute = jellyGeometry.attributes.position;
 const basePositions = new Float32Array(positionAttribute.array.length);
 basePositions.set(positionAttribute.array);
+
+for (let i = 0; i < positionAttribute.count; i++) {
+  const ix = i * 3;
+  const shaped = gravityRestShape2D(
+    basePositions[ix],
+    basePositions[ix + 1]
+  );
+  basePositions[ix] = shaped.x;
+  basePositions[ix + 1] = shaped.y;
+  basePositions[ix + 2] *= 1.035;
+
+  positionAttribute.array[ix] = basePositions[ix];
+  positionAttribute.array[ix + 1] = basePositions[ix + 1];
+  positionAttribute.array[ix + 2] = basePositions[ix + 2];
+}
+positionAttribute.needsUpdate = true;
+jellyGeometry.computeVertexNormals();
 
 const jellyMaterial = new THREE.MeshPhysicalMaterial({
   color: 0xeaf6fb,
@@ -555,8 +589,8 @@ mouth.renderOrder = 20;
 // -----------------------------------------------------------------------------
 
 const FIXED_DT = 1 / 120;
-const SOLVER_ITERATIONS = 5;
-const PARTICLE_DAMPING = 0.9965;
+const SOLVER_ITERATIONS = 4;
+const PARTICLE_DAMPING = 0.9972;
 const REST_RADIUS = 0.62;
 const SOFT_START_Y = 1.42;
 
@@ -619,6 +653,8 @@ let softParticles = [];
 let softConstraints = [];
 let outerIndices = [];
 let restArea = 1;
+let restWidth = REST_RADIUS * 2;
+let restHeight = REST_RADIUS * 2;
 let vertexInfluences = [];
 let faceInfluences = null;
 let normalUpdateFrame = 0;
@@ -682,9 +718,12 @@ function buildSoftTopology() {
   for (const spec of rings) {
     for (let i = 0; i < spec.count; i++) {
       const angle = -Math.PI / 2 + i / spec.count * Math.PI * 2;
+      const circularX = Math.cos(angle) * spec.radius;
+      const circularY = Math.sin(angle) * spec.radius;
+      const shaped = gravityRestShape2D(circularX, circularY);
       const idx = add(
-        Math.cos(angle) * spec.radius,
-        Math.sin(angle) * spec.radius,
+        shaped.x,
+        shaped.y,
         spec.ring
       );
       if (spec.ring === 3) outerIndices.push(idx);
@@ -699,12 +738,18 @@ function buildSoftTopology() {
       const b = softParticles[j];
       const d = Math.hypot(b.restX - a.restX, b.restY - a.restY);
 
-      if (d < 0.265) addSoftConstraint(i, j, 0.19);
-      else if (d < 0.425) addSoftConstraint(i, j, 0.020);
+      if (d < 0.265) addSoftConstraint(i, j, 0.125);
+      else if (d < 0.425) addSoftConstraint(i, j, 0.009);
     }
   }
 
   restArea = polygonAreaFrom(outerIndices, true);
+
+  const restXs = softParticles.map(p => p.restX);
+  const restYs = softParticles.map(p => p.restY);
+  restWidth = Math.max(...restXs) - Math.min(...restXs);
+  restHeight = Math.max(...restYs) - Math.min(...restYs);
+
   buildVertexInfluences();
 }
 
@@ -838,7 +883,7 @@ function solveAreaPressure() {
   const c = softCentroid();
   const area = polygonAreaFrom(outerIndices, false);
   const error = THREE.MathUtils.clamp((restArea - area) / restArea, -0.7, 0.7);
-  const pressure = 0.023;
+  const pressure = 0.0185;
 
   for (const index of outerIndices) {
     const p = softParticles[index];
@@ -851,15 +896,29 @@ function solveAreaPressure() {
 
 function solveShapeMemory() {
   const c = softCentroid();
-  const strength = 0.0028;
 
   for (const p of softParticles) {
     const targetX = c.x + p.restX;
     const targetY = c.y + p.restY;
+    const dx = targetX - p.x;
+    const dy = targetY - p.y;
+    const deformation = Math.hypot(dx, dy);
 
-    const ringSoftness = p.ring === 3 ? 0.42 : (p.ring === 2 ? 0.72 : 1);
-    p.x += (targetX - p.x) * strength * ringSoftness;
-    p.y += (targetY - p.y) * strength * ringSoftness;
+    // Almost no resistance close to the remembered shape, but increasingly
+    // strong recovery after a large deformation. This is intentionally softer
+    // than a real dessert while still having unmistakable shape memory.
+    const memory =
+      0.00115 +
+      Math.min(0.0068, deformation * deformation * 0.020);
+
+    const ringSoftness =
+      p.ring === 3 ? 0.30 :
+      p.ring === 2 ? 0.58 :
+      p.ring === 1 ? 0.82 :
+      1;
+
+    p.x += dx * memory * ringSoftness;
+    p.y += dy * memory * ringSoftness;
   }
 }
 
@@ -926,7 +985,7 @@ function applyGrabConstraint() {
 
     // The touched patch leads strongly. Neighbor constraints make the rest of
     // the pudding arrive later, which is the key difference from mesh scaling.
-    const strength = 0.245 * w;
+    const strength = 0.265 * w;
     softParticles[i].x += dx * strength;
     softParticles[i].y += dy * strength;
   }
@@ -1209,8 +1268,8 @@ function deformJelly(time) {
 
     const displacement = sampleDisplacement(vertexInfluences[i], m.c);
 
-    let x = bx + displacement.x * 1.16;
-    let y = by + displacement.y * 1.16;
+    let x = bx + displacement.x * 1.24;
+    let y = by + displacement.y * 1.24;
     let z = bz * (thicknessScale + zKick);
 
     // Only a tiny skin flow remains. The large deformation now comes from
@@ -1238,8 +1297,8 @@ function deformJelly(time) {
 
   jellyGroup.position.set(m.c.x, m.c.y, 0);
 
-  const widthScale = THREE.MathUtils.clamp(m.width / (REST_RADIUS * 2), 0.60, 1.65);
-  const heightScale = THREE.MathUtils.clamp(m.height / (REST_RADIUS * 2), 0.60, 1.65);
+  const widthScale = THREE.MathUtils.clamp(m.width / restWidth, 0.56, 1.72);
+  const heightScale = THREE.MathUtils.clamp(m.height / restHeight, 0.52, 1.78);
 
   core.scale.set(
     widthScale * 0.82,
