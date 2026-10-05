@@ -555,8 +555,8 @@ mouth.renderOrder = 20;
 // -----------------------------------------------------------------------------
 
 const FIXED_DT = 1 / 120;
-const SOLVER_ITERATIONS = 8;
-const PARTICLE_DAMPING = 0.994;
+const SOLVER_ITERATIONS = 5;
+const PARTICLE_DAMPING = 0.9965;
 const REST_RADIUS = 0.62;
 const SOFT_START_Y = 1.42;
 
@@ -699,8 +699,8 @@ function buildSoftTopology() {
       const b = softParticles[j];
       const d = Math.hypot(b.restX - a.restX, b.restY - a.restY);
 
-      if (d < 0.265) addSoftConstraint(i, j, 0.31);
-      else if (d < 0.425) addSoftConstraint(i, j, 0.048);
+      if (d < 0.265) addSoftConstraint(i, j, 0.19);
+      else if (d < 0.425) addSoftConstraint(i, j, 0.020);
     }
   }
 
@@ -838,7 +838,7 @@ function solveAreaPressure() {
   const c = softCentroid();
   const area = polygonAreaFrom(outerIndices, false);
   const error = THREE.MathUtils.clamp((restArea - area) / restArea, -0.7, 0.7);
-  const pressure = 0.034;
+  const pressure = 0.023;
 
   for (const index of outerIndices) {
     const p = softParticles[index];
@@ -851,21 +851,21 @@ function solveAreaPressure() {
 
 function solveShapeMemory() {
   const c = softCentroid();
-  const strength = 0.007;
+  const strength = 0.0028;
 
   for (const p of softParticles) {
     const targetX = c.x + p.restX;
     const targetY = c.y + p.restY;
 
-    const ringSoftness = p.ring === 3 ? 0.72 : 1;
+    const ringSoftness = p.ring === 3 ? 0.42 : (p.ring === 2 ? 0.72 : 1);
     p.x += (targetX - p.x) * strength * ringSoftness;
     p.y += (targetY - p.y) * strength * ringSoftness;
   }
 }
 
 function updatePinchState(dt) {
-  const stiffness = state.pinching ? 25 : 9;
-  const damping = state.pinching ? 6.5 : 2.7;
+  const stiffness = state.pinching ? 16 : 5.5;
+  const damping = state.pinching ? 4.2 : 1.9;
   const delta = state.pinchTarget - state.pinchAmount;
 
   state.pinchVelocity +=
@@ -880,7 +880,7 @@ function solvePinchShape() {
   const c = softCentroid();
   const scaleX = THREE.MathUtils.clamp(1 - state.pinchAmount * 0.30, 0.78, 1.20);
   const scaleY = THREE.MathUtils.clamp(1 + state.pinchAmount * 0.22, 0.80, 1.28);
-  const correction = state.pinching ? 0.045 : 0.012;
+  const correction = state.pinching ? 0.030 : 0.0065;
 
   for (const p of softParticles) {
     const tx = c.x + p.restX * scaleX;
@@ -926,7 +926,7 @@ function applyGrabConstraint() {
 
     // The touched patch leads strongly. Neighbor constraints make the rest of
     // the pudding arrive later, which is the key difference from mesh scaling.
-    const strength = 0.19 * w;
+    const strength = 0.245 * w;
     softParticles[i].x += dx * strength;
     softParticles[i].y += dy * strength;
   }
@@ -955,8 +955,8 @@ function collideParticle(p) {
     const vx = p.x - p.px;
     const vy = p.y - p.py;
     p.y = minY;
-    p.py = p.y + vy * 0.045;
-    p.px = p.x - vx * 0.91;
+    p.py = p.y + vy * 0.035;
+    p.px = p.x - vx * 0.955;
     p.contact |= 2;
   } else if (p.y > maxY) {
     const vy = p.y - p.py;
@@ -1209,8 +1209,8 @@ function deformJelly(time) {
 
     const displacement = sampleDisplacement(vertexInfluences[i], m.c);
 
-    let x = bx + displacement.x * 1.04;
-    let y = by + displacement.y * 1.04;
+    let x = bx + displacement.x * 1.16;
+    let y = by + displacement.y * 1.16;
     let z = bz * (thicknessScale + zKick);
 
     // Only a tiny skin flow remains. The large deformation now comes from
@@ -1323,7 +1323,7 @@ function pointerToFrontPlane(event) {
 }
 
 function makeParticleGrabWeights(x, y) {
-  const sigma = 0.31;
+  const sigma = 0.34;
   const weights = new Float32Array(softParticles.length);
   let max = 0;
 
