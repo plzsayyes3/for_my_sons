@@ -152,11 +152,21 @@ renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 const scene = new THREE.Scene();
 scene.background = new THREE.Color(0xeeeae3);
 
-const camera = new THREE.PerspectiveCamera(28, viewport.width / viewport.height, 0.05, 50);
-// Front-on composition: no looking down into the box. The container is read as
-// a clear case seen straight from the front.
+const VIEW_HEIGHT = 3.05;
+const camera = new THREE.OrthographicCamera(-1, 1, 1, -1, 0.05, 50);
+
+function applyCameraFraming() {
+  const aspect = viewport.width / viewport.height;
+  camera.left = -VIEW_HEIGHT * aspect * 0.5;
+  camera.right = VIEW_HEIGHT * aspect * 0.5;
+  camera.top = VIEW_HEIGHT * 0.5;
+  camera.bottom = -VIEW_HEIGHT * 0.5;
+  camera.updateProjectionMatrix();
+}
+
 camera.position.set(0, 1.18, 7.2);
 camera.lookAt(0, 1.18, 0);
+applyCameraFraming();
 
 const clock = new THREE.Clock();
 
@@ -541,37 +551,33 @@ face.add(mouth);
 mouth.renderOrder = 20;
 
 // -----------------------------------------------------------------------------
-// Body dynamics
+// Body dynamics — 2.5D PBD soft body
 // -----------------------------------------------------------------------------
 
-const state = {
-  position: new THREE.Vector3(0, 2.65, 0),
-  velocity: new THREE.Vector3(0, 0, 0),
+const FIXED_DT = 1 / 120;
+const SOLVER_ITERATIONS = 8;
+const PARTICLE_DAMPING = 0.994;
+const REST_RADIUS = 0.62;
+const SOFT_START_Y = 1.42;
 
-  // springy shape variables
-  squash: 0,
-  squashVelocity: 0,
-  wobbleX: 0,
-  wobbleXVelocity: 0,
-  wobbleZ: 0,
-  wobbleZVelocity: 0,
+const state = {
+  position: new THREE.Vector3(0, SOFT_START_Y, 0),
+  velocity: new THREE.Vector3(),
 
   gravityOn: true,
   dragging: false,
   pinching: false,
-  pinchAmount: 0,
-  pinchVelocity: 0,
-  pinchTarget: 0,
-  pinchStartDistance: 0,
-
-  grabBase: new THREE.Vector3(),
-  grabTarget: new THREE.Vector3(),
-  grabTargetSoft: new THREE.Vector3(),
-  grabTargetVelocity: new THREE.Vector3(),
-  lastGrabTarget: new THREE.Vector3(),
-
-  // Touching makes the jelly feel lighter for a moment.
   touchFloat: 0,
+
+  grabTarget: new THREE.Vector2(),
+  grabTargetSoft: new THREE.Vector2(),
+  grabVelocity: new THREE.Vector2(),
+  grabWeights: null,
+
+  pinchAmount: 0,
+  pinchTarget: 0,
+  pinchVelocity: 0,
+  pinchStartDistance: 0,
 
   motion: {
     enabled: false,
@@ -581,112 +587,380 @@ const state = {
     linearX: 0,
     linearY: 0,
     linearZ: 0
-  },
-
-  // shape weight for each vertex around the touched area
-  grabWeights: new Float32Array(positionAttribute.count)
+  }
 };
 
-const NATURAL_RADIUS_Y = 0.60;
+class SoftParticle {
+  constructor(restX, restY, x, y, ring = 0) {
+    this.restX = restX;
+    this.restY = restY;
+    this.x = x;
+    this.y = y;
+    this.px = x;
+    this.py = y;
+    this.ring = ring;
+    this.contact = 0;
+  }
 
-function currentShapeScale() {
-  const sy = THREE.MathUtils.clamp(1 - state.squash, 0.40, 1.72);
-  const lateral = 1 / Math.sqrt(Math.max(0.36, sy));
+  integrate(ax, ay, dt) {
+    const vx = (this.x - this.px) * PARTICLE_DAMPING;
+    const vy = (this.y - this.py) * PARTICLE_DAMPING;
+
+    this.px = this.x;
+    this.py = this.y;
+
+    this.x += vx + ax * dt * dt;
+    this.y += vy + ay * dt * dt;
+    this.contact = 0;
+  }
+}
+
+let softParticles = [];
+let softConstraints = [];
+let outerIndices = [];
+let restArea = 1;
+let vertexInfluences = [];
+let faceInfluences = null;
+let normalUpdateFrame = 0;
+
+function softCentroid() {
+  let x = 0;
+  let y = 0;
+  for (const p of softParticles) {
+    x += p.x;
+    y += p.y;
+  }
   return {
-    sx: THREE.MathUtils.clamp(lateral, 0.66, 1.74),
-    sy,
-    sz: THREE.MathUtils.clamp(lateral, 0.66, 1.74)
+    x: x / softParticles.length,
+    y: y / softParticles.length
   };
 }
 
-function currentBottomRadius() {
-  return NATURAL_RADIUS_Y * currentShapeScale().sy;
+function polygonAreaFrom(indices, rest = false) {
+  let sum = 0;
+  for (let i = 0; i < indices.length; i++) {
+    const a = softParticles[indices[i]];
+    const b = softParticles[indices[(i + 1) % indices.length]];
+    const ax = rest ? a.restX : a.x;
+    const ay = rest ? a.restY : a.y;
+    const bx = rest ? b.restX : b.x;
+    const by = rest ? b.restY : b.y;
+    sum += ax * by - bx * ay;
+  }
+  return Math.abs(sum * 0.5);
+}
+
+function addSoftConstraint(a, b, stiffness) {
+  const pa = softParticles[a];
+  const pb = softParticles[b];
+  softConstraints.push({
+    a,
+    b,
+    rest: Math.hypot(pb.restX - pa.restX, pb.restY - pa.restY),
+    stiffness
+  });
+}
+
+function buildSoftTopology() {
+  softParticles = [];
+  softConstraints = [];
+  outerIndices = [];
+
+  const add = (rx, ry, ring) => {
+    softParticles.push(new SoftParticle(rx, ry, rx, SOFT_START_Y + ry, ring));
+    return softParticles.length - 1;
+  };
+
+  add(0, 0, 0);
+
+  const rings = [
+    { radius: 0.21, count: 6, ring: 1 },
+    { radius: 0.41, count: 12, ring: 2 },
+    { radius: REST_RADIUS, count: 18, ring: 3 }
+  ];
+
+  for (const spec of rings) {
+    for (let i = 0; i < spec.count; i++) {
+      const angle = -Math.PI / 2 + i / spec.count * Math.PI * 2;
+      const idx = add(
+        Math.cos(angle) * spec.radius,
+        Math.sin(angle) * spec.radius,
+        spec.ring
+      );
+      if (spec.ring === 3) outerIndices.push(idx);
+    }
+  }
+
+  // Dense local links give us a continuous pudding interior. Long links are
+  // intentionally weak so the body can fold and stretch before recovering.
+  for (let i = 0; i < softParticles.length; i++) {
+    for (let j = i + 1; j < softParticles.length; j++) {
+      const a = softParticles[i];
+      const b = softParticles[j];
+      const d = Math.hypot(b.restX - a.restX, b.restY - a.restY);
+
+      if (d < 0.265) addSoftConstraint(i, j, 0.31);
+      else if (d < 0.425) addSoftConstraint(i, j, 0.048);
+    }
+  }
+
+  restArea = polygonAreaFrom(outerIndices, true);
+  buildVertexInfluences();
+}
+
+function buildInfluenceFor(restX, restY, count = 6) {
+  const sigma = 0.255;
+  const candidates = softParticles.map((p, index) => {
+    const dx = restX - p.restX;
+    const dy = restY - p.restY;
+    const d2 = dx * dx + dy * dy;
+    return {
+      index,
+      d2,
+      weight: Math.exp(-d2 / (2 * sigma * sigma))
+    };
+  });
+
+  candidates.sort((a, b) => a.d2 - b.d2);
+  const selected = candidates.slice(0, count);
+  const total = selected.reduce((sum, item) => sum + item.weight, 0) || 1;
+
+  return selected.map(item => ({
+    index: item.index,
+    weight: item.weight / total
+  }));
+}
+
+function buildVertexInfluences() {
+  vertexInfluences = new Array(positionAttribute.count);
+
+  for (let i = 0; i < positionAttribute.count; i++) {
+    const ix = i * 3;
+    vertexInfluences[i] = buildInfluenceFor(
+      basePositions[ix],
+      basePositions[ix + 1],
+      6
+    );
+  }
+
+  faceInfluences = buildInfluenceFor(0, -0.015, 7);
+}
+
+function softMetrics() {
+  const c = softCentroid();
+
+  let minX = Infinity;
+  let minY = Infinity;
+  let maxX = -Infinity;
+  let maxY = -Infinity;
+  let vx = 0;
+  let vy = 0;
+  let contacts = 0;
+
+  for (const p of softParticles) {
+    minX = Math.min(minX, p.x);
+    minY = Math.min(minY, p.y);
+    maxX = Math.max(maxX, p.x);
+    maxY = Math.max(maxY, p.y);
+    vx += (p.x - p.px) / FIXED_DT;
+    vy += (p.y - p.py) / FIXED_DT;
+    if (p.contact) contacts++;
+  }
+
+  return {
+    c,
+    minX,
+    minY,
+    maxX,
+    maxY,
+    width: maxX - minX,
+    height: maxY - minY,
+    vx: vx / softParticles.length,
+    vy: vy / softParticles.length,
+    contacts,
+    area: polygonAreaFrom(outerIndices, false)
+  };
 }
 
 function resetJelly() {
-  state.position.set(0, 1.95, 0);
+  if (!softParticles.length) buildSoftTopology();
+
+  const centerX = 0;
+  const centerY = SOFT_START_Y;
+
+  for (const p of softParticles) {
+    p.x = centerX + p.restX;
+    p.y = centerY + p.restY;
+    p.px = p.x;
+    p.py = p.y;
+    p.contact = 0;
+  }
+
+  state.position.set(centerX, centerY, 0);
   state.velocity.set(0, 0, 0);
-  state.squash = 0;
-  state.squashVelocity = 0;
-  state.wobbleX = 0;
-  state.wobbleXVelocity = 0;
-  state.wobbleZ = 0;
-  state.wobbleZVelocity = 0;
   state.dragging = false;
   state.pinching = false;
-  state.pinchAmount = 0;
-  state.pinchVelocity = 0;
-  state.pinchTarget = 0;
-  state.pinchStartDistance = 0;
   state.touchFloat = 0;
-  state.grabTargetSoft.copy(state.position);
+  state.grabWeights = null;
+  state.grabVelocity.set(0, 0);
+  state.pinchAmount = 0;
+  state.pinchTarget = 0;
+  state.pinchVelocity = 0;
+  state.pinchStartDistance = 0;
+
   state.motion.gravityX = 0;
   state.motion.gravityY = 0;
   state.motion.linearX = 0;
   state.motion.linearY = 0;
   state.motion.linearZ = 0;
-  state.grabWeights.fill(0);
 }
 
-function updateSpring(value, velocity, stiffness, damping, dt) {
-  velocity += (-stiffness * value - damping * velocity) * dt;
-  value += velocity * dt;
-  return [value, velocity];
+function solveDistanceConstraint(c) {
+  const a = softParticles[c.a];
+  const b = softParticles[c.b];
+
+  const dx = b.x - a.x;
+  const dy = b.y - a.y;
+  const len = Math.hypot(dx, dy) || 0.00001;
+  const diff = (len - c.rest) / len;
+  const amount = diff * 0.5 * c.stiffness;
+
+  const ox = dx * amount;
+  const oy = dy * amount;
+
+  a.x += ox;
+  a.y += oy;
+  b.x -= ox;
+  b.y -= oy;
 }
 
-const cameraSpaceJelly = new THREE.Vector3();
+function solveAreaPressure() {
+  const c = softCentroid();
+  const area = polygonAreaFrom(outerIndices, false);
+  const error = THREE.MathUtils.clamp((restArea - area) / restArea, -0.7, 0.7);
+  const pressure = 0.034;
 
-function keepJellyInView() {
-  const scales = currentShapeScale();
-  cameraSpaceJelly.copy(state.position);
-  camera.worldToLocal(cameraSpaceJelly);
+  for (const index of outerIndices) {
+    const p = softParticles[index];
+    const dx = p.x - c.x;
+    const dy = p.y - c.y;
+    p.x += dx * error * pressure;
+    p.y += dy * error * pressure;
+  }
+}
 
-  const depth = Math.max(0.6, -cameraSpaceJelly.z);
-  const halfHeight =
-    Math.tan(THREE.MathUtils.degToRad(camera.fov * 0.5)) * depth;
-  const halfWidth = halfHeight * camera.aspect;
+function solveShapeMemory() {
+  const c = softCentroid();
+  const strength = 0.007;
 
-  // Extra padding keeps the translucent rim and wobble inside the viewport.
-  const radiusX = 0.62 * scales.sx + 0.075;
-  const radiusY = 0.62 * Math.max(scales.sy, scales.sx * 0.82) + 0.075;
+  for (const p of softParticles) {
+    const targetX = c.x + p.restX;
+    const targetY = c.y + p.restY;
 
-  const xLimit = Math.max(0.02, halfWidth - radiusX);
-  const topLimit = Math.max(0.02, halfHeight - radiusY);
+    const ringSoftness = p.ring === 3 ? 0.72 : 1;
+    p.x += (targetX - p.x) * strength * ringSoftness;
+    p.y += (targetY - p.y) * strength * ringSoftness;
+  }
+}
 
-  let changed = false;
+function solvePinch(dt) {
+  const stiffness = state.pinching ? 25 : 9;
+  const damping = state.pinching ? 6.5 : 2.7;
+  const delta = state.pinchTarget - state.pinchAmount;
 
-  if (cameraSpaceJelly.x < -xLimit) {
-    cameraSpaceJelly.x = -xLimit;
-    state.velocity.x = Math.abs(state.velocity.x) * 0.10;
-    state.wobbleXVelocity -= 0.55;
-    changed = true;
-  } else if (cameraSpaceJelly.x > xLimit) {
-    cameraSpaceJelly.x = xLimit;
-    state.velocity.x = -Math.abs(state.velocity.x) * 0.10;
-    state.wobbleXVelocity += 0.55;
-    changed = true;
+  state.pinchVelocity +=
+    (delta * stiffness - state.pinchVelocity * damping) * dt;
+  state.pinchAmount += state.pinchVelocity * dt;
+  state.pinchAmount = THREE.MathUtils.clamp(state.pinchAmount, -0.48, 0.58);
+
+  if (Math.abs(state.pinchAmount) < 0.001) return;
+
+  const c = softCentroid();
+  const scaleX = THREE.MathUtils.clamp(1 - state.pinchAmount * 0.30, 0.78, 1.20);
+  const scaleY = THREE.MathUtils.clamp(1 + state.pinchAmount * 0.22, 0.80, 1.28);
+  const correction = state.pinching ? 0.045 : 0.012;
+
+  for (const p of softParticles) {
+    const tx = c.x + p.restX * scaleX;
+    const ty = c.y + p.restY * scaleY;
+    p.x += (tx - p.x) * correction;
+    p.y += (ty - p.y) * correction;
+  }
+}
+
+function applyGrabConstraint() {
+  if (!state.dragging || !state.grabWeights) return;
+
+  let ax = 0;
+  let ay = 0;
+  let total = 0;
+
+  for (let i = 0; i < softParticles.length; i++) {
+    const w = state.grabWeights[i];
+    if (w < 0.001) continue;
+    ax += softParticles[i].x * w;
+    ay += softParticles[i].y * w;
+    total += w;
   }
 
-  // The desk already guards the lower edge. This guards only the top edge,
-  // allowing upward throws without ever losing the jelly outside the screen.
-  if (cameraSpaceJelly.y > topLimit) {
-    cameraSpaceJelly.y = topLimit;
-    state.velocity.y = Math.min(0, state.velocity.y) * 0.08;
-    state.velocity.z *= 0.88;
-    state.squashVelocity -= 0.12;
-    changed = true;
+  if (total <= 0) return;
+
+  ax /= total;
+  ay /= total;
+
+  let dx = state.grabTargetSoft.x - ax;
+  let dy = state.grabTargetSoft.y - ay;
+
+  const length = Math.hypot(dx, dy);
+  const maxPull = 1.15;
+  if (length > maxPull) {
+    dx *= maxPull / length;
+    dy *= maxPull / length;
   }
 
-  if (changed) {
-    camera.localToWorld(cameraSpaceJelly);
-    state.position.copy(cameraSpaceJelly);
+  for (let i = 0; i < softParticles.length; i++) {
+    const w = state.grabWeights[i];
+    if (w < 0.001) continue;
 
-    // Re-resolve the desk after vertical frustum correction.
-    const bottom = state.position.y - currentBottomRadius();
-    if (bottom < TABLE_Y) {
-      state.position.y += TABLE_Y - bottom;
-      if (state.velocity.y < 0) state.velocity.y = 0;
-    }
+    // The touched patch leads strongly. Neighbor constraints make the rest of
+    // the pudding arrive later, which is the key difference from mesh scaling.
+    const strength = 0.19 * w;
+    softParticles[i].x += dx * strength;
+    softParticles[i].y += dy * strength;
+  }
+}
+
+function collideParticle(p) {
+  const margin = 0.028;
+  const minX = -CONTAINER.halfX + margin;
+  const maxX = CONTAINER.halfX - margin;
+  const minY = TABLE_Y + margin;
+  const maxY = CONTAINER.height - margin;
+
+  if (p.x < minX) {
+    const vx = p.x - p.px;
+    p.x = minX;
+    p.px = p.x + vx * 0.08;
+    p.contact |= 1;
+  } else if (p.x > maxX) {
+    const vx = p.x - p.px;
+    p.x = maxX;
+    p.px = p.x + vx * 0.08;
+    p.contact |= 1;
+  }
+
+  if (p.y < minY) {
+    const vx = p.x - p.px;
+    const vy = p.y - p.py;
+    p.y = minY;
+    p.py = p.y + vy * 0.045;
+    p.px = p.x - vx * 0.91;
+    p.contact |= 2;
+  } else if (p.y > maxY) {
+    const vy = p.y - p.py;
+    p.y = maxY;
+    p.py = p.y + vy * 0.045;
+    p.contact |= 4;
   }
 }
 
@@ -694,14 +968,17 @@ function screenAngle() {
   if (screen.orientation && Number.isFinite(screen.orientation.angle)) {
     return ((screen.orientation.angle % 360) + 360) % 360;
   }
+
   if (typeof window.orientation === "number") {
     return ((window.orientation % 360) + 360) % 360;
   }
+
   return 0;
 }
 
-function deviceVectorToScreen(x, y) {
+function deviceVectorToStage(x, y) {
   const angle = screenAngle();
+
   let sx = x;
   let sy = y;
 
@@ -716,8 +993,9 @@ function deviceVectorToScreen(x, y) {
     sy = -x;
   }
 
-  // If iOS refuses physical orientation lock and we are drawing a rotated
-  // landscape stage over a portrait viewport, rotate sensor axes identically.
+  // When iOS keeps the physical viewport portrait while our entire app is
+  // rendered as a clockwise landscape stage, rotate the sensor axes by the
+  // exact same transform. Sensor force then always matches what the eye sees.
   if (viewport.rotated) {
     return { x: sy, y: -sx };
   }
@@ -731,24 +1009,23 @@ function onDeviceMotion(event) {
   const g = event.accelerationIncludingGravity || {};
   const linear = event.acceleration || {};
 
-  const screenG = deviceVectorToScreen(
+  const gravityStage = deviceVectorToStage(
     Number.isFinite(g.x) ? g.x : 0,
     Number.isFinite(g.y) ? g.y : 0
   );
-  const screenLinear = deviceVectorToScreen(
+
+  const linearStage = deviceVectorToStage(
     Number.isFinite(linear.x) ? linear.x : 0,
     Number.isFinite(linear.y) ? linear.y : 0
   );
 
-  // Low-pass gravity for stable tilt. Linear acceleration remains faster so
-  // a little shake travels through the pudding as a satisfying wobble.
-  const gravityMix = 0.14;
-  state.motion.gravityX += (screenG.x - state.motion.gravityX) * gravityMix;
-  state.motion.gravityY += (screenG.y - state.motion.gravityY) * gravityMix;
+  const gravityMix = 0.12;
+  state.motion.gravityX += (gravityStage.x - state.motion.gravityX) * gravityMix;
+  state.motion.gravityY += (gravityStage.y - state.motion.gravityY) * gravityMix;
 
-  const linearMix = 0.28;
-  state.motion.linearX += (screenLinear.x - state.motion.linearX) * linearMix;
-  state.motion.linearY += (screenLinear.y - state.motion.linearY) * linearMix;
+  const linearMix = 0.30;
+  state.motion.linearX += (linearStage.x - state.motion.linearX) * linearMix;
+  state.motion.linearY += (linearStage.y - state.motion.linearY) * linearMix;
   state.motion.linearZ += (
     (Number.isFinite(linear.z) ? linear.z : 0) - state.motion.linearZ
   ) * linearMix;
@@ -758,8 +1035,8 @@ async function tryLandscapeLock() {
   try {
     if (screen.orientation?.lock) await screen.orientation.lock("landscape");
   } catch (_) {
-    // iPhone Safari may not expose/allow Orientation Lock. The CSS landscape
-    // stage above is the fallback and still avoids a portrait composition.
+    // iPhone Safari commonly rejects orientation lock. The rotated landscape
+    // stage remains the source of truth in that case.
   }
 }
 
@@ -773,6 +1050,7 @@ async function enableMotion() {
     ) {
       const permission = await DeviceMotionEvent.requestPermission();
       state.motion.permission = permission;
+
       if (permission !== "granted") {
         motionButton.textContent = "ジャイロ NG";
         return false;
@@ -801,192 +1079,123 @@ async function enableMotion() {
 function disableMotion() {
   state.motion.enabled = false;
   removeEventListener("devicemotion", onDeviceMotion);
+
   state.motion.gravityX = 0;
   state.motion.gravityY = 0;
   state.motion.linearX = 0;
   state.motion.linearY = 0;
   state.motion.linearZ = 0;
+
   motionButton.textContent = "ジャイロ OFF";
 }
 
-function collideWithContainer() {
-  const scales = currentShapeScale();
-  const radiusX = 0.62 * scales.sx + Math.abs(state.wobbleX) * 0.08 + 0.035;
-  const radiusZ = 0.62 * scales.sz + Math.abs(state.wobbleZ) * 0.08 + 0.035;
-  const radiusY = currentBottomRadius() + 0.035;
-
-  const minX = -CONTAINER.halfX + radiusX;
-  const maxX = CONTAINER.halfX - radiusX;
-  const minZ = -CONTAINER.halfZ + radiusZ;
-  const maxZ = CONTAINER.halfZ - radiusZ;
-  const maxY = CONTAINER.height - radiusY;
-
-  if (state.position.x < minX) {
-    state.position.x = minX;
-    state.velocity.x = Math.abs(state.velocity.x) * 0.12;
-    state.wobbleXVelocity -= 0.75;
-  } else if (state.position.x > maxX) {
-    state.position.x = maxX;
-    state.velocity.x = -Math.abs(state.velocity.x) * 0.12;
-    state.wobbleXVelocity += 0.75;
-  }
-
-  if (state.position.z < minZ) {
-    state.position.z = minZ;
-    state.velocity.z = Math.abs(state.velocity.z) * 0.12;
-    state.wobbleZVelocity -= 0.65;
-  } else if (state.position.z > maxZ) {
-    state.position.z = maxZ;
-    state.velocity.z = -Math.abs(state.velocity.z) * 0.12;
-    state.wobbleZVelocity += 0.65;
-  }
-
-  if (state.position.y > maxY) {
-    state.position.y = maxY;
-    state.velocity.y = -Math.abs(state.velocity.y) * 0.08;
-    state.squashVelocity -= 0.22;
-  }
-
-  const bottom = state.position.y - currentBottomRadius();
-  if (bottom < TABLE_Y) {
-    state.position.y += TABLE_Y - bottom;
-    if (state.velocity.y < 0) {
-      const impact = -state.velocity.y;
-      state.velocity.y = impact * 0.03;
-      state.squashVelocity += impact * 0.30;
-      state.wobbleXVelocity += -state.velocity.x * 0.24;
-      state.wobbleZVelocity += -state.velocity.z * 0.24;
-      state.velocity.x *= 0.96;
-      state.velocity.z *= 0.96;
-    }
-    if (Math.abs(state.velocity.y) < 0.08) state.velocity.y = 0;
-  }
-}
-
-function physicsStep(dt) {
-  // While touched, gravity almost disappears. After release it returns gradually,
-  // so the jelly floats for a short moment instead of snapping downward.
+function externalAcceleration() {
   if (state.dragging) {
     state.touchFloat = 1;
   } else {
-    state.touchFloat = Math.max(0, state.touchFloat - dt * 1.65);
+    state.touchFloat = Math.max(0, state.touchFloat - FIXED_DT * 1.8);
   }
 
-  const touchFactor = state.dragging ? 0.24 : 1.0;
-  const releaseGravityScale = state.dragging
-    ? 0.05
-    : THREE.MathUtils.lerp(1.0, 0.28, state.touchFloat);
+  const releaseScale = state.dragging
+    ? 0.08
+    : THREE.MathUtils.lerp(1.0, 0.32, state.touchFloat);
 
-  if (state.gravityOn) {
-    if (state.motion.enabled) {
-      // accelerationIncludingGravity is rotated into the same axes as the
-      // rendered landscape stage. Negating it gives the actual gravity direction.
-      // X means screen-right/left; Y means screen-up/down. There is no hidden
-      // depth-axis tilt anymore, so the jelly always moves where the screen tilts.
-      const gravityX = THREE.MathUtils.clamp(-state.motion.gravityX / 9.81, -1, 1);
-      const gravityY = THREE.MathUtils.clamp(-state.motion.gravityY / 9.81, -1, 1);
+  let ax = 0;
+  let ay = state.gravityOn ? -7.7 * releaseScale : 0;
 
-      state.velocity.x += gravityX * 7.0 * touchFactor * releaseGravityScale * dt;
-      state.velocity.y += gravityY * 7.0 * touchFactor * releaseGravityScale * dt;
-    } else {
-      // Sensor off: keep a normal screen-down gravity.
-      state.velocity.y -= 7.7 * releaseGravityScale * dt;
-    }
+  if (state.gravityOn && state.motion.enabled) {
+    // DeviceMotion reports support acceleration. Negating it gives gravity.
+    // These axes are already transformed into the rendered landscape stage.
+    ax = THREE.MathUtils.clamp(-state.motion.gravityX / 9.81, -1, 1) *
+      7.7 * releaseScale;
+    ay = THREE.MathUtils.clamp(-state.motion.gravityY / 9.81, -1, 1) *
+      7.7 * releaseScale;
   }
 
   if (state.motion.enabled) {
-
-    // Fast device movement is separate from tilt: it excites the soft-body
-    // springs in the same front-view axes.
-    const shakeX = THREE.MathUtils.clamp(state.motion.linearX, -7, 7);
-    const shakeY = THREE.MathUtils.clamp(state.motion.linearY, -7, 7);
-    const shakeZ = THREE.MathUtils.clamp(state.motion.linearZ, -7, 7);
-
-    state.wobbleXVelocity += -shakeX * 0.052 * touchFactor * dt * 60;
-    state.squashVelocity += shakeY * 0.042 * touchFactor * dt * 60;
-    state.wobbleZVelocity += -shakeZ * 0.024 * touchFactor * dt * 60;
-
-    // Sudden vertical screen motion gives a small visible hop.
-    if (!state.dragging && Math.abs(shakeY) > 1.8) {
-      state.velocity.y += THREE.MathUtils.clamp(-shakeY * 0.020, -0.09, 0.09);
-    }
+    // Inertial kick from moving the container itself. Unlike tilt this is
+    // intentionally short and is what makes the mass slosh into the walls.
+    ax += THREE.MathUtils.clamp(-state.motion.linearX, -7, 7) * 0.52;
+    ay += THREE.MathUtils.clamp(-state.motion.linearY, -7, 7) * 0.52;
   }
 
   if (state.dragging) {
-    // Smooth the finger target itself. This removes tiny pointer jitter and gives
-    // the surface a syrupy, pleasant follow rather than a rigid mouse-drag feel.
-    const follow = 1 - Math.exp(-18 * dt);
-    state.grabTargetSoft.lerp(state.grabTarget, follow);
-
-    const toTarget = new THREE.Vector3().subVectors(state.grabTargetSoft, state.position);
-
-    // Clamp the pull so accidental swipes remain stable.
-    if (toTarget.length() > 2.15) toTarget.setLength(2.15);
-
-    // Light-touch pudding: responsive near the finger, but the body still lags.
-    state.velocity.addScaledVector(toTarget, 20 * dt);
-    state.velocity.multiplyScalar(Math.pow(0.13, dt));
-
-    // A grabbed point leads; the rest of the jelly lags behind.
-    state.squashVelocity +=
-      THREE.MathUtils.clamp(Math.abs(toTarget.y) * -0.34 + Math.abs(toTarget.x) * 0.06, -1.2, 0.6) * dt;
-
-    state.wobbleXVelocity += -toTarget.x * 0.75 * dt;
-    state.wobbleZVelocity += -toTarget.z * 0.75 * dt;
-  } else {
-    state.velocity.x *= Math.pow(0.91, dt);
-    state.velocity.z *= Math.pow(0.91, dt);
+    ax *= 0.24;
+    ay *= 0.24;
   }
 
-  state.position.addScaledVector(state.velocity, dt);
-
-  // Front view behaves like a shallow display case rather than a deep 3D room.
-  state.velocity.z *= Math.pow(0.16, dt);
-  state.position.z *= Math.pow(0.20, dt);
-
-  collideWithContainer();
-
-  const pinchStiffness = state.pinching ? 28 : 11;
-  const pinchDamping = state.pinching ? 7.0 : 3.2;
-  const pinchDelta = state.pinchTarget - state.pinchAmount;
-  state.pinchVelocity +=
-    (pinchDelta * pinchStiffness - state.pinchVelocity * pinchDamping) * dt;
-  state.pinchAmount += state.pinchVelocity * dt;
-  state.pinchAmount = THREE.MathUtils.clamp(state.pinchAmount, -0.46, 0.58);
-
-  keepJellyInView();
-
-  [state.squash, state.squashVelocity] =
-    updateSpring(state.squash, state.squashVelocity, 6.8, 1.7, dt);
-
-  [state.wobbleX, state.wobbleXVelocity] =
-    updateSpring(state.wobbleX, state.wobbleXVelocity, 5.2, 1.55, dt);
-
-  [state.wobbleZ, state.wobbleZVelocity] =
-    updateSpring(state.wobbleZ, state.wobbleZVelocity, 5.2, 1.55, dt);
-
-  state.squash = THREE.MathUtils.clamp(state.squash, -0.55, 0.72);
-  state.wobbleX = THREE.MathUtils.clamp(state.wobbleX, -0.72, 0.72);
-  state.wobbleZ = THREE.MathUtils.clamp(state.wobbleZ, -0.72, 0.72);
+  return { ax, ay };
 }
 
-const localTarget = new THREE.Vector3();
-const localGrab = new THREE.Vector3();
-const grabDelta = new THREE.Vector3();
-let normalUpdateFrame = 0;
+function physicsStep() {
+  const { ax, ay } = externalAcceleration();
+
+  if (state.dragging) {
+    const follow = 1 - Math.exp(-19 * FIXED_DT);
+    state.grabTargetSoft.x +=
+      (state.grabTarget.x - state.grabTargetSoft.x) * follow;
+    state.grabTargetSoft.y +=
+      (state.grabTarget.y - state.grabTargetSoft.y) * follow;
+  }
+
+  for (const p of softParticles) {
+    p.integrate(ax, ay, FIXED_DT);
+  }
+
+  for (let iteration = 0; iteration < SOLVER_ITERATIONS; iteration++) {
+    for (const c of softConstraints) {
+      solveDistanceConstraint(c);
+    }
+
+    solveAreaPressure();
+    solveShapeMemory();
+    solvePinch(FIXED_DT);
+
+    if ((iteration & 1) === 0) {
+      applyGrabConstraint();
+    }
+
+    for (const p of softParticles) {
+      collideParticle(p);
+    }
+  }
+
+  const m = softMetrics();
+  state.position.set(m.c.x, m.c.y, 0);
+  state.velocity.set(m.vx, m.vy, 0);
+}
+
+function sampleDisplacement(influences, centroid) {
+  let dx = 0;
+  let dy = 0;
+
+  for (const influence of influences) {
+    const p = softParticles[influence.index];
+    dx += (
+      p.x - centroid.x - p.restX
+    ) * influence.weight;
+    dy += (
+      p.y - centroid.y - p.restY
+    ) * influence.weight;
+  }
+
+  return { x: dx, y: dy };
+}
 
 function deformJelly(time) {
-  const scales = currentShapeScale();
+  const m = softMetrics();
   const array = positionAttribute.array;
 
-  // Convert the world-space drag point to the body's local translation frame.
-  localTarget.copy(state.grabTarget).sub(state.position);
-  localGrab.copy(state.grabBase);
-  grabDelta.subVectors(localTarget, localGrab);
+  const safeArea = Math.max(m.area, restArea * 0.34);
+  const thicknessScale = THREE.MathUtils.clamp(
+    Math.sqrt(restArea / safeArea),
+    0.72,
+    1.48
+  );
 
-  const speed = state.velocity.length();
-  const travelShearX = THREE.MathUtils.clamp(-state.velocity.x * 0.038, -0.22, 0.22);
-  const travelShearZ = THREE.MathUtils.clamp(-state.velocity.z * 0.038, -0.22, 0.22);
+  const zKick = state.motion.enabled
+    ? THREE.MathUtils.clamp(-state.motion.linearZ * 0.012, -0.07, 0.07)
+    : 0;
 
   for (let i = 0; i < positionAttribute.count; i++) {
     const ix = i * 3;
@@ -994,86 +1203,22 @@ function deformJelly(time) {
     const by = basePositions[ix + 1];
     const bz = basePositions[ix + 2];
 
-    const height01 = THREE.MathUtils.clamp((by + 0.62) / 1.24, 0, 1);
+    const displacement = sampleDisplacement(vertexInfluences[i], m.c);
 
-    // Volume-preserving squash/stretch.
-    let x = bx * scales.sx;
-    let y = by * scales.sy;
-    let z = bz * scales.sz;
+    let x = bx + displacement.x * 1.04;
+    let y = by + displacement.y * 1.04;
+    let z = bz * (thicknessScale + zKick);
 
-    // Two-finger pinch: fingers closing squeeze the body radially and make it
-    // bulge upward; opening the fingers stretches it wider and flatter.
-    const pinch = state.pinchAmount;
-    const pinchRadial = THREE.MathUtils.clamp(1 - pinch * 0.34, 0.76, 1.22);
-    const pinchVertical = THREE.MathUtils.clamp(1 + pinch * 0.46, 0.76, 1.34);
-    x *= pinchRadial;
-    z *= pinchRadial;
-    y *= pinchVertical;
-
-    // Lower half widens a little more under compression, like soft food.
-    const lowWeight = Math.pow(1 - height01, 1.7);
-    const bulge = 1 + Math.max(state.squash, 0) * lowWeight * 0.34;
-    x *= bulge;
-    z *= bulge;
-
-    // Flatten the contact patch against the desk without making the whole body flat.
-    const localTableY = TABLE_Y - state.position.y;
-    const flattenBand = 0.20;
-    if (y < localTableY + flattenBand) {
-      const t = THREE.MathUtils.clamp(
-        (localTableY + flattenBand - y) / flattenBand,
-        0,
-        1
-      );
-      y = THREE.MathUtils.lerp(y, localTableY + 0.004, t * 0.88);
-      x *= 1 + t * 0.095;
-      z *= 1 + t * 0.095;
-    }
-
-    // Whole-body lag while travelling.
-    x += by * (travelShearX + state.wobbleX * 0.26);
-    z += by * (travelShearZ + state.wobbleZ * 0.26);
-
-    // Tiny damped ripples after impact, strongest around the middle skin.
-    const radial = Math.sqrt(bx * bx + bz * bz);
-    const rippleWeight = Math.sin(Math.PI * height01) * THREE.MathUtils.clamp(radial / 0.62, 0, 1);
-    const ripple =
-      Math.sin(time * 4.4 + by * 3.8 + Math.atan2(bz, bx) * 1.25) *
-      (Math.abs(state.squashVelocity) + speed * 0.035) *
-      0.0048 *
-      rippleWeight;
-
-    const radialLen = Math.hypot(bx, bz) || 1;
-    x += (bx / radialLen) * ripple;
-    z += (bz / radialLen) * ripple;
-
-    // Slow skin-flow layer: a low-frequency travelling deformation gives
-    // the surface a viscous "nurunuru" motion instead of rubber-only wobble.
+    // Only a tiny skin flow remains. The large deformation now comes from
+    // the particle body itself, not from fake global squash/stretch.
     const theta = Math.atan2(bz, bx);
-    const flowWeight = Math.sin(Math.PI * height01) * Math.min(1, radial / 0.62);
-    const flow =
-      Math.sin(time * 2.1 + theta * 1.8 + by * 3.6) *
-      (0.010 + Math.min(speed, 5) * 0.0032) *
-      flowWeight;
-    x += Math.cos(theta) * flow;
-    z += Math.sin(theta) * flow;
+    const skin =
+      Math.sin(time * 2.35 + theta * 1.7 + by * 3.6) *
+      (0.0032 + Math.min(Math.hypot(m.vx, m.vy), 5) * 0.0007);
 
-    // True local grip deformation on the actual 3D mesh.
-    if (state.dragging) {
-      const weight = state.grabWeights[i];
-      if (weight > 0.001) {
-        const localFollow = 0.91 * weight;
-        x += grabDelta.x * localFollow;
-        y += grabDelta.y * localFollow;
-        z += grabDelta.z * localFollow;
-
-        // Nearby skin gets slightly pinched toward the grasp point.
-        const pinch = weight * 0.088;
-        x = THREE.MathUtils.lerp(x, localGrab.x + grabDelta.x, pinch);
-        y = THREE.MathUtils.lerp(y, localGrab.y + grabDelta.y, pinch);
-        z = THREE.MathUtils.lerp(z, localGrab.z + grabDelta.z, pinch);
-      }
-    }
+    const radial = Math.hypot(bx, bz) || 1;
+    x += bx / radial * skin;
+    z += bz / radial * skin;
 
     array[ix] = x;
     array[ix + 1] = y;
@@ -1081,35 +1226,34 @@ function deformJelly(time) {
   }
 
   positionAttribute.needsUpdate = true;
-  // Recomputing normals on every frame was expensive on iPhone and made the
-  // face appear to trail. Half-rate normal updates keep the jelly smooth.
+
   normalUpdateFrame++;
-  if ((normalUpdateFrame & 1) === 0) jellyGeometry.computeVertexNormals();
+  if ((normalUpdateFrame & 1) === 0) {
+    jellyGeometry.computeVertexNormals();
+  }
 
-  // The inner mass follows the big deformation but not the local skin pinch.
+  jellyGroup.position.set(m.c.x, m.c.y, 0);
+
+  const widthScale = THREE.MathUtils.clamp(m.width / (REST_RADIUS * 2), 0.60, 1.65);
+  const heightScale = THREE.MathUtils.clamp(m.height / (REST_RADIUS * 2), 0.60, 1.65);
+
   core.scale.set(
-    scales.sx * 0.98,
-    scales.sy * 0.92,
-    scales.sz * 0.96
+    widthScale * 0.82,
+    heightScale * 0.82,
+    thicknessScale * 0.78
   );
-  core.position.set(
-    state.wobbleX * 0.055,
-    -0.015,
-    state.wobbleZ * 0.055
-  );
+  core.position.set(0, 0, 0);
 
-  // Face is intentionally steadier than the skin.
-  // Face sits just outside the refractive shell and follows the same shear
-  // immediately, so transparency sorting/refraction cannot make it lag.
+  const faceD = sampleDisplacement(faceInfluences, m.c);
   face.position.set(
-    state.wobbleX * 0.030 + travelShearX * 0.010,
-    0.004 - Math.max(state.squash, 0) * 0.038,
-    0.628 * scales.sz + 0.018
+    faceD.x * 0.78,
+    faceD.y * 0.78,
+    0.628 * thicknessScale + 0.018
   );
-  face.rotation.z = THREE.MathUtils.clamp(-state.velocity.x * 0.025, -0.16, 0.16);
+  face.rotation.z = THREE.MathUtils.clamp(-m.vx * 0.014, -0.16, 0.16);
   face.scale.set(
-    scales.sx,
-    THREE.MathUtils.lerp(1, scales.sy, 0.62),
+    THREE.MathUtils.clamp(widthScale, 0.72, 1.35),
+    THREE.MathUtils.clamp(heightScale, 0.72, 1.35),
     1
   );
 
@@ -1117,36 +1261,41 @@ function deformJelly(time) {
   rightEye.position.set(0.142, 0.052, 0);
   mouth.position.set(0, -0.047, 0.006);
 
-  jellyGroup.position.copy(state.position);
-
-  const height = Math.max(0, state.position.y - currentBottomRadius());
-  blobShadow.position.x = state.position.x;
-  blobShadow.position.z = state.position.z;
+  const heightFromFloor = Math.max(0, m.minY - TABLE_Y);
+  blobShadow.position.x = m.c.x;
+  blobShadow.position.z = 0;
   blobShadow.scale.set(
-    1.0 + Math.max(state.squash, 0) * 0.75,
-    0.82 + Math.max(state.squash, 0) * 0.55,
+    THREE.MathUtils.clamp(widthScale * 0.95, 0.55, 1.55),
+    THREE.MathUtils.clamp(0.72 + (1 - heightScale) * 0.25, 0.55, 1.10),
     1
   );
-  blobShadow.material.opacity = THREE.MathUtils.clamp(0.34 - height * 0.10, 0.07, 0.34);
+  blobShadow.material.opacity = THREE.MathUtils.clamp(
+    0.34 - heightFromFloor * 0.15,
+    0.05,
+    0.34
+  );
 }
 
+buildSoftTopology();
+
 // -----------------------------------------------------------------------------
-// Pointer interaction with the actual 3D mesh.
+// Pointer interaction — grab local particles, pinch the body, throw on release
 // -----------------------------------------------------------------------------
 
 const raycaster = new THREE.Raycaster();
 const pointerNDC = new THREE.Vector2();
-const dragPlane = new THREE.Plane();
-const dragPlaneNormal = new THREE.Vector3();
-const hitPoint = new THREE.Vector3();
+const interactionPlane = new THREE.Plane(new THREE.Vector3(0, 0, 1), 0);
 const tempRayPoint = new THREE.Vector3();
+const activePointers = new Map();
+
+let lastGrabWorld = new THREE.Vector2();
+let lastGrabTime = performance.now();
 
 function setPointerNDC(event) {
   let nx;
   let ny;
 
   if (viewport.rotated) {
-    // Same clockwise transform as #landscape-root.
     nx = event.clientY / innerHeight;
     ny = 1 - event.clientX / innerWidth;
   } else {
@@ -1158,37 +1307,45 @@ function setPointerNDC(event) {
   pointerNDC.y = -(ny * 2 - 1);
 }
 
-function updateGrabWeights(localPoint) {
-  const sigma = 0.32;
+function pointerToFrontPlane(event) {
+  setPointerNDC(event);
+  raycaster.setFromCamera(pointerNDC, camera);
+
+  if (!raycaster.ray.intersectPlane(interactionPlane, tempRayPoint)) {
+    return null;
+  }
+
+  return tempRayPoint;
+}
+
+function makeParticleGrabWeights(x, y) {
+  const sigma = 0.31;
+  const weights = new Float32Array(softParticles.length);
   let max = 0;
 
-  for (let i = 0; i < positionAttribute.count; i++) {
-    const ix = i * 3;
-    const bx = basePositions[ix];
-    const by = basePositions[ix + 1];
-    const bz = basePositions[ix + 2];
-    const d2 =
-      (bx - localPoint.x) * (bx - localPoint.x) +
-      (by - localPoint.y) * (by - localPoint.y) +
-      (bz - localPoint.z) * (bz - localPoint.z);
-
+  for (let i = 0; i < softParticles.length; i++) {
+    const p = softParticles[i];
+    const dx = p.x - x;
+    const dy = p.y - y;
+    const d2 = dx * dx + dy * dy;
     const w = Math.exp(-d2 / (2 * sigma * sigma));
-    state.grabWeights[i] = w;
+    weights[i] = w;
     if (w > max) max = w;
   }
 
-  if (max > 0) {
-    for (let i = 0; i < state.grabWeights.length; i++) {
-      state.grabWeights[i] /= max;
-    }
-  }
-}
+  if (max <= 0.001) return null;
 
-const activePointers = new Map();
+  for (let i = 0; i < weights.length; i++) {
+    weights[i] /= max;
+  }
+
+  return weights;
+}
 
 function pointerDistance() {
   const values = [...activePointers.values()];
   if (values.length < 2) return 0;
+
   const a = values[0];
   const b = values[1];
   return Math.hypot(a.x - b.x, a.y - b.y);
@@ -1202,10 +1359,11 @@ function beginPinchIfPossible() {
 
   state.pinching = true;
   state.dragging = false;
-  state.grabWeights.fill(0);
+  state.grabWeights = null;
   state.pinchStartDistance = distance;
   state.pinchTarget = 0;
-  state.pinchVelocity += 0.035;
+  state.pinchVelocity += 0.03;
+
   return true;
 }
 
@@ -1230,34 +1388,38 @@ canvas.addEventListener("pointerdown", event => {
   setPointerNDC(event);
   raycaster.setFromCamera(pointerNDC, camera);
 
-  const intersections = raycaster.intersectObject(jelly, false);
-  if (!intersections.length) return;
+  const hits = raycaster.intersectObject(jelly, false);
+  if (!hits.length) return;
 
   event.preventDefault();
   canvas.setPointerCapture(event.pointerId);
 
-  const hit = intersections[0];
-  hitPoint.copy(hit.point);
+  const hit = hits[0];
+  const weights = makeParticleGrabWeights(hit.point.x, hit.point.y);
+  if (!weights) return;
 
   state.dragging = true;
   state.touchFloat = 1;
-  state.grabTarget.copy(hit.point);
-  state.grabTargetSoft.copy(hit.point);
-  state.lastGrabTarget.copy(hit.point);
-  state.grabTargetVelocity.set(0, 0, 0);
+  state.grabWeights = weights;
+  state.grabTarget.set(hit.point.x, hit.point.y);
+  state.grabTargetSoft.copy(state.grabTarget);
+  state.grabVelocity.set(0, 0);
 
-  // A tiny compression on contact gives a subtle tactile "ぷるっ" response.
-  state.squashVelocity += 0.045;
+  lastGrabWorld.copy(state.grabTarget);
+  lastGrabTime = performance.now();
 
-  state.grabBase.copy(hit.point).sub(state.position);
-  updateGrabWeights(state.grabBase);
+  // A touch dents the local particle patch rather than scaling the whole mesh.
+  const c = softCentroid();
+  for (let i = 0; i < softParticles.length; i++) {
+    const w = weights[i];
+    if (w < 0.06) continue;
 
-  // Plane faces the camera and passes through the touched skin point.
-  camera.getWorldDirection(dragPlaneNormal);
-  dragPlane.setFromNormalAndCoplanarPoint(dragPlaneNormal, hit.point);
-
-  state.wobbleXVelocity += -state.velocity.x * 0.12;
-  state.wobbleZVelocity += -state.velocity.z * 0.12;
+    const p = softParticles[i];
+    const dx = p.x - c.x;
+    const dy = p.y - c.y;
+    p.x -= dx * 0.010 * w;
+    p.y -= dy * 0.010 * w;
+  }
 });
 
 canvas.addEventListener("pointermove", event => {
@@ -1270,34 +1432,50 @@ canvas.addEventListener("pointermove", event => {
 
   if (state.pinching && activePointers.size >= 2) {
     const distance = pointerDistance();
+
     if (state.pinchStartDistance > 0 && distance > 0) {
       const ratio = distance / state.pinchStartDistance;
-      state.pinchTarget = THREE.MathUtils.clamp((1 - ratio) * 1.55, -0.42, 0.55);
+      state.pinchTarget = THREE.MathUtils.clamp(
+        (1 - ratio) * 1.55,
+        -0.44,
+        0.56
+      );
     }
+
     return;
   }
 
   if (!state.dragging) return;
 
-  setPointerNDC(event);
-  raycaster.setFromCamera(pointerNDC, camera);
+  const world = pointerToFrontPlane(event);
+  if (!world) return;
 
-  if (!raycaster.ray.intersectPlane(dragPlane, tempRayPoint)) return;
+  const now = performance.now();
+  const elapsed = Math.max(0.008, (now - lastGrabTime) / 1000);
 
-  // Don't allow the grab target to disappear deeply below the container floor.
-  tempRayPoint.y = Math.max(tempRayPoint.y, TABLE_Y + 0.06);
+  state.grabVelocity.set(
+    (world.x - lastGrabWorld.x) / elapsed,
+    (world.y - lastGrabWorld.y) / elapsed
+  );
 
-  const dt = Math.max(clock.getDelta(), 1 / 240);
-  state.grabTargetVelocity
-    .subVectors(tempRayPoint, state.lastGrabTarget)
-    .divideScalar(dt);
+  const speed = state.grabVelocity.length();
+  if (speed > 7.0) state.grabVelocity.multiplyScalar(7.0 / speed);
 
-  if (state.grabTargetVelocity.length() > 9) {
-    state.grabTargetVelocity.setLength(9);
-  }
+  state.grabTarget.set(
+    THREE.MathUtils.clamp(
+      world.x,
+      -CONTAINER.halfX + 0.03,
+      CONTAINER.halfX - 0.03
+    ),
+    THREE.MathUtils.clamp(
+      world.y,
+      TABLE_Y + 0.03,
+      CONTAINER.height - 0.03
+    )
+  );
 
-  state.lastGrabTarget.copy(state.grabTarget);
-  state.grabTarget.copy(tempRayPoint);
+  lastGrabWorld.set(world.x, world.y);
+  lastGrabTime = now;
 });
 
 function releasePointer(event) {
@@ -1305,28 +1483,37 @@ function releasePointer(event) {
 
   if (state.pinching) {
     if (activePointers.size < 2) {
-      // Let the stored squeeze spring back into a broad "ぷるん".
       state.pinching = false;
       state.pinchTarget = 0;
-      state.squashVelocity += state.pinchAmount * 0.34;
-      state.wobbleXVelocity += state.pinchAmount * 0.08;
+      state.pinchVelocity += -state.pinchAmount * 0.20;
     }
     return;
   }
 
-  if (!state.dragging) return;
+  if (!state.dragging || !state.grabWeights) return;
 
-  // Release keeps enough finger velocity for an intentional throw.
-  state.velocity.addScaledVector(state.grabTargetVelocity, 0.31);
-  if (state.velocity.length() > 6.8) state.velocity.setLength(6.8);
-  state.touchFloat = 1;
+  const throwX = THREE.MathUtils.clamp(state.grabVelocity.x, -6.0, 6.0);
+  const throwY = THREE.MathUtils.clamp(state.grabVelocity.y, -6.0, 6.0);
 
-  state.wobbleXVelocity += -state.grabTargetVelocity.x * 0.10;
-  state.wobbleZVelocity += -state.grabTargetVelocity.z * 0.10;
+  for (let i = 0; i < softParticles.length; i++) {
+    const w = state.grabWeights[i];
+    if (w < 0.01) continue;
+
+    const p = softParticles[i];
+    const currentVX = (p.x - p.px) / FIXED_DT;
+    const currentVY = (p.y - p.py) / FIXED_DT;
+
+    const vx = currentVX + throwX * 0.42 * w;
+    const vy = currentVY + throwY * 0.42 * w;
+
+    p.px = p.x - vx * FIXED_DT;
+    p.py = p.y - vy * FIXED_DT;
+  }
 
   state.dragging = false;
-  state.grabWeights.fill(0);
-  state.grabTargetVelocity.set(0, 0, 0);
+  state.touchFloat = 1;
+  state.grabWeights = null;
+  state.grabVelocity.set(0, 0);
 }
 
 canvas.addEventListener("pointerup", releasePointer);
@@ -1350,8 +1537,7 @@ motionButton.addEventListener("click", async () => {
 
 function resizeLandscapeStage() {
   viewport = landscapeViewport();
-  camera.aspect = viewport.width / viewport.height;
-  camera.updateProjectionMatrix();
+  applyCameraFraming();
   renderer.setPixelRatio(Math.min(devicePixelRatio || 1, 1.5));
   renderer.setSize(viewport.width, viewport.height, false);
 }
@@ -1364,15 +1550,19 @@ screen.orientation?.addEventListener?.("change", resizeLandscapeStage);
 // -----------------------------------------------------------------------------
 
 let last = performance.now();
+let accumulator = 0;
 
 function animate(now) {
-  const dt = Math.min((now - last) / 1000, 1 / 20);
+  const dt = Math.min((now - last) / 1000, 0.05);
   last = now;
+  accumulator += dt;
 
-  // Two substeps make table impacts and dragging less jittery.
-  const subDt = dt * 0.5;
-  physicsStep(subDt);
-  physicsStep(subDt);
+  let steps = 0;
+  while (accumulator >= FIXED_DT && steps < 6) {
+    physicsStep();
+    accumulator -= FIXED_DT;
+    steps++;
+  }
 
   deformJelly(now / 1000);
 
