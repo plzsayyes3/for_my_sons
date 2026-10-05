@@ -58,7 +58,7 @@
   {
     "id": "slime",
     "name": "スライム",
-    "url": "./slime/?v=5",
+    "url": "./slime/?v=6",
     "icon": "./assets/slime.svg?v=1",
     "description": "透明なぷるぷるスライムをつかんで、のばして、投げてあそぼう",
     "category": "game"
