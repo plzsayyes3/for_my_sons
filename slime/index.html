@@ -863,7 +863,7 @@ function solveShapeMemory() {
   }
 }
 
-function solvePinch(dt) {
+function updatePinchState(dt) {
   const stiffness = state.pinching ? 25 : 9;
   const damping = state.pinching ? 6.5 : 2.7;
   const delta = state.pinchTarget - state.pinchAmount;
@@ -872,7 +872,9 @@ function solvePinch(dt) {
     (delta * stiffness - state.pinchVelocity * damping) * dt;
   state.pinchAmount += state.pinchVelocity * dt;
   state.pinchAmount = THREE.MathUtils.clamp(state.pinchAmount, -0.48, 0.58);
+}
 
+function solvePinchShape() {
   if (Math.abs(state.pinchAmount) < 0.001) return;
 
   const c = softCentroid();
@@ -1142,6 +1144,8 @@ function physicsStep() {
     p.integrate(ax, ay, FIXED_DT);
   }
 
+  updatePinchState(FIXED_DT);
+
   for (let iteration = 0; iteration < SOLVER_ITERATIONS; iteration++) {
     for (const c of softConstraints) {
       solveDistanceConstraint(c);
@@ -1149,7 +1153,7 @@ function physicsStep() {
 
     solveAreaPressure();
     solveShapeMemory();
-    solvePinch(FIXED_DT);
+    solvePinchShape();
 
     if ((iteration & 1) === 0) {
       applyGrabConstraint();
