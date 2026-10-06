@@ -64,6 +64,14 @@
     "category": "game"
   },
   {
+    "id": "slime-v2",
+    "name": "スライム V2",
+    "url": "./slime-v2/?v=1",
+    "icon": "./assets/slime-v2.svg?v=1",
+    "description": "のばす・ちぎる・くっつける・色をまぜる、2Dスライム研究所",
+    "category": "create"
+  },
+  {
     "id": "a-hole-ball",
     "name": "あ",
     "url": "./a-hole-ball/?v=3",
