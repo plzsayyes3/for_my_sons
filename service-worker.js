@@ -1,4 +1,4 @@
-const CACHE_NAME = 'for-my-sons-v125';
+const CACHE_NAME = 'for-my-sons-v126';
 const SHELL = [
   './',
   './index.html',
@@ -34,6 +34,9 @@ const SHELL = [
   './yukkuri-danmaku/assets/marisa.png?v=1',
   './slime/?v=8',
   './slime/index.html',
+  './slime-v2/?v=1',
+  './slime-v2/index.html',
+  './assets/slime-v2.svg?v=1',
   './a-hole-ball/?v=3',
   './a-hole-ball/index.html',
   './split-puzzle/?v=6',
