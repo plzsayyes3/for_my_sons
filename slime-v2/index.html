@@ -1,0 +1,841 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
+<title>スライム V2 | For My Sons</title>
+<style>
+  :root { color-scheme: light; }
+  * { box-sizing: border-box; }
+  html, body {
+    margin: 0;
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+    background: #dfe8e8;
+    font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    touch-action: none;
+    overscroll-behavior: none;
+  }
+  #landscape {
+    position: fixed;
+    inset: 0;
+    width: 100vw;
+    height: 100vh;
+    overflow: hidden;
+    background:
+      radial-gradient(circle at 25% 12%, rgba(255,255,255,.95), rgba(255,255,255,0) 30%),
+      linear-gradient(180deg, #f5f8f7 0%, #dce8e7 100%);
+    transform-origin: 50% 50%;
+  }
+  @media (orientation: portrait) {
+    #landscape {
+      left: 50%;
+      top: 50%;
+      right: auto;
+      bottom: auto;
+      width: 100vh;
+      height: 100vw;
+      transform: translate(-50%, -50%) rotate(90deg);
+    }
+  }
+  canvas {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    display: block;
+    touch-action: none;
+  }
+  .topbar {
+    position: absolute;
+    z-index: 10;
+    top: max(10px, env(safe-area-inset-top));
+    left: 12px;
+    right: 12px;
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    pointer-events: none;
+  }
+  .chip {
+    height: 34px;
+    min-width: 34px;
+    padding: 0 11px;
+    border-radius: 999px;
+    border: 1px solid rgba(37,55,59,.12);
+    background: rgba(255,255,255,.72);
+    color: #314247;
+    font: 700 11px/1 system-ui, sans-serif;
+    box-shadow: 0 7px 22px rgba(49,66,71,.08);
+    backdrop-filter: blur(14px);
+    -webkit-backdrop-filter: blur(14px);
+    pointer-events: auto;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    text-decoration: none;
+    white-space: nowrap;
+  }
+  button.chip {
+    appearance: none;
+    -webkit-appearance: none;
+  }
+  .hint {
+    margin-left: auto;
+    pointer-events: none;
+    font-weight: 600;
+    opacity: .68;
+  }
+  .palette {
+    position: absolute;
+    z-index: 11;
+    left: 50%;
+    bottom: max(12px, env(safe-area-inset-bottom));
+    transform: translateX(-50%);
+    display: flex;
+    gap: 10px;
+    padding: 8px 10px;
+    border: 1px solid rgba(37,55,59,.10);
+    border-radius: 999px;
+    background: rgba(255,255,255,.70);
+    backdrop-filter: blur(14px);
+    -webkit-backdrop-filter: blur(14px);
+    box-shadow: 0 10px 30px rgba(49,66,71,.10);
+  }
+  .swatch {
+    width: 38px;
+    height: 38px;
+    padding: 0;
+    border-radius: 50%;
+    border: 3px solid rgba(255,255,255,.92);
+    box-shadow: 0 0 0 1px rgba(37,55,59,.12), 0 5px 12px rgba(37,55,59,.12);
+    appearance: none;
+    -webkit-appearance: none;
+  }
+  .swatch[data-color="cyan"] { background: #52c8ef; }
+  .swatch[data-color="yellow"] { background: #ffd457; }
+  .swatch[data-color="pink"] { background: #ff79a8; }
+  .swatch[data-color="white"] { background: #f7f2e8; }
+  .label {
+    position: absolute;
+    left: 50%;
+    top: 54px;
+    transform: translateX(-50%);
+    z-index: 9;
+    font-size: 10px;
+    font-weight: 800;
+    letter-spacing: .18em;
+    color: rgba(47,64,69,.40);
+    pointer-events: none;
+  }
+</style>
+</head>
+<body>
+<div id="landscape">
+  <canvas id="canvas"></canvas>
+
+  <div class="topbar">
+    <a class="chip" href="../">‹ HOME</a>
+    <button class="chip" id="reset" type="button">RESET</button>
+    <button class="chip" id="gyro" type="button">ジャイロ OFF</button>
+    <div class="chip hint">こねる・のばす・ちぎる・くっつける・まぜる</div>
+  </div>
+
+  <div class="label">SLIME LAB · V2</div>
+
+  <div class="palette" aria-label="スライムの色を追加">
+    <button class="swatch" data-color="cyan" aria-label="青を追加"></button>
+    <button class="swatch" data-color="yellow" aria-label="黄を追加"></button>
+    <button class="swatch" data-color="pink" aria-label="ピンクを追加"></button>
+    <button class="swatch" data-color="white" aria-label="白を追加"></button>
+  </div>
+</div>
+
+<script>
+(() => {
+  "use strict";
+
+  const root = document.getElementById("landscape");
+  const canvas = document.getElementById("canvas");
+  const ctx = canvas.getContext("2d", { alpha: false });
+  const resetButton = document.getElementById("reset");
+  const gyroButton = document.getElementById("gyro");
+  const swatches = [...document.querySelectorAll(".swatch")];
+
+  const fieldCanvas = document.createElement("canvas");
+  const fieldCtx = fieldCanvas.getContext("2d", { alpha: true });
+  let fieldImage = null;
+  let field = null;
+  let fieldR = null;
+  let fieldG = null;
+  let fieldB = null;
+
+  const COLORS = {
+    cyan: [82, 200, 239],
+    yellow: [255, 212, 87],
+    pink: [255, 121, 168],
+    white: [247, 242, 232]
+  };
+
+  const particles = [];
+  const pointers = new Map();
+
+  const MAX_PARTICLES = 230;
+  const PARTICLE_RADIUS = 10;
+  const REST_DISTANCE = 18;
+  const REPULSE_DISTANCE = 17;
+  const COHESION_DISTANCE = 43;
+  const WALL_PAD = 18;
+
+  let W = 0;
+  let H = 0;
+  let dpr = 1;
+  let rotatedStage = false;
+  let lastTime = performance.now();
+  let fieldFrame = 0;
+
+  const container = { left: 44, top: 66, right: 0, bottom: 0 };
+
+  const motion = {
+    enabled: false,
+    permission: "unknown",
+    gx: 0,
+    gy: 0,
+    lx: 0,
+    ly: 0
+  };
+
+  function stageSize() {
+    const portrait = innerHeight > innerWidth;
+    return portrait
+      ? { width: innerHeight, height: innerWidth, rotated: true }
+      : { width: innerWidth, height: innerHeight, rotated: false };
+  }
+
+  function resize() {
+    const v = stageSize();
+    W = v.width;
+    H = v.height;
+    rotatedStage = v.rotated;
+
+    dpr = Math.min(devicePixelRatio || 1, 1.5);
+    canvas.width = Math.max(1, Math.round(W * dpr));
+    canvas.height = Math.max(1, Math.round(H * dpr));
+
+    container.left = 34;
+    container.top = 50;
+    container.right = W - 34;
+    container.bottom = H - 34;
+
+    const fw = Math.max(150, Math.min(250, Math.round(W * 0.25)));
+    const fh = Math.max(82, Math.round(fw * H / W));
+    fieldCanvas.width = fw;
+    fieldCanvas.height = fh;
+
+    fieldImage = fieldCtx.createImageData(fw, fh);
+    const len = fw * fh;
+    field = new Float32Array(len);
+    fieldR = new Float32Array(len);
+    fieldG = new Float32Array(len);
+    fieldB = new Float32Array(len);
+  }
+
+  function screenAngle() {
+    if (screen.orientation && Number.isFinite(screen.orientation.angle)) {
+      return ((screen.orientation.angle % 360) + 360) % 360;
+    }
+    if (typeof window.orientation === "number") {
+      return ((window.orientation % 360) + 360) % 360;
+    }
+    return 0;
+  }
+
+  function deviceToStage(x, y) {
+    const angle = screenAngle();
+    let sx = x;
+    let sy = y;
+
+    if (angle === 90) {
+      sx = -y;
+      sy = x;
+    } else if (angle === 180) {
+      sx = -x;
+      sy = -y;
+    } else if (angle === 270) {
+      sx = y;
+      sy = -x;
+    }
+
+    if (rotatedStage) {
+      return { x: sy, y: -sx };
+    }
+
+    return { x: sx, y: sy };
+  }
+
+  function pointerToStage(event) {
+    if (rotatedStage) {
+      return {
+        x: event.clientY,
+        y: innerWidth - event.clientX
+      };
+    }
+    return {
+      x: event.clientX,
+      y: event.clientY
+    };
+  }
+
+  function tryLandscapeLock() {
+    if (!screen.orientation || !screen.orientation.lock) return;
+    Promise.resolve(screen.orientation.lock("landscape")).catch(() => {});
+  }
+
+  function onMotion(event) {
+    if (!motion.enabled) return;
+
+    const g = event.accelerationIncludingGravity || {};
+    const a = event.acceleration || {};
+
+    const gs = deviceToStage(
+      Number.isFinite(g.x) ? g.x : 0,
+      Number.isFinite(g.y) ? g.y : 0
+    );
+    const as = deviceToStage(
+      Number.isFinite(a.x) ? a.x : 0,
+      Number.isFinite(a.y) ? a.y : 0
+    );
+
+    motion.gx += (gs.x - motion.gx) * 0.12;
+    motion.gy += (gs.y - motion.gy) * 0.12;
+    motion.lx += (as.x - motion.lx) * 0.28;
+    motion.ly += (as.y - motion.ly) * 0.28;
+  }
+
+  async function enableMotion() {
+    tryLandscapeLock();
+
+    try {
+      if (
+        typeof DeviceMotionEvent !== "undefined" &&
+        typeof DeviceMotionEvent.requestPermission === "function"
+      ) {
+        const result = await DeviceMotionEvent.requestPermission();
+        motion.permission = result;
+        if (result !== "granted") {
+          gyroButton.textContent = "ジャイロ NG";
+          return;
+        }
+      }
+
+      if (typeof DeviceMotionEvent === "undefined") {
+        gyroButton.textContent = "センサーなし";
+        return;
+      }
+
+      motion.enabled = true;
+      motion.permission = "granted";
+      addEventListener("devicemotion", onMotion, { passive: true });
+      gyroButton.textContent = "ジャイロ ON";
+    } catch (_) {
+      gyroButton.textContent = "ジャイロ ERROR";
+    }
+  }
+
+  function disableMotion() {
+    motion.enabled = false;
+    removeEventListener("devicemotion", onMotion);
+    motion.gx = motion.gy = motion.lx = motion.ly = 0;
+    gyroButton.textContent = "ジャイロ OFF";
+  }
+
+  function addParticle(x, y, color) {
+    if (particles.length >= MAX_PARTICLES) return;
+    particles.push({
+      x,
+      y,
+      vx: 0,
+      vy: 0,
+      r: color[0],
+      g: color[1],
+      b: color[2],
+      activity: 0
+    });
+  }
+
+  function spawnBlob(cx, cy, color, count = 52, spread = 54) {
+    const available = Math.max(0, MAX_PARTICLES - particles.length);
+    const n = Math.min(count, available);
+    const golden = Math.PI * (3 - Math.sqrt(5));
+
+    for (let i = 0; i < n; i++) {
+      const t = (i + 0.5) / Math.max(1, n);
+      const radius = Math.sqrt(t) * spread;
+      const angle = i * golden;
+      addParticle(
+        cx + Math.cos(angle) * radius,
+        cy + Math.sin(angle) * radius,
+        color
+      );
+    }
+  }
+
+  function reset() {
+    particles.length = 0;
+    const cy = (container.top + container.bottom) * 0.55;
+    spawnBlob(W * 0.39, cy, COLORS.cyan, 54, 52);
+    spawnBlob(W * 0.61, cy, COLORS.yellow, 54, 52);
+    pointers.clear();
+  }
+
+  function addColorBlob(name) {
+    const c = COLORS[name];
+    if (!c) return;
+
+    const index = ["cyan", "yellow", "pink", "white"].indexOf(name);
+    const x = W * (0.34 + index * 0.105);
+    const y = H * 0.50 + ((index & 1) ? 22 : -18);
+    spawnBlob(x, y, c, 34, 38);
+  }
+
+  function pickParticles(x, y) {
+    const grabbed = [];
+    let nearest = Infinity;
+
+    for (const p of particles) {
+      nearest = Math.min(nearest, Math.hypot(p.x - x, p.y - y));
+    }
+
+    if (nearest > 72) return grabbed;
+
+    const radius = 66;
+    for (let i = 0; i < particles.length; i++) {
+      const p = particles[i];
+      const d = Math.hypot(p.x - x, p.y - y);
+      if (d > radius) continue;
+      const q = 1 - d / radius;
+      grabbed.push({
+        index: i,
+        weight: q * q,
+        ox: (p.x - x) * 0.18,
+        oy: (p.y - y) * 0.18
+      });
+    }
+
+    return grabbed;
+  }
+
+  function pointerDown(event) {
+    tryLandscapeLock();
+    if (!motion.enabled && motion.permission === "unknown") enableMotion();
+
+    const pt = pointerToStage(event);
+    const now = performance.now();
+
+    pointers.set(event.pointerId, {
+      x: pt.x,
+      y: pt.y,
+      px: pt.x,
+      py: pt.y,
+      vx: 0,
+      vy: 0,
+      time: now,
+      grabbed: pickParticles(pt.x, pt.y)
+    });
+
+    try { canvas.setPointerCapture(event.pointerId); } catch (_) {}
+    event.preventDefault();
+  }
+
+  function pointerMove(event) {
+    const pointer = pointers.get(event.pointerId);
+    if (!pointer) return;
+
+    const pt = pointerToStage(event);
+    const now = performance.now();
+    const dt = Math.max(0.008, (now - pointer.time) / 1000);
+
+    pointer.vx = (pt.x - pointer.x) / dt;
+    pointer.vy = (pt.y - pointer.y) / dt;
+
+    const speed = Math.hypot(pointer.vx, pointer.vy);
+    if (speed > 1800) {
+      const k = 1800 / speed;
+      pointer.vx *= k;
+      pointer.vy *= k;
+    }
+
+    pointer.px = pointer.x;
+    pointer.py = pointer.y;
+    pointer.x = pt.x;
+    pointer.y = pt.y;
+    pointer.time = now;
+
+    event.preventDefault();
+  }
+
+  function pointerUp(event) {
+    const pointer = pointers.get(event.pointerId);
+    if (!pointer) return;
+
+    for (const item of pointer.grabbed) {
+      const p = particles[item.index];
+      if (!p) continue;
+      p.vx += pointer.vx * 0.16 * item.weight;
+      p.vy += pointer.vy * 0.16 * item.weight;
+      p.activity = Math.min(1, p.activity + 0.7 * item.weight);
+    }
+
+    pointers.delete(event.pointerId);
+    event.preventDefault();
+  }
+
+  function physics(dt) {
+    let ax = 0;
+    let ay = 0;
+
+    if (motion.enabled) {
+      ax = Math.max(-1, Math.min(1, -motion.gx / 9.81)) * 520;
+      ay = Math.max(-1, Math.min(1, -motion.gy / 9.81)) * 520;
+      ax += Math.max(-6, Math.min(6, -motion.lx)) * 30;
+      ay += Math.max(-6, Math.min(6, -motion.ly)) * 30;
+    }
+
+    // Local surface tension + soft repulsion. There are no permanent bonds:
+    // pulling far enough really separates the slime, and contact merges it again.
+    for (let i = 0; i < particles.length; i++) {
+      const a = particles[i];
+
+      for (let j = i + 1; j < particles.length; j++) {
+        const b = particles[j];
+        const dx = b.x - a.x;
+        const dy = b.y - a.y;
+        const d2 = dx * dx + dy * dy;
+
+        if (d2 > COHESION_DISTANCE * COHESION_DISTANCE || d2 < 0.0001) continue;
+
+        const d = Math.sqrt(d2);
+        const nx = dx / d;
+        const ny = dy / d;
+
+        let force = 0;
+
+        if (d < REPULSE_DISTANCE) {
+          force = -(REPULSE_DISTANCE - d) * 38;
+        } else {
+          const stretch = (d - REST_DISTANCE) / (COHESION_DISTANCE - REST_DISTANCE);
+          const fade = Math.max(0, 1 - stretch);
+          force = (d - REST_DISTANCE) * 2.7 * fade * fade;
+        }
+
+        const impulse = force * dt;
+        a.vx += nx * impulse;
+        a.vy += ny * impulse;
+        b.vx -= nx * impulse;
+        b.vy -= ny * impulse;
+
+        if (d < 25) {
+          const mix =
+            (0.0013 + Math.max(a.activity, b.activity) * 0.0070) *
+            Math.min(1, dt * 60);
+
+          const dr = (b.r - a.r) * mix;
+          const dg = (b.g - a.g) * mix;
+          const db = (b.b - a.b) * mix;
+
+          a.r += dr; b.r -= dr;
+          a.g += dg; b.g -= dg;
+          a.b += db; b.b -= db;
+        }
+      }
+    }
+
+    // Touch patches can be pulled independently. Two fingers therefore become a
+    // true stretch / pinch / tear interaction without a special gesture mode.
+    for (const pointer of pointers.values()) {
+      for (const item of pointer.grabbed) {
+        const p = particles[item.index];
+        if (!p) continue;
+
+        const tx = pointer.x + item.ox;
+        const ty = pointer.y + item.oy;
+        const dx = tx - p.x;
+        const dy = ty - p.y;
+
+        p.vx += dx * 34 * item.weight * dt;
+        p.vy += dy * 34 * item.weight * dt;
+
+        p.vx += pointer.vx * 0.032 * item.weight;
+        p.vy += pointer.vy * 0.032 * item.weight;
+        p.activity = Math.min(1, p.activity + 0.11 * item.weight);
+      }
+
+      // The moving finger also kneads nearby ungrabbed material.
+      const speed = Math.hypot(pointer.vx, pointer.vy);
+      if (speed > 20) {
+        for (const p of particles) {
+          const dx = p.x - pointer.x;
+          const dy = p.y - pointer.y;
+          const d = Math.hypot(dx, dy);
+          if (d > 78) continue;
+
+          const w = 1 - d / 78;
+          p.vx += pointer.vx * 0.0065 * w;
+          p.vy += pointer.vy * 0.0065 * w;
+          p.activity = Math.min(1, p.activity + 0.045 * w);
+        }
+      }
+    }
+
+    for (const p of particles) {
+      p.vx += ax * dt;
+      p.vy += ay * dt;
+
+      p.vx *= Math.pow(0.965, dt * 60);
+      p.vy *= Math.pow(0.965, dt * 60);
+
+      p.x += p.vx * dt;
+      p.y += p.vy * dt;
+
+      const left = container.left + WALL_PAD;
+      const right = container.right - WALL_PAD;
+      const top = container.top + WALL_PAD;
+      const bottom = container.bottom - WALL_PAD;
+
+      if (p.x < left) {
+        p.x = left;
+        p.vx = Math.abs(p.vx) * 0.20;
+        p.vy *= 0.92;
+        p.activity = Math.min(1, p.activity + 0.08);
+      } else if (p.x > right) {
+        p.x = right;
+        p.vx = -Math.abs(p.vx) * 0.20;
+        p.vy *= 0.92;
+        p.activity = Math.min(1, p.activity + 0.08);
+      }
+
+      if (p.y < top) {
+        p.y = top;
+        p.vy = Math.abs(p.vy) * 0.20;
+        p.vx *= 0.92;
+        p.activity = Math.min(1, p.activity + 0.08);
+      } else if (p.y > bottom) {
+        p.y = bottom;
+        p.vy = -Math.abs(p.vy) * 0.20;
+        p.vx *= 0.92;
+        p.activity = Math.min(1, p.activity + 0.08);
+      }
+
+      p.activity *= Math.pow(0.988, dt * 60);
+    }
+  }
+
+  function smoothstep(a, b, x) {
+    const t = Math.max(0, Math.min(1, (x - a) / (b - a)));
+    return t * t * (3 - 2 * t);
+  }
+
+  function renderField() {
+    const fw = fieldCanvas.width;
+    const fh = fieldCanvas.height;
+    const sx = fw / W;
+    const sy = fh / H;
+    const influencePx = 25;
+    const radiusX = Math.max(2, influencePx * sx);
+    const radiusY = Math.max(2, influencePx * sy);
+
+    field.fill(0);
+    fieldR.fill(0);
+    fieldG.fill(0);
+    fieldB.fill(0);
+
+    for (const p of particles) {
+      const gx = p.x * sx;
+      const gy = p.y * sy;
+      const x0 = Math.max(0, Math.floor(gx - radiusX));
+      const x1 = Math.min(fw - 1, Math.ceil(gx + radiusX));
+      const y0 = Math.max(0, Math.floor(gy - radiusY));
+      const y1 = Math.min(fh - 1, Math.ceil(gy + radiusY));
+
+      for (let y = y0; y <= y1; y++) {
+        const dy = (y - gy) / radiusY;
+        const dy2 = dy * dy;
+        if (dy2 >= 1) continue;
+
+        for (let x = x0; x <= x1; x++) {
+          const dx = (x - gx) / radiusX;
+          const d2 = dx * dx + dy2;
+          if (d2 >= 1) continue;
+
+          const base = 1 - d2;
+          const contribution = base * base;
+          const idx = y * fw + x;
+
+          field[idx] += contribution;
+          fieldR[idx] += p.r * contribution;
+          fieldG[idx] += p.g * contribution;
+          fieldB[idx] += p.b * contribution;
+        }
+      }
+    }
+
+    const data = fieldImage.data;
+
+    for (let i = 0; i < field.length; i++) {
+      const v = field[i];
+      const di = i * 4;
+
+      if (v < 0.18) {
+        data[di + 3] = 0;
+        continue;
+      }
+
+      const inv = 1 / Math.max(v, 0.0001);
+      const alpha = smoothstep(0.20, 0.52, v);
+      const core = smoothstep(0.50, 1.20, v);
+      const shine = (1 - core) * 18;
+
+      data[di] = Math.min(255, fieldR[i] * inv + shine);
+      data[di + 1] = Math.min(255, fieldG[i] * inv + shine);
+      data[di + 2] = Math.min(255, fieldB[i] * inv + shine);
+      data[di + 3] = Math.round(alpha * 238);
+    }
+
+    fieldCtx.putImageData(fieldImage, 0, 0);
+  }
+
+  function roundRectPath(x, y, w, h, r) {
+    const rr = Math.min(r, w * 0.5, h * 0.5);
+    ctx.beginPath();
+    ctx.moveTo(x + rr, y);
+    ctx.arcTo(x + w, y, x + w, y + h, rr);
+    ctx.arcTo(x + w, y + h, x, y + h, rr);
+    ctx.arcTo(x, y + h, x, y, rr);
+    ctx.arcTo(x, y, x + w, y, rr);
+    ctx.closePath();
+  }
+
+  function renderContainer() {
+    ctx.fillStyle = "#e2eceb";
+    ctx.fillRect(0, 0, W, H);
+
+    const x = container.left;
+    const y = container.top;
+    const w = container.right - container.left;
+    const h = container.bottom - container.top;
+
+    ctx.save();
+
+    roundRectPath(x + 7, y + 8, w - 14, h - 10, 28);
+    ctx.fillStyle = "rgba(255,255,255,.46)";
+    ctx.fill();
+
+    const grad = ctx.createLinearGradient(x, y, x, y + h);
+    grad.addColorStop(0, "rgba(255,255,255,.52)");
+    grad.addColorStop(.55, "rgba(221,236,236,.20)");
+    grad.addColorStop(1, "rgba(183,207,208,.28)");
+    roundRectPath(x, y, w, h, 30);
+    ctx.fillStyle = grad;
+    ctx.fill();
+
+    ctx.lineWidth = 3;
+    ctx.strokeStyle = "rgba(101,139,145,.38)";
+    ctx.stroke();
+
+    roundRectPath(x + 6, y + 6, w - 12, h - 12, 24);
+    ctx.lineWidth = 1;
+    ctx.strokeStyle = "rgba(255,255,255,.86)";
+    ctx.stroke();
+
+    ctx.restore();
+  }
+
+  function renderSlime() {
+    fieldFrame++;
+    if ((fieldFrame & 1) === 0 || !fieldImage) renderField();
+
+    ctx.save();
+    ctx.imageSmoothingEnabled = true;
+    ctx.filter = "blur(3px) saturate(1.08)";
+    ctx.drawImage(fieldCanvas, 0, 0, W, H);
+    ctx.filter = "none";
+
+    // Broad specular glaze, clipped to the same pixel field visually.
+    ctx.globalCompositeOperation = "screen";
+    const glaze = ctx.createRadialGradient(
+      W * 0.40, H * 0.35, 0,
+      W * 0.40, H * 0.35, Math.max(W, H) * 0.55
+    );
+    glaze.addColorStop(0, "rgba(255,255,255,.11)");
+    glaze.addColorStop(1, "rgba(255,255,255,0)");
+    ctx.fillStyle = glaze;
+    ctx.fillRect(container.left, container.top,
+      container.right - container.left,
+      container.bottom - container.top);
+    ctx.restore();
+  }
+
+  function renderTouches() {
+    ctx.save();
+    ctx.lineWidth = 1.5;
+    ctx.strokeStyle = "rgba(55,78,84,.18)";
+    for (const p of pointers.values()) {
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, 19, 0, Math.PI * 2);
+      ctx.stroke();
+    }
+    ctx.restore();
+  }
+
+  function render() {
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    renderContainer();
+    renderSlime();
+    renderTouches();
+  }
+
+  function frame(now) {
+    const raw = Math.min(0.034, Math.max(0.001, (now - lastTime) / 1000));
+    lastTime = now;
+
+    const steps = raw > 0.022 ? 2 : 1;
+    const dt = raw / steps;
+    for (let i = 0; i < steps; i++) physics(dt);
+
+    render();
+    requestAnimationFrame(frame);
+  }
+
+  canvas.addEventListener("pointerdown", pointerDown);
+  canvas.addEventListener("pointermove", pointerMove);
+  canvas.addEventListener("pointerup", pointerUp);
+  canvas.addEventListener("pointercancel", pointerUp);
+
+  resetButton.addEventListener("click", reset);
+  gyroButton.addEventListener("click", () => {
+    if (motion.enabled) disableMotion();
+    else enableMotion();
+  });
+
+  for (const button of swatches) {
+    button.addEventListener("click", () => addColorBlob(button.dataset.color));
+  }
+
+  addEventListener("resize", () => {
+    resize();
+    for (const p of particles) {
+      p.x = Math.max(container.left + WALL_PAD, Math.min(container.right - WALL_PAD, p.x));
+      p.y = Math.max(container.top + WALL_PAD, Math.min(container.bottom - WALL_PAD, p.y));
+    }
+  });
+
+  screen.orientation?.addEventListener?.("change", resize);
+
+  resize();
+  reset();
+  requestAnimationFrame(frame);
+})();
+</script>
+</body>
+</html>
