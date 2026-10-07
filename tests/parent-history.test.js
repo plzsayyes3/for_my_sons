@@ -95,7 +95,7 @@ test('home mounts Papa-only request history UI', () => {
   const app = fs.readFileSync('app.js', 'utf8');
   assert.match(index, /id="parent-request-history"/);
   assert.match(index, /parent-history-view\.js\?v=3/);
-  assert.match(index, /app\.js\?v=5/);
+  assert.match(index, /app\.js\?v=6/);
   assert.match(app, /ForMySonsParentHistoryView\.mount/);
   assert.match(app, /historyView\.refresh/);
 });
