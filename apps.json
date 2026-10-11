@@ -18,7 +18,7 @@
   {
     "id": "ghost-typing",
     "name": "ゴーストタイピング",
-    "url": "./ghost-typing/?v=2",
+    "url": "./ghost-typing/?v=3",
     "icon": "./assets/ghost-typing.svg?v=1",
     "description": "文字を打って召喚！ゴーストコードで友だちと60秒対戦",
     "category": "game"
