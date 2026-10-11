@@ -1,0 +1,257 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+<meta name="theme-color" content="#101a21" />
+<title>CUBE / ORBIT v2 — ルービックキューブと数学</title>
+<style>
+*{box-sizing:border-box}
+:root{color-scheme:dark;--bg:#0d151b;--panel:#1b292f;--fg:#f2f8f7;--muted:#a7bac0;--line:#3a515a}
+body{margin:0;background:#0d151b;color:var(--fg);font:14px/1.5 -apple-system,BlinkMacSystemFont,"Hiragino Kaku Gothic ProN",Meiryo,sans-serif}
+main{max-width:760px;margin:0 auto;padding:20px 12px 50px}
+.eyebrow{font-size:10px;letter-spacing:.18em;color:#9debcf;font-weight:800}
+h1{font-size:clamp(26px,6vw,36px);letter-spacing:-.04em;margin:6px 0 3px}h1 span{color:#96e6c8}
+.lead{color:var(--muted);font-size:12px;margin:0 0 17px}
+.panel{background:linear-gradient(165deg,#253339,#19252d);border:1px solid #344950;border-radius:18px;overflow:hidden;margin-bottom:12px}
+.head{display:flex;align-items:center;justify-content:space-between;padding:13px 15px 0;gap:10px}
+.eyecap{color:#bcd1d5;letter-spacing:.14em;font-size:10px;font-weight:800}.sub{color:#97aeb7;font-size:10px}
+svg{display:block;width:100%;height:auto;overflow:hidden}#orbit-svg{max-height:390px}#cube-svg{max-height:350px;touch-action:none;cursor:grab;user-select:none;-webkit-user-select:none}#cube-svg:active{cursor:grabbing}
+.note{padding:2px 15px 13px;color:#a4b8bf;text-align:center;font-size:11px}
+.control{background:#152329;border:1px solid #344950;border-radius:18px;padding:14px}
+.row{display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap}.row strong{font-size:13px}.direction{display:flex;border:1px solid var(--line);border-radius:10px;padding:3px;gap:3px;background:#0b151a}
+button{font:inherit;color:var(--fg);cursor:pointer;-webkit-tap-highlight-color:transparent;touch-action:manipulation}
+.dir{border:0;border-radius:7px;background:none;color:#abbfc4;padding:7px 10px;font-size:11px}.dir.on{background:#365c50;color:#ebfff4}
+.faces{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:7px;margin-top:13px}.face{min-height:58px;border:1px solid #40535a;border-radius:12px;background:#26373e;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:3px}.face:active{background:#3e565d;transform:scale(.97)}.face .letter{font-size:18px;font-weight:800}.face small{font-size:10px;color:#c2d1d5}.chip{display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:5px}
+.actions{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin-top:12px}.action{min-height:42px;font-size:12px;background:#21333a;border:1px solid #40555f;border-radius:10px}.action.primary{background:#2b584b;border-color:#548270}.action:active{filter:brightness(1.22)}
+.bottom{display:flex;justify-content:space-between;align-items:center;margin-top:12px;color:#b0c2c8;font-size:11px}.status{max-width:77%;overflow-wrap:anywhere}.help{font-size:11px;color:#95aab2;line-height:1.85;margin:15px 2px 0}.help b{color:#d7e8e7}
+.error{display:none;margin:0 0 10px;padding:10px;border-radius:8px;background:#543234;color:#fff2ef;font-size:12px}
+@media(max-width:590px){.faces{grid-template-columns:repeat(3,minmax(0,1fr))}.lead{font-size:11px}.panel{margin-bottom:10px}.control{padding:12px}}
+a.home-link{display:inline-flex;align-items:center;min-height:36px;margin-bottom:10px;padding:7px 12px;border:1px solid #48626b;border-radius:12px;color:#d8f9ee;background:#20343b;text-decoration:none;font-size:12px;font-weight:700}
+</style>
+</head>
+<body><main>
+<a class="home-link" href="../" aria-label="For My Sons のホームに戻る">← For My Sons</a>
+<div class="eyebrow">INTERACTIVE MATHEMATICS · v2</div>
+<h1>CUBE <span>/</span> ORBIT</h1>
+<p class="lead">ルービックキューブと3つの円。色の動きを観察する実験室。</p>
+<div id="error" class="error"></div>
+<section class="panel">
+<div class="head"><span class="eyecap">01 / ORBIT</span><span class="sub">色のまとまりをタップ</span></div>
+<svg id="orbit-svg" viewBox="0 0 640 470" role="img" aria-label="三つの重なった円と六組の色の点">
+<defs><radialGradient id="sky"><stop stop-color="#2c3a42"/><stop offset="1" stop-color="#172329"/></radialGradient></defs>
+<rect width="640" height="470" fill="url(#sky)" />
+<circle cx="320" cy="137" r="110" fill="none" stroke="#b5c5cd" stroke-opacity=".32" stroke-width="1.4"/>
+<circle cx="320" cy="137" r="125" fill="none" stroke="#b5c5cd" stroke-opacity=".32" stroke-width="1.4"/>
+<circle cx="320" cy="137" r="140" fill="none" stroke="#b5c5cd" stroke-opacity=".32" stroke-width="1.4"/>
+<circle cx="236" cy="300" r="110" fill="none" stroke="#b5c5cd" stroke-opacity=".32" stroke-width="1.4"/>
+<circle cx="236" cy="300" r="125" fill="none" stroke="#b5c5cd" stroke-opacity=".32" stroke-width="1.4"/>
+<circle cx="236" cy="300" r="140" fill="none" stroke="#b5c5cd" stroke-opacity=".32" stroke-width="1.4"/>
+<circle cx="404" cy="300" r="110" fill="none" stroke="#b5c5cd" stroke-opacity=".32" stroke-width="1.4"/>
+<circle cx="404" cy="300" r="125" fill="none" stroke="#b5c5cd" stroke-opacity=".32" stroke-width="1.4"/>
+<circle cx="404" cy="300" r="140" fill="none" stroke="#b5c5cd" stroke-opacity=".32" stroke-width="1.4"/>
+<g class="orbit-face" data-face="L" transform="translate(205 170) rotate(-12.61)" style="cursor:pointer">
+<circle class="dot" data-slot="0" cx="-14" cy="-14" r="5.2" fill="#ff8c59" stroke="#102028" stroke-width="1.1"/>
+<circle class="dot" data-slot="1" cx="0" cy="-14" r="5.2" fill="#ff8c59" stroke="#102028" stroke-width="1.1"/>
+<circle class="dot" data-slot="2" cx="14" cy="-14" r="5.2" fill="#ff8c59" stroke="#102028" stroke-width="1.1"/>
+<circle class="dot" data-slot="3" cx="-14" cy="0" r="5.2" fill="#ff8c59" stroke="#102028" stroke-width="1.1"/>
+<circle class="dot" data-slot="4" cx="0" cy="0" r="5.2" fill="#ff8c59" stroke="#102028" stroke-width="1.1"/>
+<circle class="dot" data-slot="5" cx="14" cy="0" r="5.2" fill="#ff8c59" stroke="#102028" stroke-width="1.1"/>
+<circle class="dot" data-slot="6" cx="-14" cy="14" r="5.2" fill="#ff8c59" stroke="#102028" stroke-width="1.1"/>
+<circle class="dot" data-slot="7" cx="0" cy="14" r="5.2" fill="#ff8c59" stroke="#102028" stroke-width="1.1"/>
+<circle class="dot" data-slot="8" cx="14" cy="14" r="5.2" fill="#ff8c59" stroke="#102028" stroke-width="1.1"/>
+<circle cx="0" cy="0" r="31" fill="transparent"/>
+</g>
+<g class="orbit-face" data-face="U" transform="translate(320 220) rotate(2.86)" style="cursor:pointer">
+<circle class="dot" data-slot="0" cx="-14" cy="-14" r="5.2" fill="#ffe052" stroke="#102028" stroke-width="1.1"/>
+<circle class="dot" data-slot="1" cx="0" cy="-14" r="5.2" fill="#ffe052" stroke="#102028" stroke-width="1.1"/>
+<circle class="dot" data-slot="2" cx="14" cy="-14" r="5.2" fill="#ffe052" stroke="#102028" stroke-width="1.1"/>
+<circle class="dot" data-slot="3" cx="-14" cy="0" r="5.2" fill="#ffe052" stroke="#102028" stroke-width="1.1"/>
+<circle class="dot" data-slot="4" cx="0" cy="0" r="5.2" fill="#ffe052" stroke="#102028" stroke-width="1.1"/>
+<circle class="dot" data-slot="5" cx="14" cy="0" r="5.2" fill="#ffe052" stroke="#102028" stroke-width="1.1"/>
+<circle class="dot" data-slot="6" cx="-14" cy="14" r="5.2" fill="#ffe052" stroke="#102028" stroke-width="1.1"/>
+<circle class="dot" data-slot="7" cx="0" cy="14" r="5.2" fill="#ffe052" stroke="#102028" stroke-width="1.1"/>
+<circle class="dot" data-slot="8" cx="14" cy="14" r="5.2" fill="#ffe052" stroke="#102028" stroke-width="1.1"/>
+<circle cx="0" cy="0" r="31" fill="transparent"/>
+</g>
+<g class="orbit-face" data-face="B" transform="translate(435 170) rotate(12.61)" style="cursor:pointer">
+<circle class="dot" data-slot="0" cx="-14" cy="-14" r="5.2" fill="#59a9ff" stroke="#102028" stroke-width="1.1"/>
+<circle class="dot" data-slot="1" cx="0" cy="-14" r="5.2" fill="#59a9ff" stroke="#102028" stroke-width="1.1"/>
+<circle class="dot" data-slot="2" cx="14" cy="-14" r="5.2" fill="#59a9ff" stroke="#102028" stroke-width="1.1"/>
+<circle class="dot" data-slot="3" cx="-14" cy="0" r="5.2" fill="#59a9ff" stroke="#102028" stroke-width="1.1"/>
+<circle class="dot" data-slot="4" cx="0" cy="0" r="5.2" fill="#59a9ff" stroke="#102028" stroke-width="1.1"/>
+<circle class="dot" data-slot="5" cx="14" cy="0" r="5.2" fill="#59a9ff" stroke="#102028" stroke-width="1.1"/>
+<circle class="dot" data-slot="6" cx="-14" cy="14" r="5.2" fill="#59a9ff" stroke="#102028" stroke-width="1.1"/>
+<circle class="dot" data-slot="7" cx="0" cy="14" r="5.2" fill="#59a9ff" stroke="#102028" stroke-width="1.1"/>
+<circle class="dot" data-slot="8" cx="14" cy="14" r="5.2" fill="#59a9ff" stroke="#102028" stroke-width="1.1"/>
+<circle cx="0" cy="0" r="31" fill="transparent"/>
+</g>
+<g class="orbit-face" data-face="F" transform="translate(277 303) rotate(8.59)" style="cursor:pointer">
+<circle class="dot" data-slot="0" cx="-14" cy="-14" r="5.2" fill="#2ddd61" stroke="#102028" stroke-width="1.1"/>
+<circle class="dot" data-slot="1" cx="0" cy="-14" r="5.2" fill="#2ddd61" stroke="#102028" stroke-width="1.1"/>
+<circle class="dot" data-slot="2" cx="14" cy="-14" r="5.2" fill="#2ddd61" stroke="#102028" stroke-width="1.1"/>
+<circle class="dot" data-slot="3" cx="-14" cy="0" r="5.2" fill="#2ddd61" stroke="#102028" stroke-width="1.1"/>
+<circle class="dot" data-slot="4" cx="0" cy="0" r="5.2" fill="#2ddd61" stroke="#102028" stroke-width="1.1"/>
+<circle class="dot" data-slot="5" cx="14" cy="0" r="5.2" fill="#2ddd61" stroke="#102028" stroke-width="1.1"/>
+<circle class="dot" data-slot="6" cx="-14" cy="14" r="5.2" fill="#2ddd61" stroke="#102028" stroke-width="1.1"/>
+<circle class="dot" data-slot="7" cx="0" cy="14" r="5.2" fill="#2ddd61" stroke="#102028" stroke-width="1.1"/>
+<circle class="dot" data-slot="8" cx="14" cy="14" r="5.2" fill="#2ddd61" stroke="#102028" stroke-width="1.1"/>
+<circle cx="0" cy="0" r="31" fill="transparent"/>
+</g>
+<g class="orbit-face" data-face="R" transform="translate(363 303) rotate(-8.59)" style="cursor:pointer">
+<circle class="dot" data-slot="0" cx="-14" cy="-14" r="5.2" fill="#f46776" stroke="#102028" stroke-width="1.1"/>
+<circle class="dot" data-slot="1" cx="0" cy="-14" r="5.2" fill="#f46776" stroke="#102028" stroke-width="1.1"/>
+<circle class="dot" data-slot="2" cx="14" cy="-14" r="5.2" fill="#f46776" stroke="#102028" stroke-width="1.1"/>
+<circle class="dot" data-slot="3" cx="-14" cy="0" r="5.2" fill="#f46776" stroke="#102028" stroke-width="1.1"/>
+<circle class="dot" data-slot="4" cx="0" cy="0" r="5.2" fill="#f46776" stroke="#102028" stroke-width="1.1"/>
+<circle class="dot" data-slot="5" cx="14" cy="0" r="5.2" fill="#f46776" stroke="#102028" stroke-width="1.1"/>
+<circle class="dot" data-slot="6" cx="-14" cy="14" r="5.2" fill="#f46776" stroke="#102028" stroke-width="1.1"/>
+<circle class="dot" data-slot="7" cx="0" cy="14" r="5.2" fill="#f46776" stroke="#102028" stroke-width="1.1"/>
+<circle class="dot" data-slot="8" cx="14" cy="14" r="5.2" fill="#f46776" stroke="#102028" stroke-width="1.1"/>
+<circle cx="0" cy="0" r="31" fill="transparent"/>
+</g>
+<g class="orbit-face" data-face="D" transform="translate(320 410) rotate(0.00)" style="cursor:pointer">
+<circle class="dot" data-slot="0" cx="-14" cy="-14" r="5.2" fill="#f4f4ec" stroke="#102028" stroke-width="1.1"/>
+<circle class="dot" data-slot="1" cx="0" cy="-14" r="5.2" fill="#f4f4ec" stroke="#102028" stroke-width="1.1"/>
+<circle class="dot" data-slot="2" cx="14" cy="-14" r="5.2" fill="#f4f4ec" stroke="#102028" stroke-width="1.1"/>
+<circle class="dot" data-slot="3" cx="-14" cy="0" r="5.2" fill="#f4f4ec" stroke="#102028" stroke-width="1.1"/>
+<circle class="dot" data-slot="4" cx="0" cy="0" r="5.2" fill="#f4f4ec" stroke="#102028" stroke-width="1.1"/>
+<circle class="dot" data-slot="5" cx="14" cy="0" r="5.2" fill="#f4f4ec" stroke="#102028" stroke-width="1.1"/>
+<circle class="dot" data-slot="6" cx="-14" cy="14" r="5.2" fill="#f4f4ec" stroke="#102028" stroke-width="1.1"/>
+<circle class="dot" data-slot="7" cx="0" cy="14" r="5.2" fill="#f4f4ec" stroke="#102028" stroke-width="1.1"/>
+<circle class="dot" data-slot="8" cx="14" cy="14" r="5.2" fill="#f4f4ec" stroke="#102028" stroke-width="1.1"/>
+<circle cx="0" cy="0" r="31" fill="transparent"/>
+</g>
+</svg>
+<div class="note">点をタップすると、その面を90°回します</div>
+</section>
+<section class="panel">
+<div class="head"><span class="eyecap">02 / CUBE</span><span id="last" class="sub">初期状態</span></div>
+<svg id="cube-svg" viewBox="0 0 520 410" role="img" aria-label="黄色・緑・赤の3面が見える立方体。指で回して角度変更可能">
+<defs><radialGradient id="cube-bg"><stop stop-color="#283941"/><stop offset="1" stop-color="#19262d"/></radialGradient></defs>
+<rect width="520" height="410" fill="url(#cube-bg)" />
+<ellipse cx="260" cy="337" rx="182" ry="42" fill="#060b1080"/>
+<g id="cube-pieces">
+<polygon points="232.45,17.42 300.12,39.76 250.78,70.41 183.11,48.06" fill="#0c171e" stroke="#51636c" stroke-width="1.2"/><polygon points="233.66,20.92 292.37,40.31 249.57,66.90 190.85,47.51" fill="#ffe052" stroke="#ffffff33" stroke-width="0.9"/>
+<polygon points="387.17,265.94 436.51,235.29 436.51,309.96 387.17,340.61" fill="#0c171e" stroke="#51636c" stroke-width="1.2"/><polygon points="390.44,268.85 433.25,242.27 433.25,307.05 390.44,333.64" fill="#f46776" stroke="#ffffff33" stroke-width="0.9"/>
+<polygon points="300.32,39.83 367.99,62.17 318.65,92.82 250.98,70.47" fill="#0c171e" stroke="#51636c" stroke-width="1.2"/><polygon points="301.54,43.34 360.25,62.72 317.44,89.31 258.73,69.93" fill="#ffe052" stroke="#ffffff33" stroke-width="0.9"/>
+<polygon points="387.17,191.05 436.51,160.40 436.51,235.07 387.17,265.72" fill="#0c171e" stroke="#51636c" stroke-width="1.2"/><polygon points="390.44,193.96 433.25,167.37 433.25,232.15 390.44,258.74" fill="#f46776" stroke="#ffffff33" stroke-width="0.9"/>
+<polygon points="83.66,260.33 151.33,282.67 151.33,357.34 83.66,335.00" fill="#0c171e" stroke="#51636c" stroke-width="1.2"/><polygon points="88.14,266.75 146.85,286.14 146.85,350.92 88.14,331.53" fill="#2ddd61" stroke="#ffffff33" stroke-width="0.9"/>
+<polygon points="182.96,48.15 250.63,70.50 201.29,101.15 133.62,78.80" fill="#0c171e" stroke="#51636c" stroke-width="1.2"/><polygon points="184.17,51.66 242.88,71.05 200.08,97.64 141.37,78.25" fill="#ffe052" stroke="#ffffff33" stroke-width="0.9"/>
+<polygon points="337.68,296.68 387.02,266.03 387.02,340.70 337.68,371.35" fill="#0c171e" stroke="#51636c" stroke-width="1.2"/><polygon points="340.95,299.59 383.76,273.00 383.76,337.79 340.95,364.38" fill="#f46776" stroke="#ffffff33" stroke-width="0.9"/>
+<polygon points="368.20,62.24 435.87,84.59 386.53,115.23 318.86,92.89" fill="#0c171e" stroke="#51636c" stroke-width="1.2"/><polygon points="369.41,65.75 428.12,85.14 385.31,111.72 326.60,92.34" fill="#ffe052" stroke="#ffffff33" stroke-width="0.9"/>
+<polygon points="387.17,116.16 436.51,85.51 436.51,160.18 387.17,190.82" fill="#0c171e" stroke="#51636c" stroke-width="1.2"/><polygon points="390.44,119.07 433.25,92.48 433.25,157.26 390.44,183.85" fill="#f46776" stroke="#ffffff33" stroke-width="0.9"/>
+<polygon points="83.66,185.44 151.33,207.78 151.33,282.45 83.66,260.10" fill="#0c171e" stroke="#51636c" stroke-width="1.2"/><polygon points="88.14,191.86 146.85,211.25 146.85,276.03 88.14,256.64" fill="#2ddd61" stroke="#ffffff33" stroke-width="0.9"/>
+<polygon points="151.54,282.74 219.21,305.09 219.21,379.75 151.54,357.41" fill="#0c171e" stroke="#51636c" stroke-width="1.2"/><polygon points="156.02,289.16 214.73,308.55 214.73,373.33 156.02,353.94" fill="#2ddd61" stroke="#ffffff33" stroke-width="0.9"/>
+<polygon points="250.83,70.57 318.51,92.91 269.17,123.56 201.49,101.21" fill="#0c171e" stroke="#51636c" stroke-width="1.2"/><polygon points="252.05,74.08 310.76,93.46 267.95,120.05 209.24,100.66" fill="#ffe052" stroke="#ffffff33" stroke-width="0.9"/>
+<polygon points="337.68,221.79 387.02,191.14 387.02,265.81 337.68,296.46" fill="#0c171e" stroke="#51636c" stroke-width="1.2"/><polygon points="340.95,224.70 383.76,198.11 383.76,262.89 340.95,289.48" fill="#f46776" stroke="#ffffff33" stroke-width="0.9"/>
+<polygon points="133.47,78.89 201.14,101.24 151.80,131.89 84.13,109.54" fill="#0c171e" stroke="#51636c" stroke-width="1.2"/><polygon points="134.69,82.40 193.40,101.79 150.59,128.38 91.88,108.99" fill="#ffe052" stroke="#ffffff33" stroke-width="0.9"/>
+<polygon points="83.66,110.54 151.33,132.89 151.33,207.56 83.66,185.21" fill="#0c171e" stroke="#51636c" stroke-width="1.2"/><polygon points="88.14,116.97 146.85,136.35 146.85,201.13 88.14,181.75" fill="#2ddd61" stroke="#ffffff33" stroke-width="0.9"/>
+<polygon points="288.20,327.42 337.54,296.77 337.54,371.44 288.20,402.09" fill="#0c171e" stroke="#51636c" stroke-width="1.2"/><polygon points="291.46,330.33 334.27,303.74 334.27,368.53 291.46,395.11" fill="#f46776" stroke="#ffffff33" stroke-width="0.9"/>
+<polygon points="151.54,207.85 219.21,230.19 219.21,304.86 151.54,282.52" fill="#0c171e" stroke="#51636c" stroke-width="1.2"/><polygon points="156.02,214.27 214.73,233.66 214.73,298.44 156.02,279.05" fill="#2ddd61" stroke="#ffffff33" stroke-width="0.9"/>
+<polygon points="219.41,305.15 287.08,327.50 287.08,402.17 219.41,379.82" fill="#0c171e" stroke="#51636c" stroke-width="1.2"/><polygon points="223.89,311.58 282.60,330.96 282.60,395.74 223.89,376.36" fill="#2ddd61" stroke="#ffffff33" stroke-width="0.9"/>
+<polygon points="318.71,92.98 386.38,115.32 337.04,145.97 269.37,123.63" fill="#0c171e" stroke="#51636c" stroke-width="1.2"/><polygon points="319.92,96.49 378.63,115.87 335.83,142.46 277.12,123.08" fill="#ffe052" stroke="#ffffff33" stroke-width="0.9"/>
+<polygon points="337.68,146.90 387.02,116.25 387.02,190.92 337.68,221.56" fill="#0c171e" stroke="#51636c" stroke-width="1.2"/><polygon points="340.95,149.81 383.76,123.22 383.76,188.00 340.95,214.59" fill="#f46776" stroke="#ffffff33" stroke-width="0.9"/>
+<polygon points="201.35,101.31 269.02,123.65 219.68,154.30 152.01,131.95" fill="#0c171e" stroke="#51636c" stroke-width="1.2"/><polygon points="202.56,104.81 261.27,124.20 218.46,150.79 159.75,131.40" fill="#ffe052" stroke="#ffffff33" stroke-width="0.9"/>
+<polygon points="288.20,252.53 337.54,221.88 337.54,296.55 288.20,327.19" fill="#0c171e" stroke="#51636c" stroke-width="1.2"/><polygon points="291.46,255.44 334.27,228.85 334.27,293.63 291.46,320.22" fill="#f46776" stroke="#ffffff33" stroke-width="0.9"/>
+<polygon points="151.54,132.96 219.21,155.30 219.21,229.97 151.54,207.62" fill="#0c171e" stroke="#51636c" stroke-width="1.2"/><polygon points="156.02,139.38 214.73,158.77 214.73,223.55 156.02,204.16" fill="#2ddd61" stroke="#ffffff33" stroke-width="0.9"/>
+<polygon points="219.41,230.26 287.08,252.61 287.08,327.27 219.41,304.93" fill="#0c171e" stroke="#51636c" stroke-width="1.2"/><polygon points="223.89,236.68 282.60,256.07 282.60,320.85 223.89,301.46" fill="#2ddd61" stroke="#ffffff33" stroke-width="0.9"/>
+<polygon points="269.22,123.72 336.89,146.06 287.55,176.71 219.88,154.37" fill="#0c171e" stroke="#51636c" stroke-width="1.2"/><polygon points="270.43,127.23 329.15,146.61 286.34,173.20 227.63,153.82" fill="#ffe052" stroke="#ffffff33" stroke-width="0.9"/>
+<polygon points="288.20,177.64 337.54,146.99 337.54,221.66 288.20,252.30" fill="#0c171e" stroke="#51636c" stroke-width="1.2"/><polygon points="291.46,180.55 334.27,153.96 334.27,218.74 291.46,245.33" fill="#f46776" stroke="#ffffff33" stroke-width="0.9"/>
+<polygon points="219.41,155.37 287.08,177.71 287.08,252.38 219.41,230.04" fill="#0c171e" stroke="#51636c" stroke-width="1.2"/><polygon points="223.89,161.79 282.60,181.18 282.60,245.96 223.89,226.57" fill="#2ddd61" stroke="#ffffff33" stroke-width="0.9"/>
+</g>
+</svg>
+<div class="note">キューブをドラッグして視点を変更</div>
+</section>
+<section class="control">
+<div class="row"><strong>面を回す</strong><div class="direction"><button id="cw" class="dir on">↻ 時計回り</button><button id="ccw" class="dir">↺ 反時計回り</button></div></div>
+<div class="faces">
+<button class="face" data-face="U"><span class="letter"><i class="chip" style="background:#ffe052"></i>U</span><small>上・黄</small></button>
+<button class="face" data-face="D"><span class="letter"><i class="chip" style="background:#f4f4ec"></i>D</span><small>下・白</small></button>
+<button class="face" data-face="F"><span class="letter"><i class="chip" style="background:#2ddd61"></i>F</span><small>前・緑</small></button>
+<button class="face" data-face="B"><span class="letter"><i class="chip" style="background:#59a9ff"></i>B</span><small>後・青</small></button>
+<button class="face" data-face="L"><span class="letter"><i class="chip" style="background:#ff8c59"></i>L</span><small>左・橙</small></button>
+<button class="face" data-face="R"><span class="letter"><i class="chip" style="background:#f46776"></i>R</span><small>右・赤</small></button>
+</div>
+<div class="actions"><button id="undo" class="action">↶ 1手戻す</button><button id="mix" class="action primary">✦ シャッフル</button><button id="reset" class="action">⟲ リセット</button></div>
+<div class="bottom"><span id="status" class="status">面を選んで回転させてください</span><span>回転 <b id="counter">0</b>手</span></div>
+</section>
+<p class="help"><b>使い方：</b>U/D/F/B/L/Rを押すと、円とキューブの色が同時に変わります。キューブ自体はドラッグで角度を変えられます。ブラウザのHTMLプレビューで操作できない場合は、Safariで開くかGitHub Pagesで公開してください。</p>
+<p class="help"><b>補足：</b>参考画像に似せた模式図であり、動画が説明する厳密な数学モデルを再現したものではありません。</p>
+<noscript><p class="help" style="color:#ffe9ba"><b>JavaScriptが無効です。</b> 初期画像だけが表示されます。回転操作にはJavaScriptを許可したブラウザが必要です。</p></noscript>
+</main>
+<script>
+(function(){
+'use strict';
+var NS='http://www.w3.org/2000/svg';
+var FACE={
+ U:{n:[0,1,0],r:[1,0,0],d:[0,0,1],color:'#ffe052',name:'上'},
+ D:{n:[0,-1,0],r:[1,0,0],d:[0,0,-1],color:'#f4f4ec',name:'下'},
+ F:{n:[0,0,1],r:[1,0,0],d:[0,-1,0],color:'#2ddd61',name:'前'},
+ B:{n:[0,0,-1],r:[-1,0,0],d:[0,-1,0],color:'#59a9ff',name:'後'},
+ L:{n:[-1,0,0],r:[0,0,1],d:[0,-1,0],color:'#ff8c59',name:'左'},
+ R:{n:[1,0,0],r:[0,0,-1],d:[0,-1,0],color:'#f46776',name:'右'}
+};
+var names=['U','D','F','B','L','R'];
+var stickers=[],history=[],direction=1,counter=0,yaw=-.63,pitch=.47;
+var pieces=document.getElementById('cube-pieces');
+var dots=Array.prototype.slice.call(document.querySelectorAll('.orbit-face'));
+var els={last:document.getElementById('last'),status:document.getElementById('status'),counter:document.getElementById('counter')};
+var anim=null,animId=0;
+function add(a,b){return[a[0]+b[0],a[1]+b[1],a[2]+b[2]]}
+function scale(a,k){return[a[0]*k,a[1]*k,a[2]*k]}
+function dot(a,b){return a[0]*b[0]+a[1]*b[1]+a[2]*b[2]}
+function cubeInit(){stickers=[];names.forEach(function(key){var f=FACE[key];for(var row=-1;row<=1;row++){for(var col=-1;col<=1;col++){stickers.push({p:add(f.n,add(scale(f.r,col),scale(f.d,row))),n:f.n.slice(),color:f.color});}}});}
+function rot(v,axis,a){var x=v[0],y=v[1],z=v[2],c=Math.cos(a),s=Math.sin(a);
+ if(axis===0)return[x,y*c-z*s,y*s+z*c];
+ if(axis===1)return[x*c+z*s,y,-x*s+z*c];
+ return[x*c-y*s,x*s+y*c,z];}
+function commit(face,dir){var n=FACE[face].n,axis=n.findIndex(function(v){return v!==0}),layer=n[axis],a=-dir*layer*Math.PI/2;
+ stickers.forEach(function(st){if(st.p[axis]===layer){st.p=rot(st.p,axis,a).map(Math.round);st.n=rot(st.n,axis,a).map(Math.round);}});}
+function cam(v){var c=Math.cos(yaw),s=Math.sin(yaw),p=Math.cos(pitch),t=Math.sin(pitch);var x=v[0]*c+v[2]*s,z=-v[0]*s+v[2]*c;return[x,v[1]*p-z*t,v[1]*t+z*p]}
+function project(v){var p=cam(v);return[260+p[0]*84,210-p[1]*84,p[2]]}
+function svgEl(tag,attrs){var el=document.createElementNS(NS,tag);Object.keys(attrs).forEach(function(k){el.setAttribute(k,attrs[k])});return el}
+function polygon(at,r,d,sz){var out=[];[[-1,-1],[1,-1],[1,1],[-1,1]].forEach(function(t){var v=add(at,add(scale(r,t[0]*sz/2),scale(d,t[1]*sz/2))),p=project(v);out.push(p[0].toFixed(1)+','+p[1].toFixed(1))});return out.join(' ')}
+function renderCube(progress){var polygons=[];stickers.forEach(function(st){var pos=st.p,n=st.n,basis=null;
+ names.some(function(k){if(dot(FACE[k].n,st.n)===1){basis=FACE[k];return true}return false});if(!basis)return;
+ var r=basis.r,d=basis.d;
+ if(anim && pos[anim.axis]===anim.layer && progress!==null){var a=-anim.dir*anim.layer*Math.PI/2*progress;
+ pos=rot(pos,anim.axis,a);n=rot(n,anim.axis,a);r=rot(r,anim.axis,a);d=rot(d,anim.axis,a);}
+ var nc=cam(n);if(nc[2]<=0.006)return;
+ var at=add(pos,scale(n,.508));
+ polygons.push({z:project(at)[2],back:polygon(at,r,d,.997),front:polygon(at,r,d,.865),color:st.color,shade:Math.max(0,1-(.75+.25*nc[2]))*.34});
+ });
+ polygons.sort(function(a,b){return a.z-b.z});
+ var frag=document.createDocumentFragment();
+ polygons.forEach(function(p){frag.appendChild(svgEl('polygon',{points:p.back,fill:'#0d1920',stroke:'#50636a','stroke-width':'1.1'}));frag.appendChild(svgEl('polygon',{points:p.front,fill:p.color,stroke:'#ffffff40','stroke-width':'.85'}));
+ if(p.shade>.008)frag.appendChild(svgEl('polygon',{points:p.front,fill:'#000',opacity:p.shade}));});
+ pieces.replaceChildren(frag);
+}
+function renderOrbit(){dots.forEach(function(node){var f=FACE[node.getAttribute('data-face')];var colors=new Array(9);
+ stickers.forEach(function(st){if(dot(st.n,f.n)!==1)return;var row=Math.round(dot(st.p,f.d))+1,col=Math.round(dot(st.p,f.r))+1;colors[row*3+col]=st.color;});
+ var circles=node.querySelectorAll('.dot');for(var i=0;i<9;i++)circles[i].setAttribute('fill',colors[i]||'#ddd');});}
+function render(progress){renderOrbit();renderCube(progress)}
+function start(face,dir,record){if(anim)return;var n=FACE[face].n,axis=n.findIndex(function(v){return v!==0});anim={face:face,dir:dir,axis:axis,layer:n[axis],started:0};
+ if(record){history.push({face:face,dir:dir});counter++;}els.counter.textContent=counter;els.last.textContent=face+' '+(dir>0?'↻':'↺');els.status.textContent=FACE[face].name+'面を回転中';
+ function frame(ts){if(!anim)return;if(!anim.started)anim.started=ts;var t=Math.min(1,(ts-anim.started)/260);var ease=t*t*(3-2*t);render(ease);
+ if(t<1){animId=requestAnimationFrame(frame)}else{commit(face,dir);anim=null;render(null);els.status.textContent='次に回す面を選んでください';}}
+ animId=requestAnimationFrame(frame);
+}
+function setDirection(v){direction=v;document.getElementById('cw').classList.toggle('on',v===1);document.getElementById('ccw').classList.toggle('on',v===-1)}
+document.getElementById('cw').addEventListener('click',function(){setDirection(1)});
+document.getElementById('ccw').addEventListener('click',function(){setDirection(-1)});
+Array.prototype.forEach.call(document.querySelectorAll('.face'),function(btn){btn.addEventListener('click',function(){start(btn.getAttribute('data-face'),direction,true)})});
+dots.forEach(function(node){node.addEventListener('click',function(){start(node.getAttribute('data-face'),direction,true)})});
+document.getElementById('undo').addEventListener('click',function(){if(anim || !history.length)return;var m=history.pop();counter=Math.max(0,counter-1);start(m.face,-m.dir,false)});
+document.getElementById('mix').addEventListener('click',function(){if(anim)return;var old='';for(var i=0;i<22;i++){var face;do{face=names[Math.floor(Math.random()*6)]}while(face===old);old=face;var dir=Math.random()<.5?1:-1;commit(face,dir);history.push({face:face,dir:dir});counter++;}els.counter.textContent=counter;els.last.textContent='シャッフル';els.status.textContent='22手でシャッフルしました';render(null)});
+document.getElementById('reset').addEventListener('click',function(){if(anim){cancelAnimationFrame(animId);anim=null;}cubeInit();history=[];counter=0;yaw=-.63;pitch=.47;els.counter.textContent='0';els.last.textContent='初期状態';els.status.textContent='元に戻しました';render(null)});
+var cubeSVG=document.getElementById('cube-svg');var drag=null;
+function startDrag(x,y){drag={x:x,y:y};}
+function moveDrag(x,y){if(!drag)return;yaw+=(x-drag.x)*.009;pitch=Math.max(-1.45,Math.min(1.45,pitch+(y-drag.y)*.009));drag={x:x,y:y};renderCube(null)}
+if('PointerEvent' in window){cubeSVG.addEventListener('pointerdown',function(e){startDrag(e.clientX,e.clientY);try{cubeSVG.setPointerCapture(e.pointerId)}catch(e){} });cubeSVG.addEventListener('pointermove',function(e){moveDrag(e.clientX,e.clientY)});['pointerup','pointercancel','lostpointercapture'].forEach(function(type){cubeSVG.addEventListener(type,function(){drag=null})});}
+else{cubeSVG.addEventListener('touchstart',function(e){if(e.touches.length===1)startDrag(e.touches[0].clientX,e.touches[0].clientY)},{passive:true});cubeSVG.addEventListener('touchmove',function(e){if(e.touches.length===1){e.preventDefault();moveDrag(e.touches[0].clientX,e.touches[0].clientY)}},{passive:false});cubeSVG.addEventListener('touchend',function(){drag=null});}
+window.addEventListener('error',function(e){var box=document.getElementById('error');box.style.display='block';box.textContent='表示処理で問題が起きました: '+e.message;});
+cubeInit();render(null);
+})();
+</script>
+</body></html>
