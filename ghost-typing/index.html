@@ -1,0 +1,406 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#131a39">
+<title>ことばのゴーストバトル | For My Sons</title>
+<style>
+:root{font-family:-apple-system,BlinkMacSystemFont,"Hiragino Kaku Gothic ProN","Yu Gothic",sans-serif;color:#f6f7ff;background:#111831;font-synthesis:none}
+*{box-sizing:border-box}
+body{margin:0;min-height:100svh;background:radial-gradient(circle at 70% -15%,#455199 0,transparent 45%),linear-gradient(180deg,#131b3b,#161d3b 58%,#26224a);color:#f6f7ff}
+button,input,textarea{font:inherit}
+button{cursor:pointer;touch-action:manipulation}
+button:disabled{opacity:.44;cursor:not-allowed}
+button:focus-visible,input:focus-visible,textarea:focus-visible,a:focus-visible{outline:3px solid #a6e8ff;outline-offset:3px}
+a{color:#b6e9ff}
+[hidden]{display:none!important}
+.wrap{max-width:940px;margin:auto;padding:16px 15px max(30px,env(safe-area-inset-bottom))}
+.top{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:18px}
+.back{color:#e5e9ff;text-decoration:none;font-size:14px;font-weight:800;background:#ffffff15;border:1px solid #ffffff2b;border-radius:13px;padding:10px 13px}
+.eyebrow{font-size:11px;font-weight:900;letter-spacing:.16em;color:#aebfe9}
+h1{font-size:clamp(24px,5vw,38px);margin:4px 0 6px;letter-spacing:-.04em}
+h2{font-size:21px;margin:0 0 8px}
+p{line-height:1.55}
+.lead{margin:0 0 20px;color:#cad5ed;font-size:14px}
+.panel{background:#ffffff0d;border:1px solid #ffffff25;border-radius:22px;padding:18px;margin:14px 0;box-shadow:0 8px 32px #060a172a}
+.grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+.flex{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+button{border:0;border-radius:13px;padding:11px 15px;min-height:44px;color:#14223d;background:#e9eefa;font-weight:850}
+.primary{background:#8feac6;color:#0b3d33}
+.secondary{background:#9edcfc;color:#173954}
+.quiet{background:#ffffff15;color:#f0f5ff;border:1px solid #ffffff30}
+.small{font-size:13px}
+.mode-title{margin:0 0 6px;font-weight:900;color:#eaf2ff}
+.muted{color:#c7cfdf;font-size:13px}
+.tag{display:inline-block;font-weight:900;font-size:11px;border-radius:30px;padding:5px 9px;background:#b2b5f32b;color:#cfceff}
+textarea{resize:vertical;min-height:82px}
+textarea,input{display:block;width:100%;background:#f4f7ff;border:2px solid transparent;border-radius:13px;color:#17223c;padding:12px;font-size:16px}
+textarea:focus,input:focus{border-color:#80dbf6;outline:none}
+.note{min-height:20px;font-size:13px;color:#a3f3cf;margin:9px 0}
+.error{color:#ffb7c7}
+.versus{display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:10px}
+.vs{text-align:center;font-weight:1000;color:#b8bcfe;font-size:20px}
+.player{min-width:0}
+.player small{color:#cbd2e9;font-weight:800;display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.number{font-size:clamp(23px,5vw,34px);font-weight:1000;font-variant-numeric:tabular-nums}
+.track{height:10px;border-radius:50px;background:#ffffff22;margin-top:6px;overflow:hidden}
+.fill{height:100%;width:100%;border-radius:50px;transition:width .1s linear;background:#8beac5}
+.fill.ghost{background:#b5a6ff}
+.battlehead{display:flex;justify-content:space-between;align-items:center;gap:9px;flex-wrap:wrap}
+.timer{font-size:23px;font-weight:1000;font-variant-numeric:tabular-nums}
+.arena{position:relative;background:linear-gradient(90deg,#1a5470 0%,#1f3059 15%,#182245 50%,#40306c 85%,#7b5575 100%);border:1px solid #ffffff45;border-radius:18px;overflow:hidden;margin-top:14px;min-height:276px}
+.arena:before{content:"";pointer-events:none;position:absolute;inset:0;background:repeating-linear-gradient(90deg,transparent 0 calc(10% - 1px),#ffffff08 calc(10% - 1px) 10%)}
+.lane{position:relative;height:91px;border-bottom:1px dashed #ffffff30}
+.lane:last-child{border:0}
+.lane.active{background:#8afbe012}
+.lane-label{position:absolute;top:8px;left:50%;transform:translateX(-50%);font-size:10px;font-weight:800;color:#ffffff7f;pointer-events:none}
+.base{position:absolute;top:18px;bottom:18px;width:10px;z-index:2;border-radius:8px}
+.base.left{left:4%;background:#7ee4cc;box-shadow:0 0 16px #7ee4cc88}
+.base.right{right:4%;background:#c8aaff;box-shadow:0 0 16px #c8aaff88}
+.unit{position:absolute;top:50%;transform:translate(-50%,-50%);height:42px;width:42px;display:grid;place-items:center;z-index:3;font-size:25px;border-radius:13px;background:#ffffffdf;border:2px solid #83e4cc;box-shadow:0 4px 12px #0006;line-height:1}
+.unit.enemy{background:#e9ddff;border-color:#b9a4ff}
+.unit .hp{position:absolute;bottom:-7px;left:4px;right:4px;height:4px;background:#151e36;border-radius:5px;overflow:hidden}
+.unit .hp i{display:block;height:100%;width:100%;background:#5ac99b}
+.unit.enemy .hp i{background:#ac84e7}
+.unit.hurt{filter:brightness(1.6)}
+.words{margin-top:12px;background:#fff;color:#1f2847;border-radius:18px;padding:16px;text-align:center}
+.word-kana{font-weight:950;font-size:clamp(28px,7vw,44px);letter-spacing:.06em}
+.word-roma{font-size:clamp(19px,5vw,27px);font-weight:850;letter-spacing:.07em;overflow-wrap:anywhere;color:#56657e}
+.word-roma .done{color:#1fba8f}
+.word-roma .next{color:#286ee0;text-decoration:underline}
+.type-input{margin-top:9px;background:#f8fbff;text-align:center;font-weight:850;letter-spacing:.07em}
+.type-input:disabled{background:#d7dce5}
+.lane-buttons{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin-top:12px}
+.lane-buttons button{border:2px solid #ffffff35;background:#ffffff19;color:#eff3ff}
+.lane-buttons button.active{border-color:#91f2cf;background:#1e695a}
+.instructions{font-size:12px;color:#c7cee3;margin:10px 0 0}
+.result{border:1px solid #8cdbbf;background:#154c4d38}
+.result h2{font-size:30px}
+.code-output{font-size:12px;line-height:1.5;overflow-wrap:anywhere;word-break:break-all;background:#0a122c;border:1px solid #ffffff21;border-radius:12px;padding:10px;max-height:120px;overflow:auto;user-select:all}
+.stat{font-size:13px;color:#dce7f6;line-height:1.65}
+.stat strong{font-size:18px;color:#fff}
+@media(max-width:560px){.grid{grid-template-columns:1fr}.panel{padding:15px}.arena{min-height:246px}.lane{height:81px}.unit{width:37px;height:37px;font-size:23px}.wrap{padding-left:10px;padding-right:10px}}
+@media(prefers-reduced-motion:reduce){*,*:before,*:after{animation:none!important;transition:none!important}}
+</style>
+</head>
+<body>
+<main class="wrap">
+<header class="top">
+  <a class="back" href="../">← ホーム</a>
+  <span class="tag">オフライン ゴースト対戦</span>
+</header>
+<h1>⌨️ ことばのゴーストバトル</h1>
+<p class="lead">ことばを打って、なかまを召喚！ 友だちの記録と60秒バトル。通信もログインもいりません。</p>
+<section id="setup" class="panel">
+  <h2>ゴーストをえらぼう</h2>
+  <div class="grid">
+    <div>
+      <p class="mode-title">👻 おてほんゴースト</p>
+      <p class="muted">はじめての人はこちら。すぐ遊べます。</p>
+      <button id="sampleButton" class="primary" type="button">おてほんとあそぶ</button>
+    </div>
+    <div>
+      <p class="mode-title">🏆 自分のベスト</p>
+      <p id="bestInfo" class="muted">まだ記録がありません</p>
+      <button id="bestButton" class="secondary" type="button" disabled>じぶんと勝負</button>
+    </div>
+  </div>
+  <div style="margin-top:18px">
+    <label for="ghostCode" class="mode-title">🔤 友だちのゴーストコード</label>
+    <p class="muted">コードか共有URLを貼り付けてね。対戦相手がここにいなくても勝負できます。</p>
+    <textarea id="ghostCode" maxlength="2400" placeholder="TG1-... または共有URL" spellcheck="false"></textarea>
+    <div class="flex" style="margin-top:9px"><button id="importButton" class="secondary" type="button">コードであそぶ</button><span id="setupStatus" class="note" role="status"></span></div>
+  </div>
+</section>
+<section id="battle" class="panel" hidden>
+  <div class="battlehead"><strong id="opponent">VS おてほん</strong><span class="timer">⏳ <span id="time">60.0</span>s</span></div>
+  <div class="versus" style="margin-top:12px">
+    <div class="player"><small>🟢 あなた</small><div class="number" id="yourScore">0</div><div class="track"><div class="fill" id="yourHp"></div></div></div>
+    <div class="vs">VS</div>
+    <div class="player" style="text-align:right"><small>🟣 ゴースト</small><div class="number" id="ghostScore">0</div><div class="track"><div class="fill ghost" id="ghostHp"></div></div></div>
+  </div>
+  <div class="arena" id="arena" aria-label="3つのレーンでキャラクターが戦うエリア">
+    <div class="lane active" data-lane="0"><span class="base left"></span><span class="lane-label">レーン 1</span><span class="base right"></span></div>
+    <div class="lane" data-lane="1"><span class="base left"></span><span class="lane-label">レーン 2</span><span class="base right"></span></div>
+    <div class="lane" data-lane="2"><span class="base left"></span><span class="lane-label">レーン 3</span><span class="base right"></span></div>
+  </div>
+  <div class="words">
+    <div class="word-kana" id="kana">ねこ</div>
+    <div class="word-roma" id="romaji">neko</div>
+    <input id="typeInput" class="type-input" type="text" placeholder="ここにアルファベットを入力" aria-label="ローマ字を入力" inputmode="text" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false">
+    <div class="muted" id="typedStatus" style="margin-top:6px">ことばを完成させると召喚！</div>
+  </div>
+  <div class="lane-buttons" id="laneButtons">
+    <button type="button" data-select="0" class="active">① 上</button>
+    <button type="button" data-select="1">② 中</button>
+    <button type="button" data-select="2">③ 下</button>
+  </div>
+  <p class="instructions">数字キー 1・2・3 またはボタンでレーンを選ぶ。ABC（英数）入力でプレイ。💚 よわい／🦊 ふつう／🦖 つよい</p>
+  <div class="flex"><button class="quiet small" id="stopButton" type="button">やめる</button><span class="muted" id="combatStatus" aria-live="polite"></span></div>
+</section>
+<section id="result" class="panel result" hidden>
+  <h2 id="resultTitle">けっか</h2>
+  <p id="resultDetail" class="muted"></p>
+  <div class="grid">
+    <div class="stat">あなたのスコア<br><strong id="finalScore">0</strong></div>
+    <div class="stat">ゴーストのスコア<br><strong id="finalGhostScore">0</strong></div>
+  </div>
+  <p class="muted">あなたの召喚記録をゴーストコードにしました。友だちに送って対戦しよう！</p>
+  <div id="resultCode" class="code-output" tabindex="0" aria-label="ゴーストコード"></div>
+  <div class="flex" style="margin-top:12px">
+    <button id="copyCode" class="primary" type="button">📋 コードをコピー</button>
+    <button id="copyLink" class="secondary" type="button">🔗 対戦URLをコピー</button>
+    <button id="againButton" class="quiet" type="button">もういちど</button>
+  </div>
+  <p id="copyStatus" class="note" role="status"></p>
+</section>
+</main>
+<script>
+(function(){
+'use strict';
+const DURATION=60, BASE_HP=360, PREFIX='TG1-', BEST_KEY='fms-ghost-typing-best-v1';
+const WORDS=[
+ ['ねこ','neko',0],['いぬ','inu',0],['ほし','hoshi',0],['そら','sora',0],
+ ['きつね','kitsune',1],['ろぼっと','robotto',1],['たいよう','taiyou',1],
+ ['さくら','sakura',0],['くるま','kuruma',1],['らいおん','raion',1],
+ ['きょうりゅう','kyouryuu',2],['まほうつかい','mahoutsukai',2],
+ ['しんかんせん','shinkansen',2],['うちゅうせん','uchuusen',2],
+ ['きらきら','kirakira',1],['おばけ','obake',0],['てんとうむし','tentoumushi',2],
+ ['やま','yama',0],['でんしゃ','densha',1],['きのこ','kinoko',0]
+];
+const TYPES=[
+ {icon:'🐱',hp:38,attack:12,speed:9,range:4.6,cooldown:.78},
+ {icon:'🦊',hp:67,attack:19,speed:6.7,range:5.5,cooldown:1.05},
+ {icon:'🦖',hp:108,attack:29,speed:4.8,range:6.3,cooldown:1.4}
+];
+const el=id=>document.getElementById(id);
+let mode='setup',ghost=null,ghostLabel='おてほん',events=[],units=[],lane=0,wordIndex=0,typed='',errors=0,score=0,ghostScore=0,ghostCursor=0,yourBase=BASE_HP,ghostBase=BASE_HP;
+let startedAt=0,lastFrame=0,raf=0,lastDisplayedSecond=-1,roundCode='',best=null,finished=false;
+const lanes=[...document.querySelectorAll('.lane')];
+const laneButtons=[...document.querySelectorAll('[data-select]')];
+function status(message,error){el('setupStatus').textContent=message;el('setupStatus').classList.toggle('error',!!error);}
+function checksum(bytes){let value=5381;for(const b of bytes)value=((value*33)^b)&65535;return value;}
+function base64url(bytes){let s='';for(let i=0;i<bytes.length;i++)s+=String.fromCharCode(bytes[i]);return btoa(s).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'');}
+function encodeGhost(record){
+ const rows=record.events.slice(0,200),bytes=new Uint8Array(8+rows.length*6);
+ bytes[0]=1;bytes[1]=rows.length;
+ const write16=(i,n)=>{bytes[i]=(n>>8)&255;bytes[i+1]=n&255;};
+ write16(2,Math.min(65535,record.score));write16(4,Math.min(65535,record.errors));
+ rows.forEach((e,i)=>{const p=6+i*6;write16(p,e.t);bytes[p+2]=e.kind;bytes[p+3]=e.lane;write16(p+4,e.score);});
+ const sig=checksum(bytes.subarray(0,bytes.length-2));write16(bytes.length-2,sig);
+ return PREFIX+base64url(bytes);
+}
+function decodeGhost(raw){
+ let code=String(raw||'').trim();
+ try{if(/^https?:/i.test(code))code=new URL(code).searchParams.get('ghost')||'';}catch(_){}
+ const matched=code.match(/TG1-[A-Za-z0-9_-]+/);
+ if(!matched)throw Error('TG1- ではじまるコードを入れてね');
+ code=matched[0];
+ const b64=code.slice(PREFIX.length).replace(/-/g,'+').replace(/_/g,'/');
+ let rawbytes;
+ try{rawbytes=atob(b64);}catch(_){throw Error('コードの文字が正しくありません');}
+ if(rawbytes.length<8||rawbytes.length>1208)throw Error('コードの長さが正しくありません');
+ const bytes=Uint8Array.from(rawbytes,c=>c.charCodeAt(0));
+ const read16=i=>bytes[i]*256+bytes[i+1];
+ if(bytes[0]!==1||bytes[1]>200||bytes.length!==8+bytes[1]*6)throw Error('対応していないコードです');
+ if(checksum(bytes.subarray(0,bytes.length-2))!==read16(bytes.length-2))throw Error('コードが壊れているようです');
+ let previous=-1,previousScore=0;
+ const rows=[];
+ for(let i=0;i<bytes[1];i++){
+  const p=6+i*6,t=read16(p),kind=bytes[p+2],ln=bytes[p+3],points=read16(p+4);
+  if(t>600||t<previous||kind>2||ln>2||points<previousScore)throw Error('対戦データが正しくありません');
+  rows.push({t,kind,lane:ln,score:points});
+  previous=t;previousScore=points;
+ }
+ if(read16(2)<previousScore)throw Error('スコアが正しくありません');
+ return {events:rows,score:read16(2),errors:read16(4),code};
+}
+function sampleGhost(){
+ let points=0;const rows=[];
+ const kinds=[0,0,1,0,1,2,0,1,1,2,0,1,2,0,1,0,2,1];
+ kinds.forEach((kind,i)=>{points+=55+kind*34;rows.push({t:Math.round(22+i*31),kind,lane:[1,0,2,1,0,2][i%6],score:points});});
+ return {events:rows,score:points,errors:4,code:null};
+}
+function setLane(value){
+ lane=value;lanes.forEach((node,i)=>node.classList.toggle('active',i===lane));
+ laneButtons.forEach((node,i)=>node.classList.toggle('active',i===lane));
+ if(mode==='playing')el('typeInput').focus({preventScroll:true});
+}
+function showWord(){
+ const word=WORDS[wordIndex%WORDS.length];el('kana').textContent=word[0];
+ const roman=word[1],a=document.createElement('span'),b=document.createElement('span'),c=document.createElement('span');
+ a.className='done';a.textContent=typed;
+ b.className='next';b.textContent=roman.charAt(typed.length)||'';
+ c.textContent=roman.slice(typed.length+1);
+ el('romaji').replaceChildren(a,b,c);
+}
+function spawn(side,kind,chosenLane){
+ if(units.length>=180)return;
+ const stat=TYPES[kind],node=document.createElement('span'),hp=document.createElement('span'),bar=document.createElement('i');
+ node.className='unit'+(side==='ghost'?' enemy':'');
+ node.textContent=stat.icon;node.setAttribute('aria-hidden','true');
+ hp.className='hp';hp.append(bar);node.append(hp);
+ lanes[chosenLane].append(node);
+ const unit={side,kind,lane:chosenLane,x:side==='you'?10:90,hp:stat.hp,clock:0,stat,node,bar};
+ units.push(unit);updateUnit(unit);
+}
+function updateUnit(unit){unit.node.style.left=unit.x+'%';unit.bar.style.width=Math.max(0,unit.hp/unit.stat.hp*100)+'%';}
+function finish(reason){
+ if(mode!=='playing')return;
+ mode='result';finished=true;cancelAnimationFrame(raf);
+ el('typeInput').blur();el('battle').hidden=true;
+ // Battle winner: destroyed base wins. Otherwise compare remaining HP, then typing score.
+ const diff=ghostBase-yourBase;
+ let outcome=diff>0?'🎉 かった！':diff<0?'👻 まけちゃった':'🤝 ひきわけ！';
+ if(diff===0){if(score>ghostScore)outcome='🎉 スコアでかった！';else if(score<ghostScore)outcome='👻 スコアでまけちゃった';}
+ el('resultTitle').textContent=outcome;
+ el('resultDetail').textContent='のこった基地HP あなた '+Math.ceil(Math.max(0,yourBase))+' / ゴースト '+Math.ceil(Math.max(0,ghostBase))+'　・　ミス '+errors+'回'+(reason==='stopped'?'（途中終了）':'');
+ el('finalScore').textContent=score.toLocaleString('ja-JP');
+ el('finalGhostScore').textContent=ghostScore.toLocaleString('ja-JP');
+ roundCode=encodeGhost({events,score,errors});
+ el('resultCode').textContent=roundCode;
+ el('result').hidden=false;
+ if(reason!=='stopped'&&(!best||score>best.score)){
+  best={events:events.slice(),score,errors,code:roundCode};
+  try{localStorage.setItem(BEST_KEY,roundCode);}catch(_){}
+ }
+ updateBest();el('copyStatus').textContent='';
+}
+function completeWord(){
+ const word=WORDS[wordIndex%WORDS.length],kind=word[2];
+ score=Math.max(0,score+20+word[1].length*10);
+ const t=Math.max(0,Math.min(600,Math.round((performance.now()-startedAt)/100)));
+ events.push({t,kind,lane,score});
+ spawn('you',kind,lane);
+ wordIndex++;typed='';showWord();
+ el('yourScore').textContent=score.toLocaleString('ja-JP');
+ el('typedStatus').textContent='✨ '+word[0]+' を召喚！';
+}
+function feed(value){
+ if(mode!=='playing')return;
+ for(const c of value.toLowerCase()){
+  if(!/^[a-z]$/.test(c))continue;
+  const target=WORDS[wordIndex%WORDS.length][1];
+  if(c===target[typed.length]){
+   typed+=c;
+   if(typed===target)completeWord();else showWord();
+  }else{
+   errors++;score=Math.max(0,score-3);el('yourScore').textContent=score.toLocaleString('ja-JP');
+   el('typedStatus').textContent='おしい！ いまは「'+target[typed.length]+'」';
+  }
+ }
+}
+function hit(unit,damage){unit.hp-=damage;unit.node.classList.add('hurt');if(unit.hp<=0){unit.node.remove();unit.dead=true;}else updateUnit(unit);}
+function battleStep(dt){
+ for(const unit of units){
+  if(unit.dead)continue;
+  const dir=unit.side==='you'?1:-1;
+  const opponents=units.filter(other=>!other.dead&&other.side!==unit.side&&other.lane===unit.lane&&(other.x-unit.x)*dir>=-1);
+  opponents.sort((a,b)=>(a.x-unit.x)*dir-(b.x-unit.x)*dir);
+  const target=opponents[0];
+  const inRange=target&&(target.x-unit.x)*dir<=unit.stat.range;
+  const atBase=unit.side==='you'?unit.x>=94:unit.x<=6;
+  unit.clock-=dt;
+  if(inRange||atBase){
+   if(unit.clock<=0){
+    unit.clock=unit.stat.cooldown;
+    if(inRange){hit(target,unit.stat.attack);}
+    else if(unit.side==='you'){ghostBase=Math.max(0,ghostBase-unit.stat.attack);}
+    else{yourBase=Math.max(0,yourBase-unit.stat.attack);}
+   }
+  }else{
+   unit.x=Math.max(5,Math.min(95,unit.x+dir*unit.stat.speed*dt));
+   updateUnit(unit);
+  }
+ }
+ units=units.filter(unit=>!unit.dead);
+ el('yourHp').style.width=(yourBase/BASE_HP*100)+'%';
+ el('ghostHp').style.width=(ghostBase/BASE_HP*100)+'%';
+ if(yourBase<=0||ghostBase<=0)finish('base');
+}
+function frame(now){
+ if(mode!=='playing')return;
+ const elapsed=Math.min(DURATION,(now-startedAt)/1000),dt=Math.min(.05,Math.max(0,(now-lastFrame)/1000));
+ lastFrame=now;
+ while(ghostCursor<ghost.events.length&&ghost.events[ghostCursor].t<=Math.round(elapsed*10)){
+  const event=ghost.events[ghostCursor++];
+  spawn('ghost',event.kind,event.lane);
+  ghostScore=event.score;
+  el('ghostScore').textContent=ghostScore.toLocaleString('ja-JP');
+ }
+ if(ghostCursor===ghost.events.length&&elapsed>=DURATION-.1){
+  ghostScore=ghost.score;el('ghostScore').textContent=ghostScore.toLocaleString('ja-JP');
+ }
+ battleStep(dt);
+ const second=Math.ceil(elapsed*10);
+ if(second!==lastDisplayedSecond){lastDisplayedSecond=second;el('time').textContent=(DURATION-elapsed).toFixed(1);}
+ if(mode!=='playing')return;
+ if(elapsed>=DURATION){ghostScore=ghost.score;finish('time');return;}
+ raf=requestAnimationFrame(frame);
+}
+function start(record,name){
+ ghost=record;ghostLabel=name;ghostCursor=0;ghostScore=0;score=0;errors=0;events=[];units=[];wordIndex=0;typed='';lane=0;
+ yourBase=BASE_HP;ghostBase=BASE_HP;finished=false;lastDisplayedSecond=-1;
+ lanes.forEach(node=>node.querySelectorAll('.unit').forEach(unit=>unit.remove()));
+ el('yourScore').textContent='0';el('ghostScore').textContent='0';el('time').textContent='60.0';
+ el('yourHp').style.width='100%';el('ghostHp').style.width='100%';
+ el('opponent').textContent='VS '+name;
+ el('typedStatus').textContent='ことばを完成させると召喚！';
+ el('setup').hidden=true;el('result').hidden=true;el('battle').hidden=false;
+ mode='playing';setLane(1);showWord();
+ el('typeInput').value='';el('typeInput').disabled=false;el('typeInput').focus({preventScroll:true});
+ startedAt=performance.now();lastFrame=startedAt;raf=requestAnimationFrame(frame);
+}
+function updateBest(){
+ el('bestInfo').textContent=best?'最高 '+best.score.toLocaleString('ja-JP')+' 点。過去の自分に挑戦！':'まだ記録がありません';
+ el('bestButton').disabled=!best;
+}
+async function copy(value){
+ if(navigator.clipboard&&window.isSecureContext){try{await navigator.clipboard.writeText(value);return true;}catch(_){}}
+ const field=document.createElement('textarea');field.value=value;field.style.position='fixed';field.style.left='-1000px';document.body.append(field);field.select();
+ let ok=false;try{ok=document.execCommand('copy');}catch(_){}field.remove();return ok;
+}
+el('sampleButton').addEventListener('click',()=>start(sampleGhost(),'おてほん'));
+el('bestButton').addEventListener('click',()=>{if(best)start(best,'過去の自分');});
+el('importButton').addEventListener('click',()=>{
+ try{const record=decodeGhost(el('ghostCode').value);status('');start(record,'友だちのゴースト');}
+ catch(error){status(error.message,true);}
+});
+el('ghostCode').addEventListener('input',()=>status(''));
+laneButtons.forEach(b=>b.addEventListener('click',()=>setLane(Number(b.dataset.select))));
+el('typeInput').addEventListener('input',event=>{
+ if(mode!=='playing')return;
+ if(event.isComposing)return;
+ const val=el('typeInput').value;el('typeInput').value='';
+ feed(val);
+});
+el('typeInput').addEventListener('compositionend',()=>{el('typeInput').value='';el('typedStatus').textContent='英数（ABC）入力に切り替えてね';});
+el('typeInput').addEventListener('keydown',event=>{
+ if(mode!=='playing')return;
+ if(event.code==='Digit1'||event.code==='Digit2'||event.code==='Digit3'){
+  event.preventDefault();setLane(Number(event.code.slice(-1))-1);
+ }
+ if(event.key==='Enter'||event.key===' '){event.preventDefault();}
+});
+el('stopButton').addEventListener('click',()=>finish('stopped'));
+el('againButton').addEventListener('click',()=>{
+ el('setup').hidden=false;el('result').hidden=true;mode='setup';
+ status('');window.scrollTo({top:0,behavior:'smooth'});
+});
+el('copyCode').addEventListener('click',async()=>{const ok=await copy(roundCode);el('copyStatus').textContent=ok?'コードをコピーしました':'コピーできない場合はコードを長押ししてコピーしてください';});
+el('copyLink').addEventListener('click',async()=>{
+ const url=new URL(location.href);url.search='';url.hash='';url.searchParams.set('ghost',roundCode);
+ const ok=await copy(url.toString());
+ el('copyStatus').textContent=ok?'対戦URLをコピーしました':'コピーできない場合はコードを選択してコピーしてください';
+});
+try{const value=localStorage.getItem(BEST_KEY);if(value)best=decodeGhost(value);}catch(_){best=null;}
+updateBest();
+try{
+ const urlCode=new URL(location.href).searchParams.get('ghost');
+ if(urlCode){el('ghostCode').value=urlCode;const record=decodeGhost(urlCode);status('友だちのコードを読み込みました。「コードであそぶ」で開始！');}
+}catch(error){status('共有URLのコードを読み込めませんでした',true);}
+})();
+</script>
+</body>
+</html>
