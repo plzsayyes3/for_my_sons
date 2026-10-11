@@ -261,7 +261,7 @@ function finish(reason){
  mode='result';finished=true;cancelAnimationFrame(raf);
  el('typeInput').blur();el('battle').hidden=true;
  // Battle winner: destroyed base wins. Otherwise compare remaining HP, then typing score.
- const diff=ghostBase-yourBase;
+ const diff=yourBase-ghostBase;
  let outcome=diff>0?'🎉 かった！':diff<0?'👻 まけちゃった':'🤝 ひきわけ！';
  if(diff===0){if(score>ghostScore)outcome='🎉 スコアでかった！';else if(score<ghostScore)outcome='👻 スコアでまけちゃった';}
  el('resultTitle').textContent=outcome;
