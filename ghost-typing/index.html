@@ -64,6 +64,15 @@ textarea:focus,input:focus{border-color:#80dbf6;outline:none}
 .unit .hp i{display:block;height:100%;width:100%;background:#5ac99b}
 .unit.enemy .hp i{background:#ac84e7}
 .unit.hurt{filter:brightness(1.6)}
+.clash{position:absolute;top:50%;transform:translate(-50%,-50%);z-index:7;
+ pointer-events:none;white-space:nowrap;font-weight:1000;font-size:14px;color:#fff0a5;
+ text-shadow:0 2px 5px #171335,0 0 12px #ffd65d;
+ animation:clashPop .47s ease-out forwards}
+@keyframes clashPop{0%{opacity:0;transform:translate(-50%,-50%) scale(.7)}
+ 25%{opacity:1;transform:translate(-50%,-65%) scale(1.1)}
+ 100%{opacity:0;transform:translate(-50%,-130%) scale(1)}}
+@media(prefers-reduced-motion:reduce){.clash{animation:none;opacity:1}}
+
 .words{margin-top:12px;background:#fff;color:#1f2847;border-radius:18px;padding:16px;text-align:center}
 .word-kana{font-weight:950;font-size:clamp(28px,7vw,44px);letter-spacing:.06em}
 .word-roma{font-size:clamp(19px,5vw,27px);font-weight:850;letter-spacing:.07em;overflow-wrap:anywhere;color:#56657e}
@@ -136,7 +145,7 @@ textarea:focus,input:focus{border-color:#80dbf6;outline:none}
     <button type="button" data-select="1">② 中</button>
     <button type="button" data-select="2">③ 下</button>
   </div>
-  <p class="instructions">数字キー 1・2・3 またはボタンでレーンを選ぶ。ABC（英数）入力でプレイ。shi / si、chi / ti、tsu / tu など、どちらも正解。💚 よわい／🦊 ふつう／🦖 つよい</p>
+  <p class="instructions">数字キー 1・2・3 またはボタンでレーンを選ぶ。ABC（英数）入力でプレイ。shi / si、chi / ti、tsu / tu など、どちらも正解。 おたがいの攻撃がほぼ同時なら ⚡ そうさい！💚 よわい／🦊 ふつう／🦖 つよい</p>
   <div class="flex"><button class="quiet small" id="stopButton" type="button">やめる</button><span class="muted" id="combatStatus" aria-live="polite"></span></div>
 </section>
 <section id="result" class="panel result" hidden>
@@ -297,28 +306,73 @@ function feed(value){
  }
 }
 function hit(unit,damage){unit.hp-=damage;unit.node.classList.add('hurt');if(unit.hp<=0){unit.node.remove();unit.dead=true;}else updateUnit(unit);}
+// 近いタイミングで向かい合って攻撃したら、両方の攻撃を相殺する。
+// 相手の攻撃まで0.14秒以内なら相殺。片方だけが攻撃できるなら通常のダメージ。
+const CLASH_WINDOW=.14;
+let clashes=0;
+function showClash(a,b){
+ clashes++;
+ el('combatStatus').textContent='⚡ そうさい '+clashes+'回';
+ const mark=document.createElement('span');
+ mark.className='clash';
+ mark.textContent='⚡ そうさい！';
+ mark.setAttribute('aria-hidden','true');
+ mark.style.left=((a.x+b.x)/2)+'%';
+ lanes[a.lane].append(mark);
+ setTimeout(()=>mark.remove(),470);
+}
 function battleStep(dt){
+ // 攻撃準備とダメージ確定を分け、ユニットの配列順による有利・不利をなくす。
+ const plans=new Map(),ready=[];
  for(const unit of units){
   if(unit.dead)continue;
   const dir=unit.side==='you'?1:-1;
   const opponents=units.filter(other=>!other.dead&&other.side!==unit.side&&other.lane===unit.lane);
   opponents.sort((a,b)=>Math.abs(a.x-unit.x)-Math.abs(b.x-unit.x));
   const target=opponents[0];
-  const inRange=target&&Math.abs(target.x-unit.x)<=unit.stat.range;
+  const inRange=!!target&&Math.abs(target.x-unit.x)<=unit.stat.range;
   const atBase=unit.side==='you'?unit.x>=94:unit.x<=6;
   unit.clock-=dt;
   if(inRange||atBase){
-   if(unit.clock<=0){
-    unit.clock=unit.stat.cooldown;
-    if(inRange){hit(target,unit.stat.attack);}
-    else if(unit.side==='you'){ghostBase=Math.max(0,ghostBase-unit.stat.attack);}
-    else{yourBase=Math.max(0,yourBase-unit.stat.attack);}
-   }
+   const plan={unit,target:inRange?target:null,atBase:!inRange};
+   plans.set(unit,plan);
+   if(unit.clock<=0)ready.push(plan);
   }else{
    unit.x=Math.max(5,Math.min(95,unit.x+dir*unit.stat.speed*dt));
    updateUnit(unit);
   }
  }
+ const consumed=new Set(),damage=new Map();
+ let damageToYou=0,damageToGhost=0;
+ for(const plan of ready){
+  const attacker=plan.unit;
+  if(consumed.has(attacker))continue;
+  const targetPlan=plan.target?plans.get(plan.target):null;
+  const canClash=targetPlan
+   &&targetPlan.target===attacker
+   &&targetPlan.unit.clock<=CLASH_WINDOW
+   &&!consumed.has(targetPlan.unit);
+  if(canClash){
+   consumed.add(attacker);
+   consumed.add(targetPlan.unit);
+   attacker.clock=attacker.stat.cooldown;
+   targetPlan.unit.clock=targetPlan.unit.stat.cooldown;
+   showClash(attacker,targetPlan.unit);
+   continue;
+  }
+  consumed.add(attacker);
+  attacker.clock=attacker.stat.cooldown;
+  if(plan.target){
+   damage.set(plan.target,(damage.get(plan.target)||0)+attacker.stat.attack);
+  }else if(plan.atBase){
+   if(attacker.side==='you')damageToGhost+=attacker.stat.attack;
+   else damageToYou+=attacker.stat.attack;
+  }
+ }
+ // 相殺されなかった攻撃をまとめて反映する。同時攻撃で片方だけ消えることもない。
+ for(const [target,amount] of damage)if(!target.dead)hit(target,amount);
+ ghostBase=Math.max(0,ghostBase-damageToGhost);
+ yourBase=Math.max(0,yourBase-damageToYou);
  units=units.filter(unit=>!unit.dead);
  el('yourHp').style.width=(yourBase/BASE_HP*100)+'%';
  el('ghostHp').style.width=(ghostBase/BASE_HP*100)+'%';
@@ -347,6 +401,7 @@ function frame(now){
 function start(record,name){
  ghost=record;ghostLabel=name;ghostCursor=0;ghostScore=0;score=0;errors=0;events=[];units=[];wordIndex=0;typed='';lane=0;
  yourBase=BASE_HP;ghostBase=BASE_HP;finished=false;lastDisplayedSecond=-1;
+ clashes=0;el('combatStatus').textContent='⚡ そうさい 0回';
  lanes.forEach(node=>node.querySelectorAll('.unit').forEach(unit=>unit.remove()));
  el('yourScore').textContent='0';el('ghostScore').textContent='0';el('time').textContent='60.0';
  el('yourHp').style.width='100%';el('ghostHp').style.width='100%';
