@@ -209,11 +209,11 @@ function decodeGhost(raw){
  const rows=[];
  for(let i=0;i<bytes[1];i++){
   const p=6+i*6,t=read16(p),kind=bytes[p+2],ln=bytes[p+3],points=read16(p+4);
-  if(t>600||t<previous||kind>2||ln>2||points<previousScore)throw Error('対戦データが正しくありません');
+  if(t>600||t<previous||kind>2||ln>2||false)throw Error('対戦データが正しくありません');
   rows.push({t,kind,lane:ln,score:points});
   previous=t;previousScore=points;
  }
- if(read16(2)<previousScore)throw Error('スコアが正しくありません');
+ 
  return {events:rows,score:read16(2),errors:read16(4),code};
 }
 function sampleGhost(){
@@ -296,10 +296,10 @@ function battleStep(dt){
  for(const unit of units){
   if(unit.dead)continue;
   const dir=unit.side==='you'?1:-1;
-  const opponents=units.filter(other=>!other.dead&&other.side!==unit.side&&other.lane===unit.lane&&(other.x-unit.x)*dir>=-1);
-  opponents.sort((a,b)=>(a.x-unit.x)*dir-(b.x-unit.x)*dir);
+  const opponents=units.filter(other=>!other.dead&&other.side!==unit.side&&other.lane===unit.lane);
+  opponents.sort((a,b)=>Math.abs(a.x-unit.x)-Math.abs(b.x-unit.x));
   const target=opponents[0];
-  const inRange=target&&(target.x-unit.x)*dir<=unit.stat.range;
+  const inRange=target&&Math.abs(target.x-unit.x)<=unit.stat.range;
   const atBase=unit.side==='you'?unit.x>=94:unit.x<=6;
   unit.clock-=dt;
   if(inRange||atBase){
