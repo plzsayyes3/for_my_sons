@@ -1,4 +1,4 @@
-const CACHE_NAME = 'for-my-sons-v128';
+const CACHE_NAME = 'for-my-sons-v129';
 const SHELL = [
   './',
   './index.html',
@@ -18,8 +18,9 @@ const SHELL = [
   './shared/for-my-sons.js?v=13',
   './shared/settings-view.js?v=6',
   './shared/for-my-sons.css?v=3',
-  './ghost-typing/?v=1',
+  './ghost-typing/?v=2',
   './ghost-typing/index.html',
+  './ghost-typing/romanization.js?v=1',
   './assets/ghost-typing.svg?v=1',
   './cube-orbit/?v=1',
   './cube-orbit/index.html',
