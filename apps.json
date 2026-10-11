@@ -16,6 +16,14 @@
     "category": "create"
   },
   {
+    "id": "ghost-typing",
+    "name": "ゴーストタイピング",
+    "url": "./ghost-typing/?v=1",
+    "icon": "./assets/ghost-typing.svg?v=1",
+    "description": "文字を打って召喚！ゴーストコードで友だちと60秒対戦",
+    "category": "game"
+  },
+  {
     "id": "sky-dash",
     "name": "Sky Dash",
     "url": "./sky-dash-sample/?v=7",
