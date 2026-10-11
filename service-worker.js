@@ -1,4 +1,4 @@
-const CACHE_NAME = 'for-my-sons-v126';
+const CACHE_NAME = 'for-my-sons-v127';
 const SHELL = [
   './',
   './index.html',
@@ -18,6 +18,9 @@ const SHELL = [
   './shared/for-my-sons.js?v=13',
   './shared/settings-view.js?v=6',
   './shared/for-my-sons.css?v=3',
+  './cube-orbit/?v=1',
+  './cube-orbit/index.html',
+  './assets/cube-orbit.svg?v=1',
   './kids-3d-playgrand/?v=5',
   './kids-3d-playgrand/index.html?v=5',
   './kids-3d-playgrand/manual.html?v=5',
