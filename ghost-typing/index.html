@@ -205,13 +205,13 @@ function decodeGhost(raw){
  const read16=i=>bytes[i]*256+bytes[i+1];
  if(bytes[0]!==1||bytes[1]>200||bytes.length!==8+bytes[1]*6)throw Error('対応していないコードです');
  if(checksum(bytes.subarray(0,bytes.length-2))!==read16(bytes.length-2))throw Error('コードが壊れているようです');
- let previous=-1,previousScore=0;
+ let previous=-1;
  const rows=[];
  for(let i=0;i<bytes[1];i++){
   const p=6+i*6,t=read16(p),kind=bytes[p+2],ln=bytes[p+3],points=read16(p+4);
-  if(t>600||t<previous||kind>2||ln>2||false)throw Error('対戦データが正しくありません');
+  if(t>600||t<previous||kind>2||ln>2)throw Error('対戦データが正しくありません');
   rows.push({t,kind,lane:ln,score:points});
-  previous=t;previousScore=points;
+  previous=t;
  }
  
  return {events:rows,score:read16(2),errors:read16(4),code};
