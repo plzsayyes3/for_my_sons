@@ -18,9 +18,9 @@
   {
     "id": "ghost-typing",
     "name": "ゴーストタイピング",
-    "url": "./ghost-typing/?v=4",
+    "url": "./ghost-typing/?v=5",
     "icon": "./assets/ghost-typing.svg?v=1",
-    "description": "1本の道でタイピング勝負！ ゴーストコードで友だちと対戦",
+    "description": "かわいいモンスターが登場！ 1レーンでゴーストタイピング対戦",
     "category": "game"
   },
   {
