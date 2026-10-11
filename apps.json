@@ -8,6 +8,14 @@
     "category": "create"
   },
   {
+    "id": "cube-orbit",
+    "name": "キューブと円",
+    "url": "./cube-orbit/?v=1",
+    "icon": "./assets/cube-orbit.svg?v=1",
+    "description": "ルービックキューブと3つの円。色の動きを見ながら面を回そう",
+    "category": "create"
+  },
+  {
     "id": "sky-dash",
     "name": "Sky Dash",
     "url": "./sky-dash-sample/?v=7",
