@@ -136,7 +136,7 @@ textarea:focus,input:focus{border-color:#80dbf6;outline:none}
     <button type="button" data-select="1">② 中</button>
     <button type="button" data-select="2">③ 下</button>
   </div>
-  <p class="instructions">数字キー 1・2・3 またはボタンでレーンを選ぶ。ABC（英数）入力でプレイ。💚 よわい／🦊 ふつう／🦖 つよい</p>
+  <p class="instructions">数字キー 1・2・3 またはボタンでレーンを選ぶ。ABC（英数）入力でプレイ。shi / si、chi / ti、tsu / tu など、どちらも正解。💚 よわい／🦊 ふつう／🦖 つよい</p>
   <div class="flex"><button class="quiet small" id="stopButton" type="button">やめる</button><span class="muted" id="combatStatus" aria-live="polite"></span></div>
 </section>
 <section id="result" class="panel result" hidden>
@@ -156,6 +156,7 @@ textarea:focus,input:focus{border-color:#80dbf6;outline:none}
   <p id="copyStatus" class="note" role="status"></p>
 </section>
 </main>
+<script src="./romanization.js?v=1"></script>
 <script>
 (function(){
 'use strict';
@@ -177,6 +178,7 @@ const TYPES=[
 const el=id=>document.getElementById(id);
 let mode='setup',ghost=null,ghostLabel='おてほん',events=[],units=[],lane=0,wordIndex=0,typed='',errors=0,score=0,ghostScore=0,ghostCursor=0,yourBase=BASE_HP,ghostBase=BASE_HP;
 let startedAt=0,lastFrame=0,raf=0,lastDisplayedSecond=-1,roundCode='',best=null,finished=false;
+let currentSpellings=[];
 const lanes=[...document.querySelectorAll('.lane')];
 const laneButtons=[...document.querySelectorAll('[data-select]')];
 function status(message,error){el('setupStatus').textContent=message;el('setupStatus').classList.toggle('error',!!error);}
@@ -229,7 +231,10 @@ function setLane(value){
 }
 function showWord(){
  const word=WORDS[wordIndex%WORDS.length];el('kana').textContent=word[0];
- const roman=word[1],a=document.createElement('span'),b=document.createElement('span'),c=document.createElement('span');
+ // shi / si など、選んだ入力経路に合わせて表示も切り替える。
+ const candidates=currentSpellings.filter(s=>s.startsWith(typed));
+ const roman=candidates.includes(word[1])?word[1]:(candidates[0]||word[1]);
+ const a=document.createElement('span'),b=document.createElement('span'),c=document.createElement('span');
  a.className='done';a.textContent=typed;
  b.className='next';b.textContent=roman.charAt(typed.length)||'';
  c.textContent=roman.slice(typed.length+1);
@@ -273,21 +278,21 @@ function completeWord(){
  const t=Math.max(0,Math.min(600,Math.round((performance.now()-startedAt)/100)));
  events.push({t,kind,lane,score});
  spawn('you',kind,lane);
- wordIndex++;typed='';showWord();
+ wordIndex++;typed='';currentSpellings=GhostRomaji.spellings(WORDS[wordIndex%WORDS.length][0],WORDS[wordIndex%WORDS.length][1]);showWord();
  el('yourScore').textContent=score.toLocaleString('ja-JP');
  el('typedStatus').textContent='✨ '+word[0]+' を召喚！';
 }
 function feed(value){
  if(mode!=='playing')return;
  for(const c of value.toLowerCase()){
-  if(!/^[a-z]$/.test(c))continue;
-  const target=WORDS[wordIndex%WORDS.length][1];
-  if(c===target[typed.length]){
-   typed+=c;
-   if(typed===target)completeWord();else showWord();
+  if(!/^[a-z']$/.test(c))continue;
+  const next=typed+c;
+  if(currentSpellings.some(s=>s.startsWith(next))){
+   typed=next;
+   if(currentSpellings.includes(typed))completeWord();else showWord();
   }else{
    errors++;score=Math.max(0,score-3);el('yourScore').textContent=score.toLocaleString('ja-JP');
-   el('typedStatus').textContent='おしい！ いまは「'+target[typed.length]+'」';
+   el('typedStatus').textContent='おしい！ 入力できる文字を確かめてね';
   }
  }
 }
@@ -348,7 +353,7 @@ function start(record,name){
  el('opponent').textContent='VS '+name;
  el('typedStatus').textContent='ことばを完成させると召喚！';
  el('setup').hidden=true;el('result').hidden=true;el('battle').hidden=false;
- mode='playing';setLane(1);showWord();
+ mode='playing';currentSpellings=GhostRomaji.spellings(WORDS[0][0],WORDS[0][1]);setLane(1);showWord();
  el('typeInput').value='';el('typeInput').disabled=false;el('typeInput').focus({preventScroll:true});
  startedAt=performance.now();lastFrame=startedAt;raf=requestAnimationFrame(frame);
 }
