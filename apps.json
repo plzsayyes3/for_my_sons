@@ -1,5 +1,13 @@
 [
   {
+    "id": "pixel-maker",
+    "name": "ドットえ",
+    "url": "./pixel-maker/?v=1",
+    "icon": "./assets/pixel-maker.svg?v=1",
+    "description": "ゆびでドットえをかいて、じぶんのさくひんをためよう",
+    "category": "create"
+  },
+  {
     "id": "kids-3d-playgrand",
     "name": "3Dこうさく",
     "url": "./kids-3d-playgrand/?v=5",
