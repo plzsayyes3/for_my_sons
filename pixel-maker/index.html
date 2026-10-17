@@ -6,7 +6,7 @@
   <meta name="theme-color" content="#f8f5ef">
   <title>ドットえ | For My Sons</title>
   <link rel="icon" href="../assets/pixel-maker.svg" type="image/svg+xml">
-  <link rel="stylesheet" href="./style.css?v=1">
+  <link rel="stylesheet" href="./style.css?v=2">
 </head>
 <body>
   <main class="studio">
@@ -26,7 +26,7 @@
         <button data-tool="fill" aria-pressed="false" disabled><span aria-hidden="true">◩</span> ぬる</button>
         <button id="undo" aria-label="ひとつもどす" disabled><span aria-hidden="true">↶</span> もどす</button>
       </div>
-      <div class="board-wrap"><canvas id="board" width="512" height="512" aria-label="ゆびでなぞってドットえをかこう" aria-disabled="true"></canvas></div>
+      <div id="board-viewport" class="board-wrap"><div id="board-surface" class="board-surface"><canvas id="board" width="512" height="512" aria-label="ゆびでなぞってドットえをかこう" aria-disabled="true"></canvas></div></div>
       <div class="board-caption"><span>ゆびで なぞってみよう</span><span class="status-wrap"><span id="save-state" role="status" aria-live="polite">じゅんびちゅう</span><button id="retry" hidden>もういちど</button></span></div>
     </section>
     <section class="color-panel" aria-label="いろをえらぶ"><div class="palette-heading"><h2>いろをえらぶ</h2><span id="selected-color" aria-live="polite">くろ</span></div><div id="palette" class="palette"></div></section>
@@ -35,7 +35,8 @@
     <p class="footnote">えは このたんまつに じどうで ほぞんされるよ</p>
   </main>
   <dialog id="gallery-dialog"><div class="dialog-heading"><div><p class="eyebrow">MY LITTLE GALLERY</p><h2>じぶんのさくひん</h2></div><button data-close="gallery-dialog" aria-label="とじる">×</button></div><div id="gallery-grid" class="gallery-grid"></div></dialog>
-  <dialog id="new-dialog"><div class="dialog-heading"><h2>どのおおきさで かく？</h2><button data-close="new-dialog" aria-label="とじる">×</button></div><p class="dialog-copy">いまのえは そのまま のこるよ。</p><div class="size-options"><button data-size="8">8 × 8<small>おおきいマス</small></button><button data-size="16">16 × 16<small>おすすめ</small></button><button data-size="32">32 × 32<small>こまかくかく</small></button></div></dialog>
+  <section class="zoom-bar" aria-label="ひょうじの おおきさ"><button id="move-view" aria-pressed="false" disabled>✥ うごかす</button><label for="zoom">−</label><input id="zoom" type="range" min="100" max="800" step="25" value="100" aria-label="えの拡大・縮小" disabled><span aria-hidden="true">＋</span><output id="zoom-value" for="zoom">100%</output></section>
+  <dialog id="new-dialog"><div class="dialog-heading"><h2>どのおおきさで かく？</h2><button data-close="new-dialog" aria-label="とじる">×</button></div><p class="dialog-copy">ぜんぶ せいほうけい。いまのえは そのまま のこるよ。</p><div class="size-options"><button data-size="8">8 × 8<small>おおきいマス</small></button><button data-size="16">16 × 16<small>おすすめ</small></button><button data-size="24">24 × 24</button><button data-size="32">32 × 32</button><button data-size="48">48 × 48</button><button data-size="64">64 × 64</button><button data-size="80">80 × 80</button><button data-size="100">100 × 100<small>いちばん こまかい</small></button></div></dialog>
   <script src="../shared/for-my-sons-db.js?v=4"></script>
   <script src="../shared/profile-manager.js?v=2"></script>
   <script src="../shared/parent-lock.js?v=3"></script>
@@ -44,8 +45,8 @@
   <script src="../shared/character-requests.js?v=5"></script>
   <script src="../shared/parent-requests.js?v=4"></script>
   <script src="../shared/for-my-sons.js?v=13"></script>
-  <script src="./model.js?v=1"></script>
+  <script src="./model.js?v=2"></script>
   <script src="./store.js?v=1"></script>
-  <script src="./app.js?v=1"></script>
+  <script src="./app.js?v=2"></script>
 </body>
 </html>

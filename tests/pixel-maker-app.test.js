@@ -14,7 +14,7 @@ function harness(options={}){
   }
   const ids={};for(const match of fs.readFileSync(require.resolve('../pixel-maker/index.html'),'utf8').matchAll(/id="([^"]+)"/g))ids[match[1]]=new Element();
   const tools=['pen','eraser','fill'].map(t=>{const b=new Element('button');b.dataset.tool=t;return b;});
-  const sizes=[8,16,32].map(n=>{const b=new Element('button');b.dataset.size=String(n);return b;});
+  const sizes=[...fs.readFileSync(require.resolve('../pixel-maker/index.html'),'utf8').matchAll(/data-size="(\d+)"/g)].map(m=>{const b=new Element('button');b.dataset.size=m[1];return b;});
   const closers=['new-dialog','gallery-dialog'].map(id=>{const b=new Element();b.dataset.close=id;return b;});
   const document=new Element();document.body=new Element();document.getElementById=id=>ids[id];document.createElement=tag=>new Element(tag);
   document.querySelectorAll=selector=>selector==='[data-tool]'?tools:selector==='[data-size]'?sizes:selector==='[data-close]'?closers:[...tools,...['work-name','open-gallery','new-work','export-png','undo'].map(id=>ids[id]),...ids.palette.children];
@@ -33,6 +33,23 @@ test('app draws interpolated stroke, undoes it and creates separate work',async(
  await stroke(h,[16,16],[112,112]);let w=h.records.get('soma').works[0];assert.equal(w.pixels.filter(Boolean).length,4);
  await h.ids.undo.fire('click');await settle();assert.equal(h.records.get('soma').works[0].pixels.filter(Boolean).length,0);
  await h.sizes[0].fire('click');await settle();assert.equal(h.records.get('soma').works.length,2);assert.equal(h.records.get('soma').works[0].size,8);
+});
+test('100-square work exports whole integer pixels and survives zoom changes',async()=>{
+ const h=harness();await settle();assert.deepEqual(h.sizes.map(b=>Number(b.dataset.size)),[8,16,24,32,48,64,80,100]);
+ await h.sizes.at(-1).fire('click');await settle();await stroke(h,[1,1]);
+ const before=JSON.stringify(h.records.get('soma'));h.ids.zoom.value='400';await h.ids.zoom.fire('input');await settle();
+ assert.equal(h.ids['board-surface'].style.width,'400%');assert.equal(h.ids['zoom-value'].textContent,'400%');assert.equal(JSON.stringify(h.records.get('soma')),before);
+ await h.ids['export-png'].fire('click');const c=h.images.at(-1);assert.equal(c.width%100,0);assert.equal(c.height,c.width);assert.equal(c.calls.find(x=>x[0]==='fill')[4],6);
+});
+test('move mode pans the enlarged canvas without drawing',async()=>{
+ const h=harness();await settle();const before=JSON.stringify(h.records.get('soma'));h.ids['board-viewport'].scrollLeft=100;h.ids['board-viewport'].scrollTop=100;
+ await h.ids['move-view'].fire('click');await stroke(h,[10,10],[30,40]);
+ assert.equal(h.ids['board-viewport'].scrollLeft,80);assert.equal(h.ids['board-viewport'].scrollTop,70);assert.equal(JSON.stringify(h.records.get('soma')),before);
+});
+test('drawing after zoom and pan maps screen position to original square cells',async()=>{
+ const h=harness();await settle();h.ids.zoom.value='400';await h.ids.zoom.fire('input');
+ h.ids.board.getBoundingClientRect=()=>({left:-700,top:-700,width:2048,height:2048});
+ await stroke(h,[200,200]);const p=h.records.get('soma').works[0].pixels;assert.equal(p[7*16+7],'#33443D');assert.equal(p.filter(Boolean).length,1);
 });
 test('app saves stroke outside canvas and isolates profile galleries',async()=>{
  const h=harness();await settle();await stroke(h,[16,16],[560,16]);assert.equal(h.records.get('soma').works[0].pixels.filter(Boolean).length,16);

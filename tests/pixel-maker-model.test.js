@@ -2,8 +2,10 @@ const test = require('node:test');
 const assert = require('node:assert/strict');
 const M = require('../pixel-maker/model.js');
 test('new works have supported sizes and transparent cells', () => {
-  for (const size of [8,16,32]) assert.deepEqual(M.createWork(size,'one','today').pixels, Array(size*size).fill(null));
+  for (const size of [8,16,24,32,48,64,80,100]) assert.deepEqual(M.createWork(size,'one','today').pixels, Array(size*size).fill(null));
   assert.throws(()=>M.createWork(12,'one','today'));
+  assert.throws(()=>M.createWork(101,'one','today'));
+  const w=M.createWork(100,'large','today');assert.equal(M.validateGallery({version:1,activeId:w.id,works:[w]}).works[0].pixels.length,10000);
 });
 test('interpolation fills diagonal and excludes outside cells', () => {
   assert.deepEqual(M.line(16,{x:0,y:0},{x:3,y:3}),[0,17,34,51]);

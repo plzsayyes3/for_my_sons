@@ -1,11 +1,11 @@
-const CACHE_NAME = 'for-my-sons-v134';
+const CACHE_NAME = 'for-my-sons-v135';
 const SHELL = [
-  './pixel-maker/?v=1',
+  './pixel-maker/?v=2',
   './pixel-maker/index.html',
-  './pixel-maker/style.css?v=1',
-  './pixel-maker/model.js?v=1',
+  './pixel-maker/style.css?v=2',
+  './pixel-maker/model.js?v=2',
   './pixel-maker/store.js?v=1',
-  './pixel-maker/app.js?v=1',
+  './pixel-maker/app.js?v=2',
   './assets/pixel-maker.svg?v=1',
   './',
   './index.html',

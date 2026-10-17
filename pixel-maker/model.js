@@ -1,6 +1,6 @@
 (function(root,factory){const api=factory();if(typeof module!=='undefined'&&module.exports)module.exports=api;else root.PixelModel=api;})(globalThis,()=>{
   'use strict';
-  const sizes=[8,16,32];
+  const sizes=[8,16,24,32,48,64,80,100];
   function createWork(size,id,now){
     if(!sizes.includes(size))throw new Error('Unsupported size');
     return {id,name:'なまえのないえ',size,pixels:Array(size*size).fill(null),createdAt:now,updatedAt:now};

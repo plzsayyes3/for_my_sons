@@ -2,7 +2,7 @@
   {
     "id": "pixel-maker",
     "name": "ドットえ",
-    "url": "./pixel-maker/?v=1",
+    "url": "./pixel-maker/?v=2",
     "icon": "./assets/pixel-maker.svg?v=1",
     "description": "ゆびでドットえをかいて、じぶんのさくひんをためよう",
     "category": "create"
