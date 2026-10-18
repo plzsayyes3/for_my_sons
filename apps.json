@@ -1,5 +1,13 @@
 [
   {
+    "id": "voice-meter",
+    "name": "こえのメーター",
+    "url": "./voice-meter/?v=1",
+    "icon": "./assets/voice-meter.svg?v=1",
+    "description": "こえのおおきさを、いろとバーでみてみよう",
+    "category": "tool"
+  },
+  {
     "id": "pixel-maker",
     "name": "ドットえ",
     "url": "./pixel-maker/?v=2",

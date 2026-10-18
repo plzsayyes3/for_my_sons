@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#f6f5ed">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; connect-src 'none'; media-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none'; style-src 'self' 'unsafe-inline'">
+<title>こえのメーター | For My Sons</title>
+<link rel="stylesheet" href="./style.css?v=1">
+<script src="./meter.js?v=1" defer></script>
+<script src="./app.js?v=1" defer></script>
+</head>
+<body data-zone="idle">
+<main>
+<header><a href="../" aria-label="ホームへ">← ホーム</a><span>FOR MY SONS</span></header>
+<h1>こえのメーター</h1>
+<p class="intro">いま、どのくらいの こえ？</p>
+<section class="display" aria-label="声の大きさ">
+  <div class="meter-wrap">
+    <div class="scale" aria-hidden="true"><span>おおきい</span><span>ふつう</span><span>ちいさい</span></div>
+    <div id="meter" class="meter" role="meter" aria-label="こえのおおきさ（目安）" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">
+      <div class="zones" aria-hidden="true"></div><div id="fill" class="fill"></div>
+      <div id="target-line" class="target-line"><span>ここまで</span></div>
+    </div>
+  </div>
+  <div class="message"><span id="face" class="face" aria-hidden="true">◡</span><h2 id="voice-label">はじめてみよう</h2><p id="hint">マイクで こえを みてみよう</p></div>
+</section>
+<button id="toggle" type="button">はじめる</button>
+<p id="status" class="status" role="status" aria-live="polite">はじめるときに マイクを ゆるしてね</p>
+<details><summary>おとなの人と めやすを あわせる</summary>
+  <p>同じ場所・同じ距離で、ふだんの声で話しながら調整してください。</p>
+  <label for="target">「ここまで」の高さ <output id="target-value">55</output></label>
+  <input id="target" type="range" min="25" max="85" value="55">
+  <div class="range-labels"><span>小さな声で反応</span><span>大きな声で反応</span></div>
+  <p>線より上は赤、その下は黄色、小さな声は緑になります。まわりの音にも反応します。</p>
+</details>
+<footer>音声の録音・保存・送信はしません。<br>色と動きは声の大きさの目安です。正確なdB値ではありません。</footer>
+</main>
+</body>
+</html>
