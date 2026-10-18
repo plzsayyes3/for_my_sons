@@ -1,8 +1,8 @@
-const CACHE_NAME = 'for-my-sons-v136';
+const CACHE_NAME = 'for-my-sons-v137';
 const SHELL = [
-  './voice-meter/?v=1',
+  './voice-meter/?v=2',
   './voice-meter/index.html',
-  './voice-meter/style.css?v=1',
+  './voice-meter/style.css?v=2',
   './voice-meter/meter.js?v=1',
   './voice-meter/app.js?v=1',
   './assets/voice-meter.svg?v=1',

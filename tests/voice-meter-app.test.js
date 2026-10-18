@@ -6,7 +6,7 @@ const VoiceMeter = require('../voice-meter/meter.js');
 function harness(permission = 'granted') {
   const ids = {};
   for (const m of fs.readFileSync('voice-meter/index.html', 'utf8').matchAll(/id="([^"]+)"/g)) {
-    ids[m[1]] = {textContent:'', value:m[1] === 'target' ? '55' : '', style:{}, attrs:{}, listeners:{},
+    ids[m[1]] = {textContent:'', value:m[1] === 'target' ? fs.readFileSync('voice-meter/index.html', 'utf8').match(/id="target"[^>]*value="(\d+)"/)[1] : '', style:{}, attrs:{}, listeners:{},
       addEventListener(k, cb){this.listeners[k]=cb;}, setAttribute(k,v){this.attrs[k]=v;}};
   }
   const listeners = {}, frames = new Map(), props = {};
@@ -28,10 +28,10 @@ function harness(permission = 'granted') {
 test('voice screen responds to soft, normal and large samples and its target slider', async()=>{
  const h=harness();await h.ids.toggle.listeners.click();
  h.advance(0);assert.equal(h.document.body.dataset.zone,'small');
- h.advance(0.02);assert.equal(h.document.body.dataset.zone,'normal');
+ h.advance(0.008);assert.equal(h.document.body.dataset.zone,'normal');
  h.advance(0.25);assert.equal(h.document.body.dataset.zone,'large');
- h.ids.target.value='85';h.ids.target.listeners.input();h.advance(0.02);
- assert.equal(h.props['--target'],'85%');assert.equal(h.document.body.dataset.zone,'small');
+ h.ids.target.value='70';h.ids.target.listeners.input();h.advance(0.008);
+ assert.equal(h.props['--target'],'70%');assert.equal(h.document.body.dataset.zone,'small');
  await h.ids.toggle.listeners.click();assert.equal(h.stopped,1);assert.equal(h.ids.meter.attrs['aria-valuenow'],'0');
 });
 test('voice screen gives a retryable permission denial message',async()=>{
