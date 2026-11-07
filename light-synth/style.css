@@ -7,3 +7,7 @@
 .stage{flex:none}
 .dial{pointer-events:auto;touch-action:none;cursor:ew-resize}
 @media(orientation:landscape) and (max-height:600px){.console-top>div:first-child,.console footer{display:none}}
+
+@media(min-width:651px) and (min-height:601px){.knobs{grid-template-columns:repeat(5,minmax(0,1fr))}.control{padding-left:18px;padding-right:18px}}
+@media(max-width:650px),(orientation:landscape) and (max-height:600px){.amount-control{grid-column:1/-1;display:grid;grid-template-columns:100px 1fr;column-gap:16px;border:0!important;padding:0!important}.amount-control .dial{display:none}.amount-control .control-top{grid-row:1;grid-column:1}.amount-control input{grid-row:1;grid-column:2}.amount-control .range-labels{grid-column:2}.control:nth-child(odd){border-left:1px solid #2d384b!important;padding-left:14px!important;padding-right:0!important}.control:nth-child(even){border-left:0!important;padding-left:0!important;padding-right:14px!important}}
+@media(orientation:landscape) and (max-height:600px){.knobs{gap:6px 0}.amount-control .control-top{font-size:10px}.console-top{margin-bottom:6px}.dial{height:40px;width:40px;margin-top:5px}.control:nth-child(odd){padding-left:10px!important}.control:nth-child(even){padding-right:10px!important}}

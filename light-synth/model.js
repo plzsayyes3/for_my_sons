@@ -8,11 +8,18 @@
     const random=options.random||Math.random;
     const maxParticles=Number.isFinite(options.maxParticles)?clamp(Math.floor(options.maxParticles),1,600):600;
     const particles=[];
-    const params={gravity:0.12,rhythm:0.35,randomness:0.2,orbit:0.45};
+    const params={amount:0.45,gravity:0.12,rhythm:0.35,randomness:0.2,orbit:0.45};
     let time=0,autoCredit=0,secondaryCredit=0;
     const pointerCredits=new Map();
     function setParameter(name,value){
-      if(Object.hasOwn(params,name)&&Number.isFinite(value))params[name]=clamp(value,0,1);
+      if(Object.hasOwn(params,name)&&Number.isFinite(value)){
+        const old=params[name];params[name]=clamp(value,0,1);
+        if(name==='amount'){
+          const target=Math.max(1,Math.round(maxParticles*(0.02+0.98*params.amount)));
+          if(particles.length>target)particles.splice(0,particles.length-target);
+          if(params.amount>old&&particles.length){const p=particles[particles.length-1];emit(p.x,p.y,Math.round((params.amount-old)*maxParticles*0.35));}
+        }
+      }
     }
     function emit(x,y,count=1){
       if(!Number.isFinite(x)||!Number.isFinite(y)||!Number.isFinite(count))return;
@@ -30,9 +37,9 @@
     function step(dt,{automatic=true,pointers=[]}={}){
       if(!Number.isFinite(dt)||dt<=0)return;
       dt=Math.min(dt,0.05);time+=dt;
-      const pulse=0.5+0.5*Math.sin(time*(0.3+params.rhythm*1.7)*Math.PI*2);
+      const pulse=0.5+0.5*Math.sin(time*(0.12+params.rhythm*2.38)*Math.PI*2);
       if(automatic){
-        autoCredit+=dt*(25+55*pulse);
+        autoCredit+=dt*(2+300*params.amount*params.amount)*(0.2+1.6*pulse);
         const count=Math.floor(autoCredit);autoCredit-=count;
         const x=0.5+Math.sin(time*0.37)*0.24,y=0.43+Math.sin(time*0.53)*0.2;
         emit(x,y,count);
@@ -43,20 +50,20 @@
       const active=new Set();
       for(let i=0;i<pointers.length;i++){
         const p=pointers[i],key=p.id??i;active.add(key);
-        let credit=(pointerCredits.get(key)||0)+dt*90;
+        let credit=(pointerCredits.get(key)||0)+dt*(4+260*params.amount*params.amount);
         const count=Math.floor(credit);credit-=count;pointerCredits.set(key,credit);
         emit(p.x,p.y,count);
       }
       for(const key of pointerCredits.keys())if(!active.has(key))pointerCredits.delete(key);
-      const turn=params.orbit*3.5*dt,c=Math.cos(turn),s=Math.sin(turn);
+      const turn=params.orbit*9*dt,c=Math.cos(turn),s=Math.sin(turn);
       for(let i=particles.length-1;i>=0;i--){
         const p=particles[i];p.age+=dt;
         if(p.age>=p.life){particles.splice(i,1);continue;}
         p.px=p.x;p.py=p.y;
         const vx=p.vx*c-p.vy*s,vy=p.vx*s+p.vy*c;
-        p.vx=vx+Math.cos(time*3.2+p.seed)*params.randomness*0.32*dt;
-        p.vy=vy+params.gravity*0.26*dt+Math.sin(time*2.7+p.seed)*params.randomness*0.32*dt;
-        const speed=Math.hypot(p.vx,p.vy);if(speed>0.65){p.vx*=0.65/speed;p.vy*=0.65/speed;}
+        p.vx=vx+Math.cos(time*3.2+p.seed)*params.randomness*2.4*dt;
+        p.vy=vy+params.gravity*3.8*dt+Math.sin(time*2.7+p.seed)*params.randomness*2.4*dt;
+        const speed=Math.hypot(p.vx,p.vy);if(speed>1.2){p.vx*=1.2/speed;p.vy*=1.2/speed;}
         p.x+=p.vx*dt;p.y+=p.vy*dt;
         // Soft reflection keeps light in view as gravity and orbit are explored.
         if(p.x<0.015){p.x=0.015;p.vx=Math.abs(p.vx)*0.85;}

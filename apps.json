@@ -2,9 +2,9 @@
   {
     "id": "light-synth",
     "name": "ひかりのシンセ",
-    "url": "./light-synth/?v=1",
+    "url": "./light-synth/?v=2",
     "icon": "./assets/light-synth.svg?v=1",
-    "description": "ひかりをうみだして、4つのつまみで動きをかえよう",
+    "description": "ひかりをうみだして、5つのつまみで動きをかえよう",
     "category": "create"
   },
   {

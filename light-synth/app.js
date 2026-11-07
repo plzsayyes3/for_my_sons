@@ -30,7 +30,7 @@ function draw(dt,still=false){
   for(const p of simulation.particles){
     const fade=Math.max(0,1-p.age/p.life);
     const birth=Math.min(1,p.age/0.15);
-    const opacity=fade*birth*(0.55+0.2*pulse);
+    const opacity=fade*birth*(0.25+0.75*pulse);
     const x=p.x*width,y=p.y*height,r=p.size*1.4;
     ctx.strokeStyle=`hsla(${p.hue},90%,70%,${opacity*0.6})`;
     ctx.lineWidth=p.size*0.8;ctx.lineCap='round';ctx.beginPath();
