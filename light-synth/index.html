@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#080c19"><meta name="color-scheme" content="dark">
+<title>ライトシンセサイザー | For My Sons</title>
+<meta name="description" content="ひかりをうみだして、4つのつまみで動きをかえよう。">
+<link rel="icon" href="../assets/light-synth.svg"><link rel="stylesheet" href="./style.css?v=1">
+<script src="./model.js?v=1" defer></script><script src="./app.js?v=1" defer></script>
+</head>
+<body>
+<main class="instrument">
+<header class="topbar"><a class="back" href="../" aria-label="For My Sonsにもどる">← <span>もどる</span></a><div class="title"><p>LIGHT SYNTHESIZER</p><h1>ひかりのシンセ</h1></div><span class="edition"><i></i> LIGHT / 01</span></header>
+<section class="stage" aria-label="光を描く画面">
+<canvas id="light-canvas" aria-label="指やマウスでなぞると光が生まれます" role="img">Canvasに対応したブラウザであそんでね。</canvas>
+<div class="stage-label"><span class="live-dot"></span><span id="stage-state">ひかりが ながれています</span></div>
+<div class="stage-hint" id="hint">さわって、ひかりを うみだそう<span>つまみを うごかすと、ひかりが かわるよ</span></div>
+<div class="stage-mark" aria-hidden="true">✦</div>
+</section>
+<section class="console" aria-label="光のつまみ">
+<div class="console-top"><div><span class="eyebrow">MAKE YOUR LIGHT</span><p>どんな ひかりに しよう？</p></div><div class="transport"><button id="auto" type="button" aria-pressed="true">✦ <span>じどう</span><b>ON</b></button><button id="pause" type="button" aria-pressed="false">Ⅱ とめる</button><button id="clear" type="button">↺ けす</button></div></div>
+<div class="knobs">
+<label class="control" style="--accent:#87e4d7"><span class="control-top"><span>じゅうりょく</span><output for="gravity">12</output></span><span class="dial" aria-hidden="true"><span class="dial-inner"><i></i></span></span><input id="gravity" data-param="gravity" type="range" min="0" max="100" value="12" aria-label="じゅうりょく"><span class="range-labels"><span>ふわふわ</span><span>おちる</span></span></label>
+<label class="control" style="--accent:#f6c77b"><span class="control-top"><span>リズム</span><output for="rhythm">35</output></span><span class="dial" aria-hidden="true"><span class="dial-inner"><i></i></span></span><input id="rhythm" data-param="rhythm" type="range" min="0" max="100" value="35" aria-label="リズム"><span class="range-labels"><span>ゆっくり</span><span>はやい</span></span></label>
+<label class="control" style="--accent:#dbacf5"><span class="control-top"><span>ランダム</span><output for="randomness">20</output></span><span class="dial" aria-hidden="true"><span class="dial-inner"><i></i></span></span><input id="randomness" data-param="randomness" type="range" min="0" max="100" value="20" aria-label="ランダム"><span class="range-labels"><span>そろう</span><span>きまぐれ</span></span></label>
+<label class="control" style="--accent:#9ebdfc"><span class="control-top"><span>きどう</span><output for="orbit">45</output></span><span class="dial" aria-hidden="true"><span class="dial-inner"><i></i></span></span><input id="orbit" data-param="orbit" type="range" min="0" max="100" value="45" aria-label="きどう"><span class="range-labels"><span>まっすぐ</span><span>うずまき</span></span></label>
+</div>
+<footer><span>ゆびで なぞる · つまみで かえる</span><span>FOR MY SONS <i>✦</i></span></footer>
+</section>
+<p class="sr-only" id="announcement" role="status" aria-live="polite"></p>
+<noscript><p>JavaScriptを有効にしてあそんでね。</p></noscript>
+</main>
+</body></html>
