@@ -1,5 +1,13 @@
 [
   {
+    "id": "light-synth",
+    "name": "ひかりのシンセ",
+    "url": "./light-synth/?v=1",
+    "icon": "./assets/light-synth.svg?v=1",
+    "description": "ひかりをうみだして、4つのつまみで動きをかえよう",
+    "category": "create"
+  },
+  {
     "id": "voice-meter",
     "name": "こえのメーター",
     "url": "./voice-meter/?v=2",

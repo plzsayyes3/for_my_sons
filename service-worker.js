@@ -1,5 +1,11 @@
-const CACHE_NAME = 'for-my-sons-v137';
+const CACHE_NAME = 'for-my-sons-v138';
 const SHELL = [
+  './light-synth/?v=1',
+  './light-synth/index.html',
+  './light-synth/style.css?v=1',
+  './light-synth/model.js?v=1',
+  './light-synth/app.js?v=1',
+  './assets/light-synth.svg?v=1',
   './voice-meter/?v=2',
   './voice-meter/index.html',
   './voice-meter/style.css?v=2',
