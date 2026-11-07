@@ -4,9 +4,9 @@
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#080c19"><meta name="color-scheme" content="dark">
 <title>ライトシンセサイザー | For My Sons</title>
-<meta name="description" content="ひかりをうみだして、4つのつまみで動きをかえよう。">
-<link rel="icon" href="../assets/light-synth.svg"><link rel="stylesheet" href="./style.css?v=1">
-<script src="./model.js?v=1" defer></script><script src="./app.js?v=1" defer></script>
+<meta name="description" content="ひかりをうみだして、5つのつまみで動きをかえよう。">
+<link rel="icon" href="../assets/light-synth.svg"><link rel="stylesheet" href="./style.css?v=2">
+<script src="./model.js?v=2" defer></script><script src="./app.js?v=2" defer></script>
 </head>
 <body>
 <main class="instrument">
@@ -20,6 +20,7 @@
 <section class="console" aria-label="光のつまみ">
 <div class="console-top"><div><span class="eyebrow">MAKE YOUR LIGHT</span><p>どんな ひかりに しよう？</p></div><div class="transport"><button id="auto" type="button" aria-pressed="true">✦ <span>じどう</span><b>ON</b></button><button id="pause" type="button" aria-pressed="false">Ⅱ とめる</button><button id="clear" type="button">↺ けす</button></div></div>
 <div class="knobs">
+<label class="control amount-control" style="--accent:#f6a9ba"><span class="control-top"><span>ひかりの量</span><output for="amount">45</output></span><span class="dial" aria-hidden="true"><span class="dial-inner"><i></i></span></span><input id="amount" data-param="amount" type="range" min="0" max="100" value="45" aria-label="ひかりの量"><span class="range-labels"><span>すこし</span><span>いっぱい</span></span></label>
 <label class="control" style="--accent:#87e4d7"><span class="control-top"><span>じゅうりょく</span><output for="gravity">12</output></span><span class="dial" aria-hidden="true"><span class="dial-inner"><i></i></span></span><input id="gravity" data-param="gravity" type="range" min="0" max="100" value="12" aria-label="じゅうりょく"><span class="range-labels"><span>ふわふわ</span><span>おちる</span></span></label>
 <label class="control" style="--accent:#f6c77b"><span class="control-top"><span>リズム</span><output for="rhythm">35</output></span><span class="dial" aria-hidden="true"><span class="dial-inner"><i></i></span></span><input id="rhythm" data-param="rhythm" type="range" min="0" max="100" value="35" aria-label="リズム"><span class="range-labels"><span>ゆっくり</span><span>はやい</span></span></label>
 <label class="control" style="--accent:#dbacf5"><span class="control-top"><span>ランダム</span><output for="randomness">20</output></span><span class="dial" aria-hidden="true"><span class="dial-inner"><i></i></span></span><input id="randomness" data-param="randomness" type="range" min="0" max="100" value="20" aria-label="ランダム"><span class="range-labels"><span>そろう</span><span>きまぐれ</span></span></label>
