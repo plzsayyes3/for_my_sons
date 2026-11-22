@@ -1,5 +1,13 @@
 [
   {
+    "id": "bead-case",
+    "name": "ビーズケース",
+    "url": "./bead-case/?v=1",
+    "icon": "./assets/bead-case.svg?v=1",
+    "description": "ビーズを入れて、なぞって、振って、傾けて遊ぼう",
+    "category": "create"
+  },
+  {
     "id": "light-synth",
     "name": "ひかりのシンセ",
     "url": "./light-synth/?v=2",
