@@ -65,7 +65,7 @@ footer{font-size:11px;color:#708d82;line-height:1.6;margin-top:11px;display:flex
 <button type="button" class="action" id="clear">からにする</button>
 </div></div>
 </section>
-<footer><span id="status" role="status" aria-live="polite">タップ・スワイプ・「ふる」はそのまま使えます。端末を傾けるには「かたむき」をONにしてください。</span><span>For My Sons · 音なし · 2D</span></footer>
+<footer><span id="status" role="status" aria-live="polite">タップ・スワイプ・「ふる」はそのまま使えます。「かたむき」ONで水平を基準に転がります。</span><span>For My Sons · 音なし · 2D</span></footer>
 </main>
 <script>
 (function(){
@@ -73,7 +73,7 @@ footer{font-size:11px;color:#708d82;line-height:1.6;margin-top:11px;display:flex
 var box=document.getElementById('case'),canvas=document.getElementById('canvas'),ctx=canvas.getContext('2d');
 var count=document.getElementById('count'),status=document.getElementById('status'),tiltButton=document.getElementById('tilt');
 if(!ctx){status.textContent='このブラウザではCanvasが使えません';return;}
-var W=360,H=420,dpr=1,beads=[],selected='mix',tiltOn=false,hasTilt=false,gravityX=0,gravityY=720,lastKick=0;
+var W=360,H=420,dpr=1,beads=[],selected='mix',tiltOn=false,hasTilt=false,motionGravityReady=false,gravityX=0,gravityY=0,filteredGravityX=0,filteredGravityY=0,lastSensorAngle=null,lastKick=0;
 var max=155;
 var TYPES={glass:{r:9,m:1,e:.55,colors:['#7cc9bb','#83c5d3','#9dd2b9']},pearl:{r:11,m:1.3,e:.32,colors:['#f3e7dc','#e1e8d9','#f2ead2']},metal:{r:8,m:2.8,e:.35,colors:['#c99b53','#d7ba78','#b6aaa3']},star:{r:12,m:.8,e:.46,colors:['#bc99ca','#bfa4b9','#a1add9']}};
 function rnd(a,b){return a+Math.random()*(b-a)}
@@ -109,9 +109,9 @@ function walls(b){
 function step(dt){
  var sub=dt/2;
  for(var k=0;k<2;k++){
-  var gx=hasTilt?gravityX:0,gy=hasTilt?gravityY:720;
+  var gx=tiltOn?(hasTilt?gravityX:0):0,gy=tiltOn?(hasTilt?gravityY:0):720;
   for(var i=0;i<beads.length;i++){
-   var b=beads[i];b.vx=lim((b.vx+gx*sub)*.999,-1700,1700);b.vy=lim((b.vy+gy*sub)*.999,-1700,1700);
+   var b=beads[i],drag=tiltOn?Math.exp(-2.4*sub):.999;b.vx=lim((b.vx+gx*sub)*drag,-1700,1700);b.vy=lim((b.vy+gy*sub)*drag,-1700,1700);
    b.x+=b.vx*sub;b.y+=b.vy*sub;b.rot+=b.spin*sub;walls(b);
   }
   for(var a=0;a<beads.length;a++)for(var c=a+1;c<beads.length;c++){
@@ -164,30 +164,105 @@ canvas.addEventListener('pointerdown',function(e){e.preventDefault();if(canvas.s
 canvas.addEventListener('pointermove',function(e){if(!pointer||pointer.id!==e.pointerId)return;e.preventDefault();var dx=e.clientX-pointer.x,dy=e.clientY-pointer.y;pointer.x=e.clientX;pointer.y=e.clientY;pointer.travel+=Math.hypot(dx,dy);if(Math.hypot(dx,dy)>1.2)impulse(-lim(dx,-32,32)*6,-lim(dy,-32,32)*6,false);});
 canvas.addEventListener('pointerup',function(e){if(!pointer||pointer.id!==e.pointerId)return;if(pointer.travel<11){var rect=canvas.getBoundingClientRect();add(selected,e.clientX-rect.left,e.clientY-rect.top);}pointer=null;});
 canvas.addEventListener('pointercancel',function(){pointer=null;});
+// Device motion coordinates are fixed to the hardware, even when the display rotates.
+// accelerationIncludingGravity reports the reaction to gravity (screen-up: z = +9.81).
+// Negate its device X component; invert device Y to CSS's downward-positive direction.
+function screenAngle(){
+ var o=window.screen&&window.screen.orientation,angle=o&&typeof o.angle==='number'?o.angle:(typeof window.orientation==='number'?window.orientation:0);
+ return ((angle%360)+360)%360;
+}
+function deviceToScreenGravity(ax,ay,angle){
+ var x=-ax,y=ay;
+ if(angle===90)return {x:-y,y:x};
+ if(angle===270)return {x:y,y:-x};
+ if(angle===180)return {x:-x,y:-y};
+ return {x:x,y:y};
+}
+function anglesToGravity(beta,gamma,angle){
+ var rad=Math.PI/180;
+ var x=Math.sin(lim(gamma,-90,90)*rad)*9.81;
+ var y=Math.sin(beta*rad)*Math.cos(gamma*rad)*9.81;
+ // x/y above are already expressed as screen-right / screen-down in portrait.
+ if(angle===90)return {x:-y,y:x};
+ if(angle===270)return {x:y,y:-x};
+ if(angle===180)return {x:-x,y:-y};
+ return {x:x,y:y};
+}
+function applyGravity(x,y,source){
+ var scale=920/9.81,deadZone=.22;
+ gravityX=Math.abs(x)<deadZone?0:lim(x*scale,-920,920);
+ gravityY=Math.abs(y)<deadZone?0:lim(y*scale,-920,920);
+ hasTilt=true;
+ if(source==='motion'&&!motionGravityReady){
+  motionGravityReady=true;
+  status.textContent='重力センサーで動作中。水平なら止まり、傾けた方向へ転がります。';
+ }else if(source==='orientation'&&!motionGravityReady){
+  status.textContent='角度センサーで動作中。水平なら止まり、傾けた方向へ転がります。';
+ }
+}
 function orient(e){
- if(!tiltOn||e.beta==null||e.gamma==null)return;
- hasTilt=true;var r=Math.PI/180,gx=Math.sin(lim(e.gamma,-90,90)*r)*920,gy=Math.cos(lim(e.beta,-180,180)*r)*710;
- var angle=window.screen&&screen.orientation?screen.orientation.angle:(typeof window.orientation==='number'?window.orientation:0);
- if(angle===90){var q=gx;gx=-gy;gy=q;}else if(angle===-90||angle===270){var p=gx;gx=gy;gy=-p;}else if(angle===180){gx=-gx;gy=-gy;}
- gravityX=gx;gravityY=gy;status.textContent='傾きで動かしています。端末をやさしく振ってみてね。';
+ // Motion sensor supplies a more reliable gravity vector; orientation is fallback.
+ if(!tiltOn||motionGravityReady||e.beta==null||e.gamma==null)return;
+ var gravity=anglesToGravity(e.beta,e.gamma,screenAngle());
+ applyGravity(gravity.x,gravity.y,'orientation');
 }
 function moving(e){
- if(!tiltOn||!e.acceleration)return;var now=performance.now();if(now-lastKick<100)return;
- var a=e.acceleration,ax=a.x||0,ay=a.y||0,az=a.z||0;
- if(Math.hypot(ax,ay,az)<3)return;lastKick=now;impulse(lim(-ax*36,-550,550),lim(ay*36,-550,550),true);
+ if(!tiltOn)return;
+ var a=e.acceleration;
+ var inc=e.accelerationIncludingGravity;
+ if(inc&&Number.isFinite(inc.x)&&Number.isFinite(inc.y)){
+  // Subtract deliberate movement so shaking does not masquerade as tilt.
+  var ax=inc.x-(a&&Number.isFinite(a.x)?a.x:0);
+  var ay=inc.y-(a&&Number.isFinite(a.y)?a.y:0);
+  var az=inc.z-(a&&Number.isFinite(a.z)?a.z:0);
+  var mag=Math.hypot(ax,ay,Number.isFinite(az)?az:0);
+  // A gravitational vector should be about 9.81 m/s².
+  if(mag>5&&mag<15){
+   var angle=screenAngle(),projected=deviceToScreenGravity(ax,ay,angle);
+   if(lastSensorAngle!==angle||!motionGravityReady){
+    filteredGravityX=projected.x;filteredGravityY=projected.y;lastSensorAngle=angle;
+   }else{
+    var factor=.20;
+    filteredGravityX+=(projected.x-filteredGravityX)*factor;
+    filteredGravityY+=(projected.y-filteredGravityY)*factor;
+   }
+   applyGravity(filteredGravityX,filteredGravityY,'motion');
+  }
+ }
+ if(!a)return;
+ var nx=Number.isFinite(a.x)?a.x:0,ny=Number.isFinite(a.y)?a.y:0,nz=Number.isFinite(a.z)?a.z:0;
+ if(Math.hypot(nx,ny,nz)<3)return;
+ var now=performance.now();if(now-lastKick<100)return;lastKick=now;
+ var shake=deviceToScreenGravity(nx,ny,screenAngle());
+ impulse(lim(shake.x*42,-550,550),lim(shake.y*42,-550,550),true);
 }
 tiltButton.addEventListener('click',async function(){
- if(tiltOn){tiltOn=false;hasTilt=false;window.removeEventListener('deviceorientation',orient);window.removeEventListener('devicemotion',moving);tiltButton.classList.remove('on');tiltButton.setAttribute('aria-pressed','false');tiltButton.textContent='◎ かたむき OFF';status.textContent='指でなぞる・ふるボタンで遊べます。';return;}
+ if(tiltOn){
+  tiltOn=false;hasTilt=false;motionGravityReady=false;gravityX=0;gravityY=0;lastSensorAngle=null;
+  window.removeEventListener('deviceorientation',orient);
+  window.removeEventListener('devicemotion',moving);
+  tiltButton.classList.remove('on');tiltButton.setAttribute('aria-pressed','false');
+  tiltButton.textContent='◎ かたむき OFF';
+  status.textContent='指でなぞる・ふるボタンで遊べます。';
+  return;
+ }
  try{
   var req=[];
-  if(typeof DeviceOrientationEvent!=='undefined'&&typeof DeviceOrientationEvent.requestPermission==='function')req.push(DeviceOrientationEvent.requestPermission());
+  // Request both permissions within the original button gesture on iOS.
   if(typeof DeviceMotionEvent!=='undefined'&&typeof DeviceMotionEvent.requestPermission==='function')req.push(DeviceMotionEvent.requestPermission());
-  var result=await Promise.all(req);if(result.some(function(x){return x!=='granted';}))throw Error('センサーの許可がありません');
+  if(typeof DeviceOrientationEvent!=='undefined'&&typeof DeviceOrientationEvent.requestPermission==='function')req.push(DeviceOrientationEvent.requestPermission());
+  var results=await Promise.allSettled(req);
+  if(results.length&&results.every(function(r){return r.status!=='fulfilled'||r.value!=='granted';}))throw Error('センサーの許可がありません');
   if(!('DeviceOrientationEvent' in window)&&!('DeviceMotionEvent' in window))throw Error('センサー非対応');
-  tiltOn=true;hasTilt=false;tiltButton.classList.add('on');tiltButton.setAttribute('aria-pressed','true');tiltButton.textContent='◎ かたむき ON';
-  window.addEventListener('deviceorientation',orient);window.addEventListener('devicemotion',moving);
-  status.textContent='センサーを待っています。傾けるか、軽く振ってください。';
-  setTimeout(function(){if(tiltOn&&!hasTilt)status.textContent='傾きが受信できません。スワイプと「ふる」ボタンは使えます。';},2500);
+  tiltOn=true;hasTilt=false;motionGravityReady=false;gravityX=0;gravityY=0;lastSensorAngle=null;
+  tiltButton.classList.add('on');tiltButton.setAttribute('aria-pressed','true');
+  tiltButton.textContent='◎ かたむき ON';
+  window.addEventListener('deviceorientation',orient);
+  window.addEventListener('devicemotion',moving);
+  status.textContent='センサーを待っています。水平に置くと、ビーズはゆっくり止まります。';
+  setTimeout(function(){
+   if(tiltOn&&!hasTilt)status.textContent='傾きデータを受信できません。スワイプと「ふる」は使えます。';
+  },2500);
  }catch(err){status.textContent='傾きは使えません（'+err.message+'）。指で揺らして遊べます。';}
 });
 many(38);requestAnimationFrame(frame);
