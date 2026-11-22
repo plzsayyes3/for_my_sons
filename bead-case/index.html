@@ -1,0 +1,196 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
+<meta name="theme-color" content="#edf4f1"><meta name="apple-mobile-web-app-capable" content="yes">
+<title>ビーズケース | For My Sons</title>
+<meta name="description" content="ビーズを入れて、傾けて、振って遊ぶ物理シミュレーター。">
+<link rel="icon" href="../assets/bead-case.svg" type="image/svg+xml">
+<style>
+:root{color-scheme:light;--ink:#294c49;--soft:#607975;--line:#d7e6df}
+*{box-sizing:border-box}
+html,body{margin:0;min-height:100%;font-family:-apple-system,BlinkMacSystemFont,"Hiragino Kaku Gothic ProN","Yu Gothic",sans-serif;color:var(--ink);background:#edf4f1;-webkit-tap-highlight-color:transparent}
+button{font:inherit;cursor:pointer;touch-action:manipulation}
+a{color:inherit;text-decoration:none}
+.app{max-width:1080px;margin:auto;padding:clamp(10px,2vw,22px);padding-top:max(12px,env(safe-area-inset-top));padding-bottom:max(16px,env(safe-area-inset-bottom))}
+header{display:flex;align-items:center;gap:12px;min-height:42px;margin-bottom:12px}
+.back{display:inline-flex;align-items:center;justify-content:center;background:#fff;border:1px solid var(--line);border-radius:12px;min-width:58px;padding:11px 13px;font-size:12px;font-weight:750}
+.brand{flex:1}.brand b{display:block;font-size:18px;letter-spacing:.06em}.brand small{font-size:10px;letter-spacing:.11em;color:#77938c}
+.motion-hint{font-size:11px;color:#7e9992;text-align:right}
+.case-border{padding:9px;border-radius:30px;background:linear-gradient(120deg,#fff,#c9ded6 38%,#fff 65%,#aac6bd);box-shadow:0 12px 32px #3e796426}
+.case{height:clamp(330px,58dvh,620px);position:relative;overflow:hidden;border-radius:23px;background:radial-gradient(ellipse at 50% 0%,#f5fffb,#d9ebe4 63%,#c1ddd3);box-shadow:inset 0 0 0 1px #98bbae,inset 0 10px 30px #47846e16;touch-action:none;overscroll-behavior:contain;user-select:none}
+canvas{width:100%;height:100%;display:block;touch-action:none}
+.glare{pointer-events:none;position:absolute;left:6%;right:6%;top:3%;height:40%;border-radius:38%;background:linear-gradient(#ffffff58,transparent)}
+.pill{pointer-events:none;position:absolute;top:13px;left:14px;background:#ffffffcb;border-radius:40px;padding:8px 11px;font-size:11px;font-weight:750;color:#51766b;box-shadow:0 3px 13px #5c8c7630}
+.count{left:auto;right:14px}
+.controls{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:14px;margin-top:17px;align-items:end}
+.label{font-size:11px;color:#7d9990;font-weight:800;letter-spacing:.09em;margin-bottom:8px}
+.palette,.actions{display:flex;gap:8px;flex-wrap:wrap}
+.choice{background:#fff;border:1px solid #d6e4de;color:#385d54;border-radius:14px;padding:9px 10px;min-width:77px;font-size:12px;font-weight:750}
+.choice[aria-pressed=true]{background:#d8ede4;border-color:#69a98e;box-shadow:0 0 0 2px #71ad9640}
+.gem{display:block;width:22px;height:22px;margin:0 auto 5px;border-radius:50%;box-shadow:inset -4px -5px 6px #0002,inset 3px 3px 5px #fffc,0 2px 5px #2f67572a}
+.gem.glass{background:linear-gradient(130deg,#dafef1,#58bfb7)}
+.gem.pearl{background:linear-gradient(130deg,#fff,#d1cbbb)}
+.gem.metal{background:linear-gradient(130deg,#fff5bf,#b98246)}
+.gem.star{border-radius:0;clip-path:polygon(50% 0,64% 33%,98% 35%,73% 58%,81% 93%,50% 75%,19% 93%,27% 58%,2% 35%,36% 33%);background:#b791c2}
+.gem.mix{background:conic-gradient(#7bc7b6 0 25%,#e7d6c6 25% 50%,#bf9251 50% 75%,#b791c2 75%)}
+.action{border:1px solid #cadfd4;color:#31584b;background:#fff;border-radius:13px;min-height:43px;padding:10px 13px;font-weight:750;font-size:12px}
+.action.primary{color:white;background:#326e58;border-color:#326e58}
+.action.on{background:#d6efdf;border-color:#73ad87}
+.action:active,.choice:active{transform:scale(.96)}
+footer{font-size:11px;color:#708d82;line-height:1.6;margin-top:11px;display:flex;justify-content:space-between;gap:10px}
+#status{flex:1}
+@media(max-width:760px){.controls{display:block}.actions{margin-top:14px}.palette{flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none}.choice{flex:1 0 70px}.actions .action{flex:1;padding:10px 8px;white-space:nowrap}.case{height:clamp(350px,55dvh,650px)}footer{flex-direction:column;gap:2px}}
+@media(max-width:390px){.action{font-size:11px}.motion-hint{display:none}}
+</style>
+</head>
+<body>
+<main class="app">
+<header><a class="back" href="../">‹ もどる</a><div class="brand"><b>BEAD CASE</b><small>ビーズケース / 物理あそび</small></div><div class="motion-hint">何も考えず、ただ遊ぼう。</div></header>
+<section class="case-border" aria-label="ビーズが動くケース">
+<div class="case" id="case"><canvas id="canvas" aria-label="タップでビーズを追加。指でなぞるとビーズが揺れます。">ブラウザのCanvasが必要です。</canvas><div class="glare"></div><div class="pill">↔ なぞって揺らす · タップで追加</div><div class="pill count" id="count">0 こ</div></div>
+</section>
+<section class="controls">
+<div><div class="label">01　ビーズをえらぶ</div><div class="palette" id="palette">
+<button type="button" class="choice" data-type="glass" aria-pressed="false"><i class="gem glass"></i>ガラス</button>
+<button type="button" class="choice" data-type="pearl" aria-pressed="false"><i class="gem pearl"></i>パール</button>
+<button type="button" class="choice" data-type="metal" aria-pressed="false"><i class="gem metal"></i>メタル</button>
+<button type="button" class="choice" data-type="star" aria-pressed="false"><i class="gem star"></i>ほし</button>
+<button type="button" class="choice" data-type="mix" aria-pressed="true"><i class="gem mix"></i>ミックス</button>
+</div></div>
+<div><div class="label">02　あそぶ</div><div class="actions">
+<button type="button" class="action primary" id="add">＋ 12こ</button>
+<button type="button" class="action" id="shake">↝ ふる</button>
+<button type="button" class="action" id="tilt" aria-pressed="false">◎ かたむき OFF</button>
+<button type="button" class="action" id="clear">からにする</button>
+</div></div>
+</section>
+<footer><span id="status" role="status" aria-live="polite">タップ・スワイプ・「ふる」はそのまま使えます。端末を傾けるには「かたむき」をONにしてください。</span><span>For My Sons · 音なし · 2D</span></footer>
+</main>
+<script>
+(function(){
+'use strict';
+var box=document.getElementById('case'),canvas=document.getElementById('canvas'),ctx=canvas.getContext('2d');
+var count=document.getElementById('count'),status=document.getElementById('status'),tiltButton=document.getElementById('tilt');
+if(!ctx){status.textContent='このブラウザではCanvasが使えません';return;}
+var W=360,H=420,dpr=1,beads=[],selected='mix',tiltOn=false,hasTilt=false,gravityX=0,gravityY=720,lastKick=0;
+var max=155;
+var TYPES={glass:{r:9,m:1,e:.55,colors:['#7cc9bb','#83c5d3','#9dd2b9']},pearl:{r:11,m:1.3,e:.32,colors:['#f3e7dc','#e1e8d9','#f2ead2']},metal:{r:8,m:2.8,e:.35,colors:['#c99b53','#d7ba78','#b6aaa3']},star:{r:12,m:.8,e:.46,colors:['#bc99ca','#bfa4b9','#a1add9']}};
+function rnd(a,b){return a+Math.random()*(b-a)}
+function lim(v,a,b){return Math.max(a,Math.min(b,v))}
+function size(){
+ var r=box.getBoundingClientRect(),ow=W,oh=H;
+ W=Math.max(100,r.width);H=Math.max(170,r.height);dpr=Math.min(2,window.devicePixelRatio||1);
+ canvas.width=Math.round(W*dpr);canvas.height=Math.round(H*dpr);ctx.setTransform(dpr,0,0,dpr,0,0);
+ beads.forEach(function(b){b.x=lim(b.x*W/ow,b.r+12,W-b.r-12);b.y=lim(b.y*H/oh,b.r+12,H-b.r-12)});
+}
+window.addEventListener('resize',size);if(window.ResizeObserver){new ResizeObserver(size).observe(box);}size();
+function add(type,x,y){
+ if(beads.length>=max)return;
+ if(type==='mix'){type=['glass','pearl','metal','star'][Math.floor(rnd(0,4))];}
+ var p=TYPES[type],r=p.r*rnd(.82,1.12),edge=r+12;
+ beads.push({type:type,r:r,m:p.m*r*r/100,e:p.e,x:lim(x,edge,W-edge),y:lim(y,edge,H-edge),vx:rnd(-75,75),vy:rnd(-60,40),rot:rnd(0,Math.PI*2),spin:rnd(-2,2),color:p.colors[Math.floor(rnd(0,p.colors.length))]});
+ count.textContent=beads.length+' こ';
+}
+function many(n){for(var i=0;i<n&&beads.length<max;i++){add(selected,rnd(28,W-28),rnd(25,Math.max(40,H*.35)));}}
+function impulse(x,y,noise){
+ for(var i=0;i<beads.length;i++){var b=beads[i],s=1/Math.sqrt(b.m);
+ b.vx+=(x+(noise?rnd(-170,170):0))*s;
+ b.vy+=(y+(noise?rnd(-170,170):0))*s;
+ b.spin+=rnd(-2,2);}
+}
+function walls(b){
+ var a=12+b.r,z=W-12-b.r,t=12+b.r,q=H-12-b.r;
+ if(b.x<a){b.x=a;b.vx=Math.abs(b.vx)*b.e;b.vy*=.93;}
+ if(b.x>z){b.x=z;b.vx=-Math.abs(b.vx)*b.e;b.vy*=.93;}
+ if(b.y<t){b.y=t;b.vy=Math.abs(b.vy)*b.e;}
+ if(b.y>q){b.y=q;b.vy=-Math.abs(b.vy)*b.e*.68;b.vx*=.96;if(Math.abs(b.vy)<28)b.vy=0;}
+}
+function step(dt){
+ var sub=dt/2;
+ for(var k=0;k<2;k++){
+  var gx=hasTilt?gravityX:0,gy=hasTilt?gravityY:720;
+  for(var i=0;i<beads.length;i++){
+   var b=beads[i];b.vx=lim((b.vx+gx*sub)*.999,-1700,1700);b.vy=lim((b.vy+gy*sub)*.999,-1700,1700);
+   b.x+=b.vx*sub;b.y+=b.vy*sub;b.rot+=b.spin*sub;walls(b);
+  }
+  for(var a=0;a<beads.length;a++)for(var c=a+1;c<beads.length;c++){
+   var u=beads[a],v=beads[c],dx=v.x-u.x,dy=v.y-u.y,rs=u.r+v.r,d2=dx*dx+dy*dy;
+   if(d2>=rs*rs)continue;
+   var d=Math.sqrt(d2),nx=d>.001?dx/d:1,ny=d>.001?dy/d:0,ia=1/u.m,ib=1/v.m,den=ia+ib;
+   var move=Math.max(rs-d-.01,0)*.77/den;
+   u.x-=nx*move*ia;u.y-=ny*move*ia;v.x+=nx*move*ib;v.y+=ny*move*ib;
+   var rel=(v.vx-u.vx)*nx+(v.vy-u.vy)*ny;
+   if(rel<0){var imp=-(1+Math.min(u.e,v.e))*rel/den;u.vx-=imp*nx*ia;u.vy-=imp*ny*ia;v.vx+=imp*nx*ib;v.vy+=imp*ny*ib;}
+  }
+ }
+}
+function starPath(r){
+ ctx.beginPath();
+ for(var j=0;j<10;j++){var angle=j*Math.PI/5-Math.PI/2,rad=j%2?r*.53:r,x=Math.cos(angle)*rad,y=Math.sin(angle)*rad;if(j===0)ctx.moveTo(x,y);else ctx.lineTo(x,y);}
+ ctx.closePath();
+}
+function paint(b){
+ ctx.save();ctx.translate(b.x,b.y);
+ ctx.fillStyle='#41685824';ctx.beginPath();ctx.ellipse(2,b.r*.47,b.r*.78,b.r*.4,0,0,Math.PI*2);ctx.fill();
+ if(b.type==='star')ctx.rotate(b.rot);
+ var g=ctx.createRadialGradient(-b.r*.45,-b.r*.46,1,b.r*.13,b.r*.13,b.r*1.2);
+ if(b.type==='glass'){g.addColorStop(0,'#ffffff');g.addColorStop(.22,b.color);g.addColorStop(.82,b.color);g.addColorStop(1,'#4d8c84');}
+ if(b.type==='pearl'){g.addColorStop(0,'#ffffff');g.addColorStop(.45,b.color);g.addColorStop(1,'#b2ae9f');}
+ if(b.type==='metal'){g.addColorStop(0,'#fff9d3');g.addColorStop(.4,b.color);g.addColorStop(1,'#82623b');}
+ if(b.type==='star'){g.addColorStop(0,'#ffdaf4');g.addColorStop(.55,b.color);g.addColorStop(1,'#806a98');}
+ ctx.fillStyle=g;
+ if(b.type==='star')starPath(b.r);else{ctx.beginPath();ctx.arc(0,0,b.r,0,Math.PI*2);}
+ ctx.fill();ctx.lineWidth=.7;ctx.strokeStyle='#47756846';ctx.stroke();
+ ctx.fillStyle='#ffffffe0';ctx.beginPath();ctx.ellipse(-b.r*.37,-b.r*.37,b.r*.24,b.r*.13,-.45,0,Math.PI*2);ctx.fill();
+ ctx.restore();
+}
+function render(){
+ ctx.clearRect(0,0,W,H);ctx.fillStyle='#7fb2a51a';
+ for(var x=30;x<W;x+=30)for(var y=30;y<H;y+=30){ctx.beginPath();ctx.arc(x,y,.9,0,Math.PI*2);ctx.fill();}
+ beads.forEach(paint);ctx.strokeStyle='#ffffff9c';ctx.lineWidth=2;ctx.strokeRect(5,5,W-10,H-10);
+}
+var last=performance.now();
+function frame(now){var dt=lim((now-last)/1000,0,.034);last=now;step(dt);render();requestAnimationFrame(frame);}
+document.getElementById('palette').addEventListener('click',function(e){
+ var b=e.target.closest('[data-type]');if(!b)return;selected=b.getAttribute('data-type');
+ document.querySelectorAll('[data-type]').forEach(function(el){el.setAttribute('aria-pressed',el===b?'true':'false');});
+});
+document.getElementById('add').addEventListener('click',function(){many(12);});
+document.getElementById('shake').addEventListener('click',function(){impulse(rnd(-430,430),-rnd(300,720),true);});
+document.getElementById('clear').addEventListener('click',function(){beads.length=0;count.textContent='0 こ';});
+var pointer=null;
+canvas.addEventListener('pointerdown',function(e){e.preventDefault();if(canvas.setPointerCapture)canvas.setPointerCapture(e.pointerId);pointer={id:e.pointerId,x:e.clientX,y:e.clientY,startX:e.clientX,startY:e.clientY,travel:0};});
+canvas.addEventListener('pointermove',function(e){if(!pointer||pointer.id!==e.pointerId)return;e.preventDefault();var dx=e.clientX-pointer.x,dy=e.clientY-pointer.y;pointer.x=e.clientX;pointer.y=e.clientY;pointer.travel+=Math.hypot(dx,dy);if(Math.hypot(dx,dy)>1.2)impulse(-lim(dx,-32,32)*6,-lim(dy,-32,32)*6,false);});
+canvas.addEventListener('pointerup',function(e){if(!pointer||pointer.id!==e.pointerId)return;if(pointer.travel<11){var rect=canvas.getBoundingClientRect();add(selected,e.clientX-rect.left,e.clientY-rect.top);}pointer=null;});
+canvas.addEventListener('pointercancel',function(){pointer=null;});
+function orient(e){
+ if(!tiltOn||e.beta==null||e.gamma==null)return;
+ hasTilt=true;var r=Math.PI/180,gx=Math.sin(lim(e.gamma,-90,90)*r)*920,gy=Math.cos(lim(e.beta,-180,180)*r)*710;
+ var angle=window.screen&&screen.orientation?screen.orientation.angle:(typeof window.orientation==='number'?window.orientation:0);
+ if(angle===90){var q=gx;gx=-gy;gy=q;}else if(angle===-90||angle===270){var p=gx;gx=gy;gy=-p;}else if(angle===180){gx=-gx;gy=-gy;}
+ gravityX=gx;gravityY=gy;status.textContent='傾きで動かしています。端末をやさしく振ってみてね。';
+}
+function moving(e){
+ if(!tiltOn||!e.acceleration)return;var now=performance.now();if(now-lastKick<100)return;
+ var a=e.acceleration,ax=a.x||0,ay=a.y||0,az=a.z||0;
+ if(Math.hypot(ax,ay,az)<3)return;lastKick=now;impulse(lim(-ax*36,-550,550),lim(ay*36,-550,550),true);
+}
+tiltButton.addEventListener('click',async function(){
+ if(tiltOn){tiltOn=false;hasTilt=false;window.removeEventListener('deviceorientation',orient);window.removeEventListener('devicemotion',moving);tiltButton.classList.remove('on');tiltButton.setAttribute('aria-pressed','false');tiltButton.textContent='◎ かたむき OFF';status.textContent='指でなぞる・ふるボタンで遊べます。';return;}
+ try{
+  var req=[];
+  if(typeof DeviceOrientationEvent!=='undefined'&&typeof DeviceOrientationEvent.requestPermission==='function')req.push(DeviceOrientationEvent.requestPermission());
+  if(typeof DeviceMotionEvent!=='undefined'&&typeof DeviceMotionEvent.requestPermission==='function')req.push(DeviceMotionEvent.requestPermission());
+  var result=await Promise.all(req);if(result.some(function(x){return x!=='granted';}))throw Error('センサーの許可がありません');
+  if(!('DeviceOrientationEvent' in window)&&!('DeviceMotionEvent' in window))throw Error('センサー非対応');
+  tiltOn=true;hasTilt=false;tiltButton.classList.add('on');tiltButton.setAttribute('aria-pressed','true');tiltButton.textContent='◎ かたむき ON';
+  window.addEventListener('deviceorientation',orient);window.addEventListener('devicemotion',moving);
+  status.textContent='センサーを待っています。傾けるか、軽く振ってください。';
+  setTimeout(function(){if(tiltOn&&!hasTilt)status.textContent='傾きが受信できません。スワイプと「ふる」ボタンは使えます。';},2500);
+ }catch(err){status.textContent='傾きは使えません（'+err.message+'）。指で揺らして遊べます。';}
+});
+many(38);requestAnimationFrame(frame);
+})();
+</script>
+</body></html>
