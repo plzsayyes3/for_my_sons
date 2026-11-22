@@ -1,6 +1,6 @@
-const CACHE_NAME = 'for-my-sons-v140';
+const CACHE_NAME = 'for-my-sons-v141';
 const SHELL = [
-  './bead-case/?v=1',
+  './bead-case/?v=2',
   './bead-case/index.html',
   './assets/bead-case.svg?v=1',
   './light-synth/?v=2',
