@@ -1,5 +1,8 @@
-const CACHE_NAME = 'for-my-sons-v139';
+const CACHE_NAME = 'for-my-sons-v140';
 const SHELL = [
+  './bead-case/?v=1',
+  './bead-case/index.html',
+  './assets/bead-case.svg?v=1',
   './light-synth/?v=2',
   './light-synth/index.html',
   './light-synth/style.css?v=2',
