@@ -74,7 +74,7 @@ test('bead-case uses flat-plane gravity, device tilt, and display rotation', asy
   const code=match[1].replace('many(38);requestAnimationFrame(frame);',
     'window.__inspectGravity=function(){return {x:gravityX,y:gravityY,ready:motionGravityReady,on:tiltOn,hasTilt:hasTilt};};window.__beads=beads;window.__step=step;many(38);requestAnimationFrame(frame);');
   const handlers={},sensorHandlers={},nodes=new Map(),noOp=()=>{};
-  for(const id of ['case','canvas','count','status','tilt','palette','add','shake','clear']){
+  for(const id of ['case','canvas','count','status','tilt','level','tilt-readout','palette','add','shake','clear']){
     nodes.set(id,{
       textContent:'',classList:{add(){},remove(){}},setAttribute(){},
       getBoundingClientRect(){return {width:520,height:540,left:0,top:0};},
