@@ -11,7 +11,7 @@ test('bead-case starts, renders, adds, shakes and clears without external depend
 
   const events = {};
   const nodes = new Map();
-  const ids = ['case', 'canvas', 'count', 'status', 'tilt', 'palette', 'add', 'shake', 'clear'];
+  const ids = ['case', 'canvas', 'count', 'status', 'tilt', 'level', 'tilt-readout', 'palette', 'add', 'shake', 'clear'];
   for (const id of ids) {
     nodes.set(id, {
       textContent: '',
@@ -59,11 +59,11 @@ test('bead-case starts, renders, adds, shakes and clears without external depend
 test('bead-case is listed and offline-cached', () => {
   const apps = JSON.parse(fs.readFileSync('apps.json', 'utf8'));
   const app = apps.find(a => a.id === 'bead-case');
-  assert.equal(app.url, './bead-case/?v=2');
+  assert.equal(app.url, './bead-case/?v=3');
   assert.equal(app.category, 'create');
   assert.ok(fs.existsSync('assets/bead-case.svg'));
   const sw = fs.readFileSync('service-worker.js', 'utf8');
-  assert.match(sw, /\.\/bead-case\/\?v=1/);
+  assert.match(sw, /\.\/bead-case\/\?v=3/);
   assert.match(sw, /\.\/assets\/bead-case\.svg\?v=1/);
 });
 
@@ -72,7 +72,7 @@ test('bead-case uses flat-plane gravity, device tilt, and display rotation', asy
   const match=html.match(/<script>([\s\S]*?)<\/script>/);
   assert.ok(match);
   const code=match[1].replace('many(38);requestAnimationFrame(frame);',
-    'window.__inspectGravity=function(){return {x:gravityX,y:gravityY,ready:motionGravityReady,on:tiltOn,hasTilt:hasTilt};};many(38);requestAnimationFrame(frame);');
+    'window.__inspectGravity=function(){return {x:gravityX,y:gravityY,ready:motionGravityReady,on:tiltOn,hasTilt:hasTilt};};window.__beads=beads;window.__step=step;many(38);requestAnimationFrame(frame);');
   const handlers={},sensorHandlers={},nodes=new Map(),noOp=()=>{};
   for(const id of ['case','canvas','count','status','tilt','palette','add','shake','clear']){
     nodes.set(id,{
@@ -101,6 +101,12 @@ test('bead-case uses flat-plane gravity, device tilt, and display rotation', asy
     DeviceMotionEvent:permitted,DeviceOrientationEvent:permitted
   });
   const inspect=()=>fakeWindow.__inspectGravity();
+  // Even without sensor permission, the simulation now uses a level surface.
+  const beads=fakeWindow.__beads;
+  beads.length=0;
+  beads.push({x:260,y:200,r:10,m:1,e:.5,vx:0,vy:0,rot:0,spin:0,type:'glass',color:'#fff'});
+  fakeWindow.__step(.1);
+  assert.equal(beads[0].y,200,'disabled tilt must not apply downward gravity');
   await handlers['tilt:click']();
   assert.equal(inspect().on,true);
   sensorHandlers.deviceorientation({beta:0,gamma:0});
@@ -128,6 +134,20 @@ test('bead-case uses flat-plane gravity, device tilt, and display rotation', asy
   });
   assert.ok(inspect().x < -500,'landscape screen rotation maps device y into screen x');
   assert.equal(inspect().y,0);
+  // On a nominally level surface, the calibration stores a small sensor bias.
+  fakeWindow.screen.orientation.angle=0;
+  sensorHandlers.devicemotion({
+    accelerationIncludingGravity:{x:-0.7,y:0.3,z:9.78},
+    acceleration:{x:0,y:0,z:0}
+  });
+  handlers['level:click']();
+  assert.match(nodes.get('tilt-readout').textContent,/補正済み/);
+  sensorHandlers.devicemotion({
+    accelerationIncludingGravity:{x:-0.7,y:0.3,z:9.78},
+    acceleration:{x:0,y:0,z:0}
+  });
+  assert.equal(inspect().x,0);
+  assert.equal(inspect().y,0,'horizontal calibration must suppress sensor offset');
   await handlers['tilt:click']();
   assert.equal(inspect().on,false);
   assert.equal(inspect().ready,false);
